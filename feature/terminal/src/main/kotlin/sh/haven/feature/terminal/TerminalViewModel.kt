@@ -520,6 +520,10 @@ class TerminalViewModel @Inject constructor(
             }
         }
         trackedSessionIds.clear()
+        // Cancel any pending mosh reconnect jobs (viewModelScope is already
+        // cancelled by the framework, but clear the tracking maps too).
+        moshReconnectJobs.clear()
+        moshReconnectingFlows.clear()
     }
 
     private fun createRecorderIfEnabled(sessionId: String): TerminalRecorder? {
@@ -917,6 +921,21 @@ class TerminalViewModel @Inject constructor(
 
     private val trackedSessionIds = mutableSetOf<String>()
 
+    /**
+     * Mosh auto-reconnect state. When a mosh session's UDP transport gives
+     * up (DISCONNECTED, unclean exit), we keep the tab alive with a
+     * "Reconnecting…" overlay and retry [reconnectTerminalSession] with
+     * exponential backoff until success or the user manually closes the tab.
+     *
+     * [#365 review point 1]
+     */
+    private val moshReconnectingFlows = mutableMapOf<String, MutableStateFlow<Boolean>>()
+    private val moshReconnectJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
+
+    /** Exponential backoff schedule for mosh reconnect attempts (seconds). */
+    private val moshReconnectBackoff = longArrayOf(1_000, 2_000, 4_000, 8_000, 16_000, 30_000)
+    private const val MOSH_RECONNECT_MAX_DELAY = 30_000L
+
     init {
         // React to session state changes (e.g., "Disconnect All" from notification)
         // even when the TerminalScreen isn't actively composing.
@@ -980,10 +999,15 @@ class TerminalViewModel @Inject constructor(
             .map { it.sessionId }
             .toSet()
 
-        // Find Mosh sessions that are connected
+        // Find Mosh sessions that are connected, OR disconnected but
+        // eligible for auto-reconnect (unclean exit — server still alive).
+        // Keeping DISCONNECTED-reconnectable sessions in this set prevents
+        // the tab-removal pass below from killing the tab while we retry.
         val activeMoshIds = moshSessions.values
             .filter {
-                it.status == MoshSessionManager.SessionState.Status.CONNECTED
+                it.status == MoshSessionManager.SessionState.Status.CONNECTED ||
+                    (it.status == MoshSessionManager.SessionState.Status.DISCONNECTED &&
+                        moshSessionManager.isEligibleForReconnect(it.sessionId))
             }
             .map { it.sessionId }
             .toSet()
@@ -1015,8 +1039,10 @@ class TerminalViewModel @Inject constructor(
                     sshSessions[tab.sessionId]?.terminalSession == null
                 "RETICULUM" -> tab.sessionId !in activeRnsIds ||
                     rnsSessions[tab.sessionId]?.reticulumSession == null
-                "MOSH" -> tab.sessionId !in activeMoshIds ||
-                    moshSessions[tab.sessionId]?.moshSession == null
+                // Keep DISCONNECTED mosh tabs alive while auto-reconnect is
+                // in progress — the tab shows a "Reconnecting…" overlay
+                // instead of being torn down (#365 review point 1).
+                "MOSH" -> tab.sessionId !in activeMoshIds
                 "ET" -> tab.sessionId !in activeEtIds ||
                     etSessions[tab.sessionId]?.etSession == null
                 "LOCAL" -> tab.sessionId !in activeLocalIds ||
@@ -1026,6 +1052,33 @@ class TerminalViewModel @Inject constructor(
         }
         if (removed) {
             trackedSessionIds.retainAll(currentTabs.map { it.sessionId }.toSet())
+        }
+
+        // --- Mosh auto-reconnect (#365 review point 1) ---
+        // For each mosh session that is DISCONNECTED and eligible for
+        // reconnect, flip the tab's isReconnecting flow to true (so the
+        // overlay shows) and launch the backoff reconnect loop if not
+        // already running.  Clean up reconnect state for sessions that
+        // are no longer eligible (reconnected, clean-exited, or removed).
+        for ((sessionId, moshState) in moshSessions) {
+            if (moshState.status == MoshSessionManager.SessionState.Status.DISCONNECTED &&
+                moshSessionManager.isEligibleForReconnect(sessionId)
+            ) {
+                // Ensure a reconnecting flow exists and is set to true
+                val flow = moshReconnectingFlows.getOrPut(sessionId) {
+                    MutableStateFlow(false)
+                }
+                if (!flow.value) {
+                    Log.d(TAG, "Mosh session $sessionId disconnected — starting auto-reconnect")
+                    flow.value = true
+                }
+                // Launch reconnect loop if not already running
+                if (sessionId !in moshReconnectJobs || moshReconnectJobs[sessionId]?.isActive != true) {
+                    moshReconnectJobs[sessionId] = viewModelScope.launch {
+                        attemptMoshReconnect(sessionId)
+                    }
+                }
+            }
         }
 
         // Adopt SSH emulators created at connect time by SshTerminalEmulatorOwner
@@ -1268,7 +1321,9 @@ class TerminalViewModel @Inject constructor(
                     feedOutput = moshFeedOutput,
                     cwd = moshCwdFlow,
                     hyperlinkUri = moshHyperlinkFlow,
-                    isReconnecting = MutableStateFlow(false),
+                    isReconnecting = moshReconnectingFlows.getOrPut(session.sessionId) {
+                        MutableStateFlow(false)
+                    },
                     secondsUntilDisconnect = moshSession.secondsUntilDisconnect,
                     sendInput = { data -> moshSession.sendInput(data) },
                     resize = { cols, rows -> moshSession.resize(cols, rows) },
@@ -1697,6 +1752,124 @@ class TerminalViewModel @Inject constructor(
     }
 
     /**
+     * Auto-reconnect a DISCONNECTED mosh session with exponential backoff.
+     *
+     * Retries [MoshSessionManager.reconnectTerminalSession] on the schedule
+     * [moshReconnectBackoff] (1s, 2s, 4s, 8s, 16s, 30s, then 30s) until:
+     * - The session reconnects successfully (status → CONNECTED), or
+     * - The user manually closes the tab (session removed), or
+     * - The session is no longer eligible (e.g. clean exit), or
+     * - The coroutine is cancelled.
+     *
+     * On success, the existing tab is updated in-place with the new
+     * MoshSession's sendInput/resize/close/secondsUntilDisconnect, so the
+     * user's terminal scrollback and emulator state are preserved.
+     *
+     * [#365 review point 1]
+     */
+    private suspend fun attemptMoshReconnect(sessionId: String) {
+        var attempt = 0
+        while (true) {
+            // Bail if the session was removed (user closed tab) or is no
+            // longer eligible for reconnect (e.g. clean exit).
+            val session = moshSessionManager.sessions.value[sessionId]
+            if (session == null) {
+                Log.d(TAG, "Mosh reconnect: session $sessionId gone, stopping")
+                cleanupMoshReconnectState(sessionId)
+                return
+            }
+            if (!moshSessionManager.isEligibleForReconnect(sessionId)) {
+                Log.d(TAG, "Mosh reconnect: session $sessionId no longer eligible " +
+                    "(status=${session.status}, cleanExit=${session.cleanExit}), stopping")
+                cleanupMoshReconnectState(sessionId)
+                return
+            }
+
+            val delayMs = if (attempt < moshReconnectBackoff.size) {
+                moshReconnectBackoff[attempt]
+            } else {
+                MOSH_RECONNECT_MAX_DELAY
+            }
+            Log.d(TAG, "Mosh reconnect: attempt ${attempt + 1} for $sessionId " +
+                "after ${delayMs}ms backoff")
+            kotlinx.coroutines.delay(delayMs)
+
+            // Check again after the delay — the user may have closed the tab.
+            if (moshSessionManager.sessions.value[sessionId] == null) {
+                Log.d(TAG, "Mosh reconnect: session $sessionId removed during backoff")
+                cleanupMoshReconnectState(sessionId)
+                return
+            }
+
+            // Attempt the reconnect.  We need to pass an onDataReceived
+            // callback that feeds the EXISTING tab's emulator pipeline.
+            // Look up the tab to get its feedOutput lambda.
+            val tab = _tabs.value.firstOrNull { it.sessionId == sessionId }
+            if (tab == null) {
+                Log.d(TAG, "Mosh reconnect: tab for $sessionId gone, stopping")
+                cleanupMoshReconnectState(sessionId)
+                return
+            }
+
+            val reconnected = moshSessionManager.reconnectTerminalSession(
+                sessionId = sessionId,
+                onDataReceived = { data, offset, length ->
+                    tab.feedOutput(data, offset, length)
+                },
+            )
+
+            if (reconnected != null) {
+                Log.d(TAG, "Mosh reconnect: success for $sessionId on attempt ${attempt + 1}")
+                // Update the existing tab in-place with the new session's
+                // transport handles.  The emulator, OSC handler, mouse
+                // tracker, and scrollback are all preserved.
+                updateMoshTabWithReconnectedSession(sessionId, reconnected)
+                moshReconnectingFlows[sessionId]?.value = false
+                moshReconnectJobs.remove(sessionId)
+                return
+            }
+
+            Log.d(TAG, "Mosh reconnect: attempt ${attempt + 1} failed for $sessionId, will retry")
+            attempt++
+        }
+    }
+
+    /**
+     * Replace the transport-level lambdas on an existing mosh tab so they
+     * point at the newly reconnected [MoshSession], without recreating the
+     * emulator or losing scrollback.
+     */
+    private fun updateMoshTabWithReconnectedSession(
+        sessionId: String,
+        newSession: sh.haven.core.mosh.MoshSession,
+    ) {
+        val tabs = _tabs.value.toMutableList()
+        val index = tabs.indexOfFirst { it.sessionId == sessionId && it.transportType == "MOSH" }
+        if (index < 0) {
+            Log.w(TAG, "updateMoshTabWithReconnectedSession: tab $sessionId not found")
+            return
+        }
+        val old = tabs[index]
+        tabs[index] = old.copy(
+            isReconnecting = moshReconnectingFlows.getOrPut(sessionId) { MutableStateFlow(false) },
+            secondsUntilDisconnect = newSession.secondsUntilDisconnect,
+            sendInput = { data -> newSession.sendInput(data) },
+            resize = { cols, rows -> newSession.resize(cols, rows) },
+            close = { newSession.close() },
+        )
+        _tabs.value = tabs
+    }
+
+    /**
+     * Clean up reconnect state (flows + job tracking) for a session that
+     * is no longer being reconnected.
+     */
+    private fun cleanupMoshReconnectState(sessionId: String) {
+        moshReconnectingFlows[sessionId]?.value = false
+        moshReconnectJobs.remove(sessionId)
+    }
+
+    /**
      * Generate a tab label using the session name when available.
      * Falls back to connection label with numeric suffix for duplicates.
      */
@@ -1797,6 +1970,11 @@ class TerminalViewModel @Inject constructor(
     }
 
     private fun removeTabAndSync(sessionId: String) {
+        // Cancel any in-flight mosh auto-reconnect for this session
+        // (#365 review point 1 — user manually closed the tab).
+        moshReconnectJobs.remove(sessionId)?.cancel()
+        moshReconnectingFlows.remove(sessionId)
+
         if (sessionManager.sessions.value.containsKey(sessionId)) {
             sessionManager.removeSession(sessionId)
         } else if (moshSessionManager.sessions.value.containsKey(sessionId)) {
@@ -1827,6 +2005,15 @@ class TerminalViewModel @Inject constructor(
     }
 
     private fun removeAllForProfileAndSync(profileId: String) {
+        // Cancel in-flight mosh auto-reconnects for all sessions of this profile
+        // (#365 review point 1 — profile disconnect kills all tabs).
+        val profileSessionIds = moshSessionManager.getSessionsForProfile(profileId)
+            .map { it.sessionId }
+        profileSessionIds.forEach { sid ->
+            moshReconnectJobs.remove(sid)?.cancel()
+            moshReconnectingFlows.remove(sid)
+        }
+
         sessionManager.removeAllSessionsForProfile(profileId)
         reticulumSessionManager.removeAllSessionsForProfile(profileId)
         moshSessionManager.removeAllSessionsForProfile(profileId)

@@ -56,6 +56,18 @@ class MoshSessionManager @Inject constructor(
          * ConnectionProfile.moshSessionTimeoutSec × 1000.
          */
         val sessionDeadMs: Long? = null,
+        /**
+         * Set from the [MoshSession] onDisconnected callback: true when
+         * the server shut down cleanly (e.g. user typed `exit`), false
+         * when the UDP transport gave up after SESSION_DEAD_MS.
+         *
+         * Reconnect eligibility gates on `!cleanExit` — a clean exit
+         * means the server-side mosh-server is gone, so retrying would
+         * churn against a dead port. An unclean exit means the server
+         * is still alive (7-day TTL) and we can re-establish the UDP
+         * connection with the same key.
+         */
+        val cleanExit: Boolean = false,
     ) {
         enum class Status { CONNECTING, CONNECTED, DISCONNECTED, ERROR }
     }
@@ -176,14 +188,17 @@ class MoshSessionManager @Inject constructor(
                 // If cleanExit=true, the server shut down cleanly — no reconnect.
                 Log.d(TAG, "Mosh session $sessionId disconnected — " +
                     "clean=$cleanExit, server=${session.serverIp}:${session.moshPort}")
-                updateStatus(sessionId, SessionState.Status.DISCONNECTED)
-                // Null out old MoshSession reference so reconnectTerminalSession
-                // doesn't leak the old transport. The transport already called
-                // close() on itself before invoking this callback.
-                session.moshSession?.close()
+                // Read the CURRENT session state (not the stale snapshot
+                // captured before the MoshSession was created) so we close
+                // the right transport instance.
+                _sessions.value[sessionId]?.moshSession?.close()
                 _sessions.update { map ->
                     val existing = map[sessionId] ?: return@update map
-                    map + (sessionId to existing.copy(moshSession = null))
+                    map + (sessionId to existing.copy(
+                        status = SessionState.Status.DISCONNECTED,
+                        moshSession = null,
+                        cleanExit = cleanExit,
+                    ))
                 }
             },
             verboseBuffer = session.verboseBuffer,
@@ -210,6 +225,19 @@ class MoshSessionManager @Inject constructor(
                 session.status == SessionState.Status.DISCONNECTED) &&
             session.moshSession == null &&
             session.serverIp.isNotEmpty()
+    }
+
+    /**
+     * Whether a DISCONNECTED session is eligible for auto-reconnect:
+     * unclean exit (server still alive) and has valid connection params.
+     */
+    fun isEligibleForReconnect(sessionId: String): Boolean {
+        val session = _sessions.value[sessionId] ?: return false
+        return session.status == SessionState.Status.DISCONNECTED &&
+            !session.cleanExit &&
+            session.serverIp.isNotEmpty() &&
+            session.moshPort != 0 &&
+            session.moshKey.isNotEmpty()
     }
 
     /**
@@ -241,8 +269,23 @@ class MoshSessionManager @Inject constructor(
     ): MoshSession? {
         val session = _sessions.value[sessionId] ?: return null
         if (session.status != SessionState.Status.DISCONNECTED) return null
+        // Don't reconnect if the server shut down cleanly — the
+        // server-side mosh-server is gone and retrying would churn
+        // against a dead port (#365 review point 5).
+        if (session.cleanExit) {
+            Log.d(TAG, "Skipping reconnect for $sessionId: clean exit")
+            return null
+        }
         if (session.serverIp.isEmpty() || session.moshPort == 0 || session.moshKey.isEmpty()) {
             Log.w(TAG, "Cannot reconnect session $sessionId: missing connection params")
+            return null
+        }
+
+        // Guard against being called while a live session is still attached.
+        // The onDisconnected callback nulls moshSession before transitioning
+        // to DISCONNECTED, so a non-null value here means a race — bail out.
+        session.moshSession?.let { live ->
+            Log.w(TAG, "Cannot reconnect $sessionId: live session still attached")
             return null
         }
 
@@ -260,8 +303,21 @@ class MoshSessionManager @Inject constructor(
             onDataReceived = onDataReceived,
             onDisconnected = { cleanExit ->
                 Log.d(TAG, "Mosh session $sessionId reconnect lost (clean=$cleanExit)")
-                updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                // Read the CURRENT session state (not the stale snapshot)
+                // to close the right transport instance.
+                _sessions.value[sessionId]?.moshSession?.close()
+                _sessions.update { map ->
+                    val existing = map[sessionId] ?: return@update map
+                    map + (sessionId to existing.copy(
+                        status = SessionState.Status.DISCONNECTED,
+                        moshSession = null,
+                        cleanExit = cleanExit,
+                    ))
+                }
             },
+            // Carry the verbose buffer from the old session so reconnected
+            // sessions keep verbose transport logging (#365 review point 6).
+            verboseBuffer = session.verboseBuffer,
             socketProvider = session.socketProvider
                 ?: UdpSocketProvider { sh.haven.mosh.network.AndroidUdpAdapter() },
             sessionDeadMs = session.sessionDeadMs,
@@ -274,6 +330,11 @@ class MoshSessionManager @Inject constructor(
                 moshSession = moshSession,
             ))
         }
+
+        // Start the transport so the UDP socket opens and send/receive
+        // loops begin. Without this the session is dead on arrival
+        // (#365 review point 3).
+        moshSession.start()
 
         return moshSession
     }
