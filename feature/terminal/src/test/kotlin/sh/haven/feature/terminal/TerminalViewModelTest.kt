@@ -12,12 +12,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import sh.haven.core.et.EtSessionManager
@@ -94,34 +97,36 @@ class TerminalViewModelTest {
         }
         connectionRepository = mockk(relaxed = true)
         attachCoordinator = mockk(relaxed = true)
-        viewModel = TerminalViewModel(
-            mockk(relaxed = true),
-            sessionManager,
-            mockk(relaxed = true), // SshSessionAttacher
-            reticulumSessionManager,
-            moshSessionManager,
-            etSessionManager,
-            btSerialSessionManager,
-            bleSerialSessionManager,
-            usbSerialSessionManager,
-            mockk<sh.haven.core.usb.UsbBroker>(relaxed = true),
-            localSessionManager,
-            umlGuestManager,
-            mockk(relaxed = true), // HostKeyVerifier
-            mockk(relaxed = true), // FidoAuthenticator
-            mockk(relaxed = true), // UserPreferencesRepository
-            InlineImageConsentRegistry(),
-            connectionRepository,
-            mockk(relaxed = true), // TunnelResolver
-            sh.haven.core.data.agent.AgentUiCommandBus(),
-            sh.haven.core.data.message.UserMessageBus(),
-            attachCoordinator,
-            sh.haven.feature.terminal.agent.TerminalSessionRegistry(),
-            sshEmulatorOwner,
-            mockk(relaxed = true), // BarcodeDecoder
-            mockk(relaxed = true), // TextRecognizer
-        )
+        viewModel = newViewModel()
     }
+
+    private fun newViewModel(): TerminalViewModel = TerminalViewModel(
+        mockk(relaxed = true),
+        sessionManager,
+        mockk(relaxed = true), // SshSessionAttacher
+        reticulumSessionManager,
+        moshSessionManager,
+        etSessionManager,
+        btSerialSessionManager,
+        bleSerialSessionManager,
+        usbSerialSessionManager,
+        mockk<sh.haven.core.usb.UsbBroker>(relaxed = true),
+        localSessionManager,
+        umlGuestManager,
+        mockk(relaxed = true), // HostKeyVerifier
+        mockk(relaxed = true), // FidoAuthenticator
+        mockk(relaxed = true), // UserPreferencesRepository
+        InlineImageConsentRegistry(),
+        connectionRepository,
+        mockk(relaxed = true), // TunnelResolver
+        sh.haven.core.data.agent.AgentUiCommandBus(),
+        sh.haven.core.data.message.UserMessageBus(),
+        attachCoordinator,
+        sh.haven.feature.terminal.agent.TerminalSessionRegistry(),
+        sshEmulatorOwner,
+        mockk(relaxed = true), // BarcodeDecoder
+        mockk(relaxed = true), // TextRecognizer
+    )
 
     @After
     fun tearDown() {
@@ -143,6 +148,44 @@ class TerminalViewModelTest {
     fun `initially has no tabs`() {
         assertEquals(0, viewModel.tabs.value.size)
         assertEquals(0, viewModel.activeTabIndex.value)
+    }
+
+    // #688: v5.89.24 crashed on launch (NPE in TerminalViewModel.<init>).
+    // The #601 fix wrapped syncSessions() in syncMutex.withLock, but the
+    // mutex was declared AFTER the init block that launches the session
+    // collectors. viewModelScope is Dispatchers.Main.immediate, so a
+    // collector's first StateFlow emission runs syncSessions() synchronously
+    // inside the constructor - before Kotlin's declaration-order property
+    // initialiser assigns the Mutex - dereferencing a null syncMutex. The
+    // reporter's stack (HiltViewModelFactory.createViewModel -> <init> ->
+    // collect -> emit -> NPE) is exactly that synchronous path. The class
+    // harness pins Main to a StandardTestDispatcher, whose launch bodies are
+    // queued rather than run in the caller's stack, so no existing test ever
+    // executed a collector during construction. This test pins an eager
+    // (Unconfined) Main so the first emission runs the reconcile inside the
+    // constructor, reproducing the device path: pre-fix the NPE surfaces
+    // here, post-fix construction completes.
+    @Test
+    fun `constructing the view model with an eager main dispatcher does not crash`() {
+        val eager = UnconfinedTestDispatcher()
+        Dispatchers.setMain(eager)
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        var uncaught: Throwable? = null
+        Thread.setDefaultUncaughtExceptionHandler { _, t -> uncaught = t }
+        try {
+            val vm = try {
+                newViewModel()
+            } catch (t: Throwable) {
+                uncaught = uncaught ?: t
+                null
+            }
+            assertNull("constructing TerminalViewModel on an eager Main dispatcher crashed (#688)", uncaught)
+            assertNotNull(vm)
+            assertEquals(0, vm!!.tabs.value.size)
+        } finally {
+            Thread.setDefaultUncaughtExceptionHandler(previousHandler)
+            Dispatchers.setMain(testDispatcher)
+        }
     }
 
     // v5.89.0 bug, user-reported: Take photo / Send file from a LOCAL shell

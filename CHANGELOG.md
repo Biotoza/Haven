@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.25
+
+- **Fixed a crash on launch.** v5.89.24 could crash on startup with a null-pointer exception while building the terminal screen's view model. The lock added to serialise the session reconcile was declared after the block that starts the session watchers, and the first watcher fires while the view model is still being constructed — before the lock exists. The lock is now declared before the watchers start (#688).
+
 ## v5.89.24
 
 - **UML desktops start reliably.** A run of fixes to the UML guest desktop path, each from a device run that got further than the last: the guest's `/host` share is now mounted by the app before the desktop recipe runs (busybox init runs the inittab mount line without a shell, so its `&&`/`||` chain never fired and the recipe was never visible); the console-prompt wait strips ANSI before matching (busybox ash trails its prompt with an unanswered cursor query, so the wait never saw a prompt); the window manager is waited for before `xterm` launches (it mapped before openbox grabbed the WM, giving a black screen with a live cursor); Xvnc now fails fast with its log tail when it dies, and clears a stale display lock left by a torn-down run; sway gets a config without Xwayland (the guest has no Xwayland binary, so sway's default aborted); and wayvnc gets its address and port as separate arguments (it took them positionally and died resolving the combined string). A failed start also no longer leaves the guest holding the shared rootfs lock, which had made the next start panic in the guest kernel until the app was restarted (#686).
