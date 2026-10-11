@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.connectbot.terminal.TerminalEmulator
@@ -1430,7 +1432,25 @@ class TerminalViewModel @Inject constructor(
      * Sync tabs with session manager state.
      * Creates emulator + terminal session for new CONNECTED sessions.
      */
-    suspend fun syncSessions() {
+    /**
+     * Serialises the reconcile. syncSessions snapshots the session maps and
+     * then suspends at its profile batch, and nine collectors fire it on
+     * different emissions, so two passes interleave across that suspension:
+     * a pass whose snapshot predates a new CONNECTED session resumes with a
+     * stale activeIds set and its removal logic deletes the tab a concurrent
+     * pass just created — untracking it without detaching, which leaves the
+     * transport's terminal-session field non-null so every later pass skips
+     * the session as "connected but not ready" (#601: second Reticulum tab
+     * never appeared while the notification counted it). Holding the mutex
+     * across the whole function means every pass acts on a snapshot taken
+     * after the previous pass finished; queued passes re-snapshot on
+     * acquire, so the extra reconciles are idempotent.
+     */
+    private val syncMutex = Mutex()
+
+    suspend fun syncSessions() = syncMutex.withLock { reconcileSessions() }
+
+    private suspend fun reconcileSessions() {
         val sshSessions = sessionManager.sessions.value
         val rnsSessions = reticulumSessionManager.sessions.value
         val moshSessions = moshSessionManager.sessions.value
