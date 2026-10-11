@@ -181,6 +181,12 @@ class UmlDesktopManager @Inject constructor(
                 label = "UML ${kind.title} desktop",
                 extraEnv = listOf("PASST_TFWD=$port"),
             )
+            // Held for the whole life of the guest: stopDesktop closes
+            // through it when RUNNING, and fail() when the start dies.
+            // It used to never be written here, so both close paths had
+            // nothing to close and a failed start leaked the launcher
+            // holding the rootfs lock (#686).
+            sessionIds[kind] = sessionId
             try {
                 val console = startConsole(sessionId)
                     ?: throw IllegalStateException("guest console didn't come up")
@@ -352,12 +358,29 @@ class UmlDesktopManager @Inject constructor(
             it == UmlGuestManager.SessionState.Status.DISCONNECTED
         } ?: true
 
-    /** ERROR state with the cause line first and (when held) the console tail after. */
+    /**
+     * ERROR state with the cause line first and (when held) the console tail
+     * after. A guest that booted before failing must be torn down here: its
+     * launcher holds the advisory lock on the shared rootfs image, so the
+     * next Start panics in the guest kernel ("F_SETLK failed, file already
+     * locked by pid …") until the old process dies (#686). The tail is read
+     * before the close because closeGuest wipes the mirror; the close runs
+     * before the state is reported so a retry can't race the dying launcher.
+     * closeGuest is idempotent, so runInstall's finally-close is unaffected.
+     */
     private fun fail(kind: Kind, base: String, e: Exception?, sessionId: String?) {
         Log.e(TAG, base, e)
         val tail = sessionId?.let { guestManager.readAgentScrollback(it, 2_000) }
             // agentMirror rings are wiped by closeGuest; a removed session's
             // bytes are gone. The console tail is best-effort here.
+        if (sessionId != null) {
+            sessionIds.remove(kind)
+            try {
+                guestManager.closeGuest(sessionId)
+            } catch (ce: Exception) {
+                Log.w(TAG, "teardown after failed start did not complete", ce)
+            }
+        }
         update(kind) {
             it.copy(
                 status = DesktopState.Status.ERROR,
