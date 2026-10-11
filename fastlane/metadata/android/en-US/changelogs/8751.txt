@@ -1,0 +1,5 @@
+- UML desktops start reliably: fixed guest mount, console wait, window-manager race, Xvnc fail-fast and stale locks, sway config, wayvnc args; a failed start no longer wedges the next one (#686).
+- Desktop tab leads with one Start that names its backend (Quick UML / Full proot).
+- Typing into a VNC desktop keeps every character.
+- A second Reticulum session gets its tab (#601).
+- Screen-reader overlay no longer crashes on wide text.
