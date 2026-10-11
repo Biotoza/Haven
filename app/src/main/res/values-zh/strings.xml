@@ -163,7 +163,17 @@
     <string name="app_present_pip">画中画</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">本地 Linux 桌面</string>
+    <string name="app_desktop_manager_title">完整 Linux (proot)</string>
+    <string name="app_desktop_primary_title">Linux 桌面</string>
+    <string name="app_desktop_primary_subline_quick">约 4 秒就绪 · Alpine 应用 · 同一时间一个桌面</string>
+    <string name="app_desktop_primary_subline_full">任意发行版 · 6 个桌面 · 与其他应用并行运行</string>
+    <string name="app_desktop_primary_start_quick">启动 · 快速 (UML)</string>
+    <string name="app_desktop_primary_start_full">启动 · 完整 (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">改用完整 Linux</string>
+    <string name="app_desktop_primary_switch_to_quick">改用快速桌面</string>
+    <string name="app_desktop_primary_running">正在运行</string>
+    <string name="app_desktop_primary_chip_quick">快速 · %1$s</string>
+    <string name="app_desktop_primary_chip_full">完整 · %1$s</string>
     <string name="app_desktop_manager_description">在 Haven 内运行完整的 Linux 桌面。选择发行版，安装桌面环境（Xfce4、Openbox 或 Sway），然后点击启动——无需单独的服务器或连接。</string>
 
     <!-- App windows / installed-app launcher (#250) -->

@@ -92,6 +92,16 @@ class UserPreferencesRepository @Inject constructor(
     private val backupSyncPassphraseKey = stringPreferencesKey("backup_sync_passphrase")
     // Session command for the Custom (X11) desktop (#361).
     private val customDesktopCommandKey = stringPreferencesKey("custom_desktop_command")
+    // Which backend the Desktop screen's primary "Start" uses: "quick" (UML)
+    // or "full" (proot). Unset = never chosen (falls back to quick when the
+    // UML payload is present, else full). Set the moment the user starts a
+    // desktop or taps the switch link, so the choice is last-used, not a
+    // silent default flip for existing proot users.
+    private val primaryDesktopBackendKey = stringPreferencesKey("primary_desktop_backend")
+    // Last-started UML kind ("x11"/"wayland") and proot DE id, so the primary
+    // Start re-launches what the user actually used rather than a fixed one.
+    private val lastUmlKindKey = stringPreferencesKey("last_uml_kind")
+    private val lastProotDeKey = stringPreferencesKey("last_proot_de")
     private val mailAutomationEnabledKey = booleanPreferencesKey("mail_automation_enabled")
     private val mailDeleteToBinKey = booleanPreferencesKey("mail_delete_to_bin")
     private val tabVisibilityKey = stringPreferencesKey("tab_visibility")
@@ -507,6 +517,37 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setCustomDesktopCommand(command: String) {
         dataStore.edit { prefs -> prefs[customDesktopCommandKey] = command.trim() }
+    }
+
+    /**
+     * Which backend the Desktop screen's primary Start button drives —
+     * "quick" (the UML guest) or "full" (proot). Empty until the user has
+     * chosen; the UI then falls back by capability, not by assumption.
+     */
+    val primaryDesktopBackend: Flow<String> = dataStore.data.map { prefs ->
+        prefs[primaryDesktopBackendKey] ?: ""
+    }
+
+    suspend fun setPrimaryDesktopBackend(backend: String) {
+        dataStore.edit { prefs -> prefs[primaryDesktopBackendKey] = backend }
+    }
+
+    /** The last-started UML desktop kind ("x11"/"wayland"); empty if none. */
+    val lastUmlKind: Flow<String> = dataStore.data.map { prefs ->
+        prefs[lastUmlKindKey] ?: ""
+    }
+
+    suspend fun setLastUmlKind(kind: String) {
+        dataStore.edit { prefs -> prefs[lastUmlKindKey] = kind }
+    }
+
+    /** The last-started proot desktop's DE id; empty if none. */
+    val lastProotDe: Flow<String> = dataStore.data.map { prefs ->
+        prefs[lastProotDeKey] ?: ""
+    }
+
+    suspend fun setLastProotDe(deId: String) {
+        dataStore.edit { prefs -> prefs[lastProotDeKey] = deId }
     }
 
     /**

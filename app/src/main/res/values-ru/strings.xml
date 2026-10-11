@@ -169,7 +169,17 @@
     <string name="app_present_pip">Картинка в картинке</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">Локальный рабочий стол Linux</string>
+    <string name="app_desktop_manager_title">Полный Linux (proot)</string>
+    <string name="app_desktop_primary_title">Рабочий стол Linux</string>
+    <string name="app_desktop_primary_subline_quick">Готов примерно за 4 секунды · приложения Alpine · один рабочий стол за раз</string>
+    <string name="app_desktop_primary_subline_full">Любой дистрибутив · 6 рабочих столов · работает вместе с другими приложениями</string>
+    <string name="app_desktop_primary_start_quick">Запустить · Быстрый (UML)</string>
+    <string name="app_desktop_primary_start_full">Запустить · Полный (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">Вместо этого использовать полный Linux</string>
+    <string name="app_desktop_primary_switch_to_quick">Вместо этого использовать быстрый рабочий стол</string>
+    <string name="app_desktop_primary_running">Запущено</string>
+    <string name="app_desktop_primary_chip_quick">Быстрый · %1$s</string>
+    <string name="app_desktop_primary_chip_full">Полный · %1$s</string>
     <string name="app_desktop_manager_description">Запустите полноценный рабочий стол Linux внутри Haven. Выберите дистрибутив, установите среду рабочего стола (Xfce4, Openbox или Sway), затем нажмите «Запустить» — отдельный сервер или подключение не нужны.</string>
 
     <!-- App windows / installed-app launcher (#250) -->

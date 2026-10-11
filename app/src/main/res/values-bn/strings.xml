@@ -163,7 +163,17 @@
     <string name="app_present_pip">ছবির মধ্যে ছবি</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">স্থানীয় Linux ডেস্কটপ</string>
+    <string name="app_desktop_manager_title">সম্পূর্ণ Linux (proot)</string>
+    <string name="app_desktop_primary_title">Linux ডেস্কটপ</string>
+    <string name="app_desktop_primary_subline_quick">প্রায় ৪ সেকেন্ডে প্রস্তুত · Alpine অ্যাপ · একবারে একটি ডেস্কটপ</string>
+    <string name="app_desktop_primary_subline_full">যেকোনো ডিস্ট্রো · ৬টি ডেস্কটপ · আপনার অন্য অ্যাপের পাশাপাশি চলে</string>
+    <string name="app_desktop_primary_start_quick">শুরু · দ্রুত (UML)</string>
+    <string name="app_desktop_primary_start_full">শুরু · পূর্ণ (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">পরিবর্তে সম্পূর্ণ Linux ব্যবহার করুন</string>
+    <string name="app_desktop_primary_switch_to_quick">পরিবর্তে দ্রুত ডেস্কটপ ব্যবহার করুন</string>
+    <string name="app_desktop_primary_running">চলমান</string>
+    <string name="app_desktop_primary_chip_quick">দ্রুত · %1$s</string>
+    <string name="app_desktop_primary_chip_full">পূর্ণ · %1$s</string>
     <string name="app_desktop_manager_description">Haven-এর ভিতরে একটি সম্পূর্ণ Linux ডেস্কটপ চালান। একটি ডিস্ট্রো বেছে নিন, একটি ডেস্কটপ পরিবেশ (Xfce4, Openbox, বা Sway) ইনস্টল করুন, তারপর চালু করুন — কোনো আলাদা সার্ভার বা সংযোগের প্রয়োজন নেই।</string>
 
     <!-- App windows / installed-app launcher (#250) -->

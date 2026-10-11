@@ -173,7 +173,17 @@
     <string name="app_present_pip">화면 속 화면</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">로컬 Linux 데스크톱</string>
+    <string name="app_desktop_manager_title">전체 Linux (proot)</string>
+    <string name="app_desktop_primary_title">Linux 데스크톱</string>
+    <string name="app_desktop_primary_subline_quick">약 4초 만에 준비 · Alpine 앱 · 한 번에 하나</string>
+    <string name="app_desktop_primary_subline_full">임의의 배포판 · 데스크톱 6개 · 다른 앱과 함께 실행</string>
+    <string name="app_desktop_primary_start_quick">시작 · 빠른 (UML)</string>
+    <string name="app_desktop_primary_start_full">시작 · 전체 (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">대신 전체 Linux 사용</string>
+    <string name="app_desktop_primary_switch_to_quick">대신 빠른 데스크톱 사용</string>
+    <string name="app_desktop_primary_running">실행 중</string>
+    <string name="app_desktop_primary_chip_quick">빠름 · %1$s</string>
+    <string name="app_desktop_primary_chip_full">전체 · %1$s</string>
     <string name="app_desktop_manager_description">Haven 안에서 전체 Linux 데스크톱을 실행합니다. 배포판을 선택하고 데스크톱 환경(Xfce4, Openbox 또는 Sway)을 설치한 다음 실행하세요. 별도의 서버나 연결이 필요하지 않습니다.</string>
 
     <!-- App windows / installed-app launcher (#250) -->

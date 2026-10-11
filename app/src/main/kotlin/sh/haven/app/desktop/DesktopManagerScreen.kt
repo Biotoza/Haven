@@ -164,6 +164,12 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
+        PrimaryDesktopSection(
+            viewModel = viewModel,
+            umlState = umlDesktopState,
+            prootStates = desktopStates,
+        )
+
         DesktopManagerSection(
             viewModel = viewModel,
             installedDesktops = installedDesktops,
@@ -218,6 +224,14 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onSetCustomDesktopCommand = { cmd, thenStart -> viewModel.setCustomDesktopCommand(cmd, thenStart) },
         )
 
+        UmlGuestSection(
+            available = viewModel.umlAvailable,
+            state = umlDesktopState,
+            onInstall = { viewModel.umlInstall(it) },
+            onStart = { viewModel.umlStart(it) },
+            onStop = { viewModel.umlStop(it) },
+        )
+
         AppWindowsSection(
             defs = appWindowDefs,
             launchingIds = launchingIds,
@@ -233,6 +247,9 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onSetDefaultScale = { viewModel.setAppWindowDefaultScale(it) },
         )
 
+        // The QEMU system VM stays last: it's the slowest, most niche path
+        // (TCG boot, one at a time) and promoting it would compete with the
+        // two desktop backends for the same attention.
         SystemVmSection(
             state = systemVmState,
             images = systemVmImages,
@@ -241,14 +258,6 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onStart = { viewModel.startSystemVm(it.id) },
             onStop = { viewModel.stopSystemVm() },
             onDelete = { viewModel.deleteSystemVmImage(it.id) },
-        )
-
-        UmlGuestSection(
-            available = viewModel.umlAvailable,
-            state = umlDesktopState,
-            onInstall = { viewModel.umlInstall(it) },
-            onStart = { viewModel.umlStart(it) },
-            onStop = { viewModel.umlStop(it) },
         )
     }
 
@@ -627,6 +636,139 @@ private fun SystemVmSection(
                 if (busy) {
                     Spacer(Modifier.width(8.dp))
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The Desktop screen's hero action: one "Start" that launches whichever
+ * backend the user last chose — Quick (the UML guest, ~4 s) or Full (proot,
+ * any distro / 6 desktops / GPU apps) — with the backend named on the button
+ * so there is no surprise about what will come up, and a one-line switch to
+ * the other. The choice is last-used (see [DesktopViewModel.primaryBackend]),
+ * so an existing proot user's button still says Full; a first-run user gets
+ * the fast path when the UML payload is present. Running desktops from either
+ * backend are listed here as chips with Stop, which unifies *state* without
+ * pretending the two backends share stop semantics.
+ *
+ * The detailed per-DE / per-kind controls stay in the sections below; this
+ * card is the "I want a desktop now" verb, not a replacement for them.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PrimaryDesktopSection(
+    viewModel: DesktopViewModel,
+    umlState: Map<UmlDesktopManager.Kind, UmlDesktopManager.DesktopState>,
+    prootStates: Map<ProotManager.DesktopEnvironment, DesktopManager.DesktopInstance>,
+) {
+    // Collected, not read through the ViewModel's plain getter: the switch
+    // link only writes the preference, and nothing else on this screen
+    // changes with it — a getter read would leave the button label stale
+    // until some unrelated state recomposed the screen.
+    val backendPref by viewModel.primaryDesktopBackendPref.collectAsState()
+    val umlAvailable = viewModel.umlAvailable
+    val quick = (backendPref.ifEmpty { if (umlAvailable) "quick" else "full" }) == "quick"
+    val installedDesktops = viewModel.installedDesktops
+    // Quick can only start when the UML payload is present and at least one
+    // kind is installed; Full can only start when a proot DE is installed.
+    // The button reflects the *effective* target, so it never promises a
+    // start that the chosen backend can't deliver.
+    val quickReady = umlAvailable && umlState.values.any { it.installed }
+    val fullReady = installedDesktops.isNotEmpty()
+    val busy = umlState.values.any {
+        it.status == UmlDesktopManager.DesktopState.Status.STARTING ||
+            it.status == UmlDesktopManager.DesktopState.Status.INSTALLING
+    } || prootStates.values.any {
+        it.state == DesktopManager.DesktopState.STARTING
+    }
+    val canStart = (quick && quickReady) || (!quick && fullReady)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                stringResource(AppR.string.app_desktop_primary_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(
+                    if (quick) AppR.string.app_desktop_primary_subline_quick
+                    else AppR.string.app_desktop_primary_subline_full,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(
+                    onClick = { viewModel.startPrimaryDesktop() },
+                    enabled = canStart && !busy,
+                ) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        stringResource(
+                            if (quick) AppR.string.app_desktop_primary_start_quick
+                            else AppR.string.app_desktop_primary_start_full,
+                        ),
+                    )
+                }
+                if (busy) {
+                    Spacer(Modifier.width(8.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                }
+            }
+            // Only offer the switch when the other backend is actually usable;
+            // switching to a backend with nothing installed would just move the
+            // dead-end. When UML is absent the choice is moot — there is one
+            // path — so no link is shown.
+            if (umlAvailable && (quick && fullReady || !quick && quickReady)) {
+                TextButton(onClick = { viewModel.setPrimaryBackend(if (quick) "full" else "quick") }) {
+                    Text(
+                        stringResource(
+                            if (quick) AppR.string.app_desktop_primary_switch_to_full
+                            else AppR.string.app_desktop_primary_switch_to_quick,
+                        ),
+                    )
+                }
+            }
+
+            val running = buildList {
+                umlState.forEach { (kind, st) ->
+                    if (st.status == UmlDesktopManager.DesktopState.Status.RUNNING) {
+                        add(stringResource(AppR.string.app_desktop_primary_chip_quick, kind.title) to
+                            { viewModel.umlStop(kind) })
+                    }
+                }
+                prootStates.forEach { (de, inst) ->
+                    if (inst.state == DesktopManager.DesktopState.RUNNING) {
+                        add(stringResource(AppR.string.app_desktop_primary_chip_full, de.label) to
+                            { viewModel.stopDesktop(de) })
+                    }
+                }
+            }
+            if (running.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(AppR.string.app_desktop_primary_running),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    running.forEach { (label, stop) ->
+                        AssistChip(
+                            onClick = stop,
+                            label = { Text(label) },
+                            leadingIcon = { Icon(Icons.Filled.Stop, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        )
+                    }
                 }
             }
         }

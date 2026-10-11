@@ -169,7 +169,17 @@
     <string name="app_present_pip">Imagen en imagen</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">Escritorio Linux local</string>
+    <string name="app_desktop_manager_title">Linux completo (proot)</string>
+    <string name="app_desktop_primary_title">Escritorio Linux</string>
+    <string name="app_desktop_primary_subline_quick">Listo en unos 4 segundos · apps de Alpine · un escritorio a la vez</string>
+    <string name="app_desktop_primary_subline_full">Cualquier distro · 6 escritorios · se ejecuta junto a tus otras apps</string>
+    <string name="app_desktop_primary_start_quick">Iniciar · Rápido (UML)</string>
+    <string name="app_desktop_primary_start_full">Iniciar · Completo (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">Usar Linux completo en su lugar</string>
+    <string name="app_desktop_primary_switch_to_quick">Usar el escritorio rápido en su lugar</string>
+    <string name="app_desktop_primary_running">En ejecución</string>
+    <string name="app_desktop_primary_chip_quick">Rápido · %1$s</string>
+    <string name="app_desktop_primary_chip_full">Completo · %1$s</string>
     <string name="app_desktop_manager_description">Ejecuta un escritorio Linux completo dentro de Haven. Elige una distro, instala un entorno de escritorio (Xfce4, Openbox o Sway) y luego pulsa Iniciar — no hace falta un servidor ni una conexión aparte.</string>
 
     <!-- App windows / installed-app launcher (#250) -->

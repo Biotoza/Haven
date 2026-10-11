@@ -435,6 +435,7 @@ class DesktopViewModel @Inject constructor(
      * round-trip with a direct `addVncSession` (or `addWaylandTab`) call.
      */
     fun startDesktop(de: ProotManager.DesktopEnvironment) {
+        viewModelScope.launch { preferencesRepository.setLastProotDe(de.id) }
         viewModelScope.launch {
             val shellCmd = preferencesRepository.waylandShellCommand.first()
             Log.d(TAG, "startDesktop: ${LogRedact.of(de.label)} shell=$shellCmd")
@@ -544,11 +545,89 @@ class DesktopViewModel @Inject constructor(
     fun umlInstall(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
         umlDesktopManager.installDesktop(kind)
 
-    fun umlStart(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
+    fun umlStart(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) {
+        viewModelScope.launch { preferencesRepository.setLastUmlKind(kind.id) }
         umlDesktopManager.startDesktop(kind)
+    }
 
     fun umlStop(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
         umlDesktopManager.stopDesktop(kind)
+
+    // --- Primary "Start a desktop" backend (Quick = UML, Full = proot) ------
+    //
+    // The Desktop screen's hero action drives one of the two backends. Which
+    // one is last-used, not a fixed default: the moment the user starts a
+    // desktop (or taps the switch link) that backend becomes theirs, so an
+    // existing proot user's button never silently changes under them. Before
+    // any choice is recorded it falls back by capability — Quick when the UML
+    // payload is present (it starts in ~4s), otherwise Full.
+
+    /** "quick" or "full", as chosen; empty until the user has picked once. */
+    val primaryDesktopBackendPref: StateFlow<String> =
+        preferencesRepository.primaryDesktopBackend
+            .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    /** The last-started UML kind id ("x11"/"wayland"); empty if none. */
+    val lastUmlKindPref: StateFlow<String> =
+        preferencesRepository.lastUmlKind
+            .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    /** The last-started proot DE id; empty if none. */
+    val lastProotDePref: StateFlow<String> =
+        preferencesRepository.lastProotDe
+            .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    /**
+     * The backend the hero Start actually drives right now: the recorded
+     * choice, or the capability fallback when none exists yet. A recorded
+     * "quick" is honoured even if UML later becomes unavailable — the row
+     * then reports why it can't start rather than quietly switching.
+     */
+    val primaryBackend: String
+        get() = primaryDesktopBackendPref.value.ifEmpty {
+            if (umlAvailable) "quick" else "full"
+        }
+
+    /** True when the hero Start drives the fast UML path. */
+    val primaryIsQuick: Boolean get() = primaryBackend == "quick"
+
+    /** Flip the hero Start's backend and persist it (the switch link). */
+    fun setPrimaryBackend(backend: String) {
+        viewModelScope.launch { preferencesRepository.setPrimaryDesktopBackend(backend) }
+    }
+
+    /**
+     * The hero Start action: launch whichever backend [primaryBackend] names,
+     * recording the choice first so it becomes last-used. Quick starts the
+     * last-used UML kind (defaulting to X11); Full starts the last-used proot
+     * DE (defaulting to the first installed one). Surfaces a message when the
+     * target isn't ready to start rather than doing nothing.
+     */
+    fun startPrimaryDesktop() {
+        if (primaryIsQuick) {
+            val states = umlDesktopManager.state.value
+            // Prefer the kind the user last started, but only if it is
+            // installed — a last-used Wayland with only X11 installed must
+            // start X11, not fail on the missing one. Fall back to any
+            // installed kind, then X11 as the nominal default.
+            val lastInstalled = sh.haven.core.local.uml.UmlDesktopManager.Kind.values()
+                .firstOrNull { it.id == lastUmlKindPref.value && states[it]?.installed == true }
+            val kind = lastInstalled
+                ?: states.values.firstOrNull { it.installed }?.kind
+                ?: sh.haven.core.local.uml.UmlDesktopManager.Kind.X11
+            umlStart(kind)
+        } else {
+            val de = installedDesktops.firstOrNull { it.id == lastProotDePref.value }
+                ?: installedDesktops.firstOrNull()
+            if (de == null) {
+                viewModelScope.launch {
+                    _userMessages.emit("No desktop installed yet — pick one under Full Linux below.")
+                }
+                return
+            }
+            startDesktop(de)
+        }
+    }
 
     /**
      * Open a tab for each RUNNING UML desktop, once per (kind, port) run;

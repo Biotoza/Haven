@@ -163,7 +163,17 @@
     <string name="app_present_pip">Image dans l\'image</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">Bureau Linux local</string>
+    <string name="app_desktop_manager_title">Linux complet (proot)</string>
+    <string name="app_desktop_primary_title">Bureau Linux</string>
+    <string name="app_desktop_primary_subline_quick">Prêt en environ 4 secondes · applications Alpine · un bureau à la fois</string>
+    <string name="app_desktop_primary_subline_full">N\'importe quelle distribution · 6 bureaux · s\'exécute avec vos autres applications</string>
+    <string name="app_desktop_primary_start_quick">Démarrer · Rapide (UML)</string>
+    <string name="app_desktop_primary_start_full">Démarrer · Complet (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">Utiliser Linux complet à la place</string>
+    <string name="app_desktop_primary_switch_to_quick">Utiliser le bureau rapide à la place</string>
+    <string name="app_desktop_primary_running">En cours d\'exécution</string>
+    <string name="app_desktop_primary_chip_quick">Rapide · %1$s</string>
+    <string name="app_desktop_primary_chip_full">Complet · %1$s</string>
     <string name="app_desktop_manager_description">Exécutez un bureau Linux complet dans Haven. Choisissez une distribution, installez un environnement de bureau (Xfce4, Openbox ou Sway), puis lancez-le — aucun serveur ni connexion séparés ne sont nécessaires.</string>
 
     <!-- App windows / installed-app launcher (#250) -->

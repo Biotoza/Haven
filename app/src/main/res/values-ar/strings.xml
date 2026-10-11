@@ -163,7 +163,17 @@
     <string name="app_present_pip">صورة داخل صورة</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">سطح مكتب Linux محلي</string>
+    <string name="app_desktop_manager_title">Linux الكامل (proot)</string>
+    <string name="app_desktop_primary_title">سطح مكتب Linux</string>
+    <string name="app_desktop_primary_subline_quick">جاهز في نحو 4 ثوانٍ · تطبيقات Alpine · سطح مكتب واحد في كل مرة</string>
+    <string name="app_desktop_primary_subline_full">أي توزيعة · 6 أسطح مكتب · يعمل إلى جانب تطبيقاتك الأخرى</string>
+    <string name="app_desktop_primary_start_quick">بدء · سريع (UML)</string>
+    <string name="app_desktop_primary_start_full">بدء · كامل (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">استخدام Linux الكامل بدلاً من ذلك</string>
+    <string name="app_desktop_primary_switch_to_quick">استخدام سطح المكتب السريع بدلاً من ذلك</string>
+    <string name="app_desktop_primary_running">قيد التشغيل</string>
+    <string name="app_desktop_primary_chip_quick">سريع · %1$s</string>
+    <string name="app_desktop_primary_chip_full">كامل · %1$s</string>
     <string name="app_desktop_manager_description">شغّل سطح مكتب Linux كاملاً داخل Haven. اختر توزيعة، وثبّت بيئة سطح مكتب (Xfce4 أو Openbox أو Sway)، ثم اضغط تشغيل — دون الحاجة إلى خادم أو اتصال منفصل.</string>
 
     <!-- App windows / installed-app launcher (#250) -->

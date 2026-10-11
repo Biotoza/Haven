@@ -163,7 +163,17 @@
     <string name="app_present_pip">पिक्चर में पिक्चर</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">स्थानीय Linux डेस्कटॉप</string>
+    <string name="app_desktop_manager_title">पूर्ण Linux (proot)</string>
+    <string name="app_desktop_primary_title">Linux डेस्कटॉप</string>
+    <string name="app_desktop_primary_subline_quick">लगभग 4 सेकंड में तैयार · Alpine ऐप्स · एक समय में एक डेस्कटॉप</string>
+    <string name="app_desktop_primary_subline_full">कोई भी डिस्ट्रो · 6 डेस्कटॉप · आपके अन्य ऐप्स के साथ चलता है</string>
+    <string name="app_desktop_primary_start_quick">शुरू करें · त्वरित (UML)</string>
+    <string name="app_desktop_primary_start_full">शुरू करें · पूर्ण (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">इसके बजाय पूर्ण Linux उपयोग करें</string>
+    <string name="app_desktop_primary_switch_to_quick">इसके बजाय त्वरित डेस्कटॉप उपयोग करें</string>
+    <string name="app_desktop_primary_running">चल रहा है</string>
+    <string name="app_desktop_primary_chip_quick">त्वरित · %1$s</string>
+    <string name="app_desktop_primary_chip_full">पूर्ण · %1$s</string>
     <string name="app_desktop_manager_description">Haven के अंदर पूरा Linux डेस्कटॉप चलाएँ। एक distro चुनें, एक डेस्कटॉप वातावरण (Xfce4, Openbox, या Sway) इंस्टॉल करें, फिर लॉन्च करें — किसी अलग सर्वर या कनेक्शन की ज़रूरत नहीं।</string>
 
     <!-- App windows / installed-app launcher (#250) -->

@@ -163,7 +163,17 @@
     <string name="app_present_pip">Bild im Bild</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">Lokaler Linux-Desktop</string>
+    <string name="app_desktop_manager_title">Vollständiges Linux (proot)</string>
+    <string name="app_desktop_primary_title">Linux-Desktop</string>
+    <string name="app_desktop_primary_subline_quick">In etwa 4 Sekunden bereit · Alpine-Apps · ein Desktop zur Zeit</string>
+    <string name="app_desktop_primary_subline_full">Beliebige Distro · 6 Desktops · läuft neben deinen anderen Apps</string>
+    <string name="app_desktop_primary_start_quick">Starten · Schnell (UML)</string>
+    <string name="app_desktop_primary_start_full">Starten · Voll (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">Stattdessen vollständiges Linux verwenden</string>
+    <string name="app_desktop_primary_switch_to_quick">Stattdessen den schnellen Desktop verwenden</string>
+    <string name="app_desktop_primary_running">Läuft</string>
+    <string name="app_desktop_primary_chip_quick">Schnell · %1$s</string>
+    <string name="app_desktop_primary_chip_full">Voll · %1$s</string>
     <string name="app_desktop_manager_description">Einen vollständigen Linux-Desktop in Haven ausführen. Wähle eine Distribution, installiere eine Desktop-Umgebung (Xfce4, Openbox oder Sway) und tippe dann auf Starten — kein separater Server und keine Verbindung nötig.</string>
 
     <!-- App windows / installed-app launcher (#250) -->

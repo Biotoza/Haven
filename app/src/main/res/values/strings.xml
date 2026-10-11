@@ -82,7 +82,19 @@
     <string name="app_biometric_no_hardware_body">This device cannot authenticate (no biometric hardware and no device credential). Set up a PIN or password in Settings to unlock.</string>
 
     <!-- Desktop manager: header / intro -->
-    <string name="app_desktop_manager_title">Local Linux</string>
+    <string name="app_desktop_manager_title">Full Linux (proot)</string>
+
+    <!-- Desktop manager: primary "start a desktop" hero action -->
+    <string name="app_desktop_primary_title">Linux desktop</string>
+    <string name="app_desktop_primary_subline_quick">Ready in about 4 seconds · Alpine apps · one desktop at a time</string>
+    <string name="app_desktop_primary_subline_full">Any distro · 6 desktops · runs alongside your other apps</string>
+    <string name="app_desktop_primary_start_quick">Start · Quick (UML)</string>
+    <string name="app_desktop_primary_start_full">Start · Full (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">Use Full Linux instead</string>
+    <string name="app_desktop_primary_switch_to_quick">Use the quick desktop instead</string>
+    <string name="app_desktop_primary_running">Running</string>
+    <string name="app_desktop_primary_chip_quick">Quick · %1$s</string>
+    <string name="app_desktop_primary_chip_full">Full · %1$s</string>
     <string name="app_desktop_compositor_title">Compositor</string>
     <string name="app_desktop_manager_description">Run a full Linux desktop inside Haven. Pick a distro, install a desktop environment (Xfce4, Openbox, or Sway), then Launch — no separate server or connection needed.</string>
     <!-- Desktop manager: package mirror (#263) -->

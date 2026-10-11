@@ -163,7 +163,17 @@
     <string name="app_present_pip">Imagem sobre imagem</string>
 
     <!-- Local Linux desktop -->
-    <string name="app_desktop_manager_title">Desktop Linux local</string>
+    <string name="app_desktop_manager_title">Linux completo (proot)</string>
+    <string name="app_desktop_primary_title">Desktop Linux</string>
+    <string name="app_desktop_primary_subline_quick">Pronto em cerca de 4 segundos · apps Alpine · um desktop por vez</string>
+    <string name="app_desktop_primary_subline_full">Qualquer distro · 6 desktops · roda junto com seus outros apps</string>
+    <string name="app_desktop_primary_start_quick">Iniciar · Rápido (UML)</string>
+    <string name="app_desktop_primary_start_full">Iniciar · Completo (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">Usar Linux completo em vez disso</string>
+    <string name="app_desktop_primary_switch_to_quick">Usar o desktop rápido em vez disso</string>
+    <string name="app_desktop_primary_running">Em execução</string>
+    <string name="app_desktop_primary_chip_quick">Rápido · %1$s</string>
+    <string name="app_desktop_primary_chip_full">Completo · %1$s</string>
     <string name="app_desktop_manager_description">Execute um desktop Linux completo dentro do Haven. Escolha uma distro, instale um ambiente de área de trabalho (Xfce4, Openbox ou Sway) e toque em Iniciar — sem servidor ou conexão separados.</string>
 
     <!-- App windows / installed-app launcher (#250) -->

@@ -1379,28 +1379,222 @@
     },
     {
      "name": "app_desktop_manager_title",
-     "en": "Local Linux",
+     "en": "Full Linux (proot)",
      "comment": "Desktop manager: header / intro",
      "args": [],
      "t": {
-      "ar": "سطح مكتب Linux محلي",
-      "bn": "স্থানীয় Linux ডেস্কটপ",
-      "de": "Lokaler Linux-Desktop",
-      "es": "Escritorio Linux local",
-      "fr": "Bureau Linux local",
-      "hi": "स्थानीय Linux डेस्कटॉप",
-      "ja": "ローカル Linux デスクトップ",
-      "ko": "로컬 Linux 데스크톱",
-      "pt": "Desktop Linux local",
-      "ru": "Локальный рабочий стол Linux",
+      "ar": "Linux الكامل (proot)",
+      "bn": "সম্পূর্ণ Linux (proot)",
+      "de": "Vollständiges Linux (proot)",
+      "es": "Linux completo (proot)",
+      "fr": "Linux complet (proot)",
+      "hi": "पूर्ण Linux (proot)",
+      "ja": "フル Linux (proot)",
+      "ko": "전체 Linux (proot)",
+      "pt": "Linux completo (proot)",
+      "ru": "Полный Linux (proot)",
       "sr": "Локални Линукс",
-      "zh": "本地 Linux 桌面"
+      "zh": "完整 Linux (proot)"
+     }
+    },
+    {
+     "name": "app_desktop_primary_title",
+     "en": "Linux desktop",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "سطح مكتب Linux",
+      "bn": "Linux ডেস্কটপ",
+      "de": "Linux-Desktop",
+      "es": "Escritorio Linux",
+      "fr": "Bureau Linux",
+      "hi": "Linux डेस्कटॉप",
+      "ja": "Linux デスクトップ",
+      "ko": "Linux 데스크톱",
+      "pt": "Desktop Linux",
+      "ru": "Рабочий стол Linux",
+      "zh": "Linux 桌面"
+     }
+    },
+    {
+     "name": "app_desktop_primary_subline_quick",
+     "en": "Ready in about 4 seconds · Alpine apps · one desktop at a time",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "جاهز في نحو 4 ثوانٍ · تطبيقات Alpine · سطح مكتب واحد في كل مرة",
+      "bn": "প্রায় ৪ সেকেন্ডে প্রস্তুত · Alpine অ্যাপ · একবারে একটি ডেস্কটপ",
+      "de": "In etwa 4 Sekunden bereit · Alpine-Apps · ein Desktop zur Zeit",
+      "es": "Listo en unos 4 segundos · apps de Alpine · un escritorio a la vez",
+      "fr": "Prêt en environ 4 secondes · applications Alpine · un bureau à la fois",
+      "hi": "लगभग 4 सेकंड में तैयार · Alpine ऐप्स · एक समय में एक डेस्कटॉप",
+      "ja": "約4秒で起動 · Alpine アプリ · 一度に1つ",
+      "ko": "약 4초 만에 준비 · Alpine 앱 · 한 번에 하나",
+      "pt": "Pronto em cerca de 4 segundos · apps Alpine · um desktop por vez",
+      "ru": "Готов примерно за 4 секунды · приложения Alpine · один рабочий стол за раз",
+      "zh": "约 4 秒就绪 · Alpine 应用 · 同一时间一个桌面"
+     }
+    },
+    {
+     "name": "app_desktop_primary_subline_full",
+     "en": "Any distro · 6 desktops · runs alongside your other apps",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "أي توزيعة · 6 أسطح مكتب · يعمل إلى جانب تطبيقاتك الأخرى",
+      "bn": "যেকোনো ডিস্ট্রো · ৬টি ডেস্কটপ · আপনার অন্য অ্যাপের পাশাপাশি চলে",
+      "de": "Beliebige Distro · 6 Desktops · läuft neben deinen anderen Apps",
+      "es": "Cualquier distro · 6 escritorios · se ejecuta junto a tus otras apps",
+      "fr": "N\\'importe quelle distribution · 6 bureaux · s\\'exécute avec vos autres applications",
+      "hi": "कोई भी डिस्ट्रो · 6 डेस्कटॉप · आपके अन्य ऐप्स के साथ चलता है",
+      "ja": "任意のディストロ · 6デスクトップ · 他のアプリと並行して動作",
+      "ko": "임의의 배포판 · 데스크톱 6개 · 다른 앱과 함께 실행",
+      "pt": "Qualquer distro · 6 desktops · roda junto com seus outros apps",
+      "ru": "Любой дистрибутив · 6 рабочих столов · работает вместе с другими приложениями",
+      "zh": "任意发行版 · 6 个桌面 · 与其他应用并行运行"
+     }
+    },
+    {
+     "name": "app_desktop_primary_start_quick",
+     "en": "Start · Quick (UML)",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "بدء · سريع (UML)",
+      "bn": "শুরু · দ্রুত (UML)",
+      "de": "Starten · Schnell (UML)",
+      "es": "Iniciar · Rápido (UML)",
+      "fr": "Démarrer · Rapide (UML)",
+      "hi": "शुरू करें · त्वरित (UML)",
+      "ja": "起動 · クイック (UML)",
+      "ko": "시작 · 빠른 (UML)",
+      "pt": "Iniciar · Rápido (UML)",
+      "ru": "Запустить · Быстрый (UML)",
+      "zh": "启动 · 快速 (UML)"
+     }
+    },
+    {
+     "name": "app_desktop_primary_start_full",
+     "en": "Start · Full (proot)",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "بدء · كامل (proot)",
+      "bn": "শুরু · পূর্ণ (proot)",
+      "de": "Starten · Voll (proot)",
+      "es": "Iniciar · Completo (proot)",
+      "fr": "Démarrer · Complet (proot)",
+      "hi": "शुरू करें · पूर्ण (proot)",
+      "ja": "起動 · フル (proot)",
+      "ko": "시작 · 전체 (proot)",
+      "pt": "Iniciar · Completo (proot)",
+      "ru": "Запустить · Полный (proot)",
+      "zh": "启动 · 完整 (proot)"
+     }
+    },
+    {
+     "name": "app_desktop_primary_switch_to_full",
+     "en": "Use Full Linux instead",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "استخدام Linux الكامل بدلاً من ذلك",
+      "bn": "পরিবর্তে সম্পূর্ণ Linux ব্যবহার করুন",
+      "de": "Stattdessen vollständiges Linux verwenden",
+      "es": "Usar Linux completo en su lugar",
+      "fr": "Utiliser Linux complet à la place",
+      "hi": "इसके बजाय पूर्ण Linux उपयोग करें",
+      "ja": "代わりにフル Linux を使う",
+      "ko": "대신 전체 Linux 사용",
+      "pt": "Usar Linux completo em vez disso",
+      "ru": "Вместо этого использовать полный Linux",
+      "zh": "改用完整 Linux"
+     }
+    },
+    {
+     "name": "app_desktop_primary_switch_to_quick",
+     "en": "Use the quick desktop instead",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "استخدام سطح المكتب السريع بدلاً من ذلك",
+      "bn": "পরিবর্তে দ্রুত ডেস্কটপ ব্যবহার করুন",
+      "de": "Stattdessen den schnellen Desktop verwenden",
+      "es": "Usar el escritorio rápido en su lugar",
+      "fr": "Utiliser le bureau rapide à la place",
+      "hi": "इसके बजाय त्वरित डेस्कटॉप उपयोग करें",
+      "ja": "代わりにクイック デスクトップを使う",
+      "ko": "대신 빠른 데스크톱 사용",
+      "pt": "Usar o desktop rápido em vez disso",
+      "ru": "Вместо этого использовать быстрый рабочий стол",
+      "zh": "改用快速桌面"
+     }
+    },
+    {
+     "name": "app_desktop_primary_running",
+     "en": "Running",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [],
+     "t": {
+      "ar": "قيد التشغيل",
+      "bn": "চলমান",
+      "de": "Läuft",
+      "es": "En ejecución",
+      "fr": "En cours d\\'exécution",
+      "hi": "चल रहा है",
+      "ja": "実行中",
+      "ko": "실행 중",
+      "pt": "Em execução",
+      "ru": "Запущено",
+      "zh": "正在运行"
+     }
+    },
+    {
+     "name": "app_desktop_primary_chip_quick",
+     "en": "Quick · %1$s",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "سريع · %1$s",
+      "bn": "দ্রুত · %1$s",
+      "de": "Schnell · %1$s",
+      "es": "Rápido · %1$s",
+      "fr": "Rapide · %1$s",
+      "hi": "त्वरित · %1$s",
+      "ja": "クイック · %1$s",
+      "ko": "빠름 · %1$s",
+      "pt": "Rápido · %1$s",
+      "ru": "Быстрый · %1$s",
+      "zh": "快速 · %1$s"
+     }
+    },
+    {
+     "name": "app_desktop_primary_chip_full",
+     "en": "Full · %1$s",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "كامل · %1$s",
+      "bn": "পূর্ণ · %1$s",
+      "de": "Voll · %1$s",
+      "es": "Completo · %1$s",
+      "fr": "Complet · %1$s",
+      "hi": "पूर्ण · %1$s",
+      "ja": "フル · %1$s",
+      "ko": "전체 · %1$s",
+      "pt": "Completo · %1$s",
+      "ru": "Полный · %1$s",
+      "zh": "完整 · %1$s"
      }
     },
     {
      "name": "app_desktop_compositor_title",
      "en": "Compositor",
-     "comment": "Desktop manager: header / intro",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
      "args": [],
      "t": {
       "ar": "المُركِّب (compositor)",
@@ -1420,7 +1614,7 @@
     {
      "name": "app_desktop_manager_description",
      "en": "Run a full Linux desktop inside Haven. Pick a distro, install a desktop environment (Xfce4, Openbox, or Sway), then Launch — no separate server or connection needed.",
-     "comment": "Desktop manager: header / intro",
+     "comment": "Desktop manager: primary \"start a desktop\" hero action",
      "args": [],
      "t": {
       "ar": "شغّل سطح مكتب Linux كاملاً داخل Haven. اختر توزيعة، وثبّت بيئة سطح مكتب (Xfce4 أو Openbox أو Sway)، ثم اضغط تشغيل — دون الحاجة إلى خادم أو اتصال منفصل.",

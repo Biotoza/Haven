@@ -163,7 +163,17 @@
     <string name="app_present_pip">ピクチャー イン ピクチャー</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">ローカル Linux デスクトップ</string>
+    <string name="app_desktop_manager_title">フル Linux (proot)</string>
+    <string name="app_desktop_primary_title">Linux デスクトップ</string>
+    <string name="app_desktop_primary_subline_quick">約4秒で起動 · Alpine アプリ · 一度に1つ</string>
+    <string name="app_desktop_primary_subline_full">任意のディストロ · 6デスクトップ · 他のアプリと並行して動作</string>
+    <string name="app_desktop_primary_start_quick">起動 · クイック (UML)</string>
+    <string name="app_desktop_primary_start_full">起動 · フル (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">代わりにフル Linux を使う</string>
+    <string name="app_desktop_primary_switch_to_quick">代わりにクイック デスクトップを使う</string>
+    <string name="app_desktop_primary_running">実行中</string>
+    <string name="app_desktop_primary_chip_quick">クイック · %1$s</string>
+    <string name="app_desktop_primary_chip_full">フル · %1$s</string>
     <string name="app_desktop_manager_description">Haven 内でフル機能の Linux デスクトップを実行します。ディストリビューションを選び、デスクトップ環境（Xfce4、Openbox、Sway）をインストールして「起動」をタップするだけ — 別途サーバーや接続は不要です。</string>
 
     <!-- App windows / installed-app launcher (#250) -->
