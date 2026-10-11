@@ -496,7 +496,16 @@ class TerminalViewModelTest {
         viewModel.toggleCtrl()
         assertEquals("locked before the stray reconcile", true, viewModel.ctrlLocked.value)
 
-        testDispatcher.scheduler.runCurrent()
+        // The reconcile hops to Dispatchers.IO for its profile batch, so its
+        // resumption is scheduled back onto the test dispatcher only when the
+        // off-main work finishes; a single runCurrent() can observe the lock
+        // before the wipe lands (CI flake on a loaded runner, 10-11). Pump
+        // until the reconcile completes, bounded.
+        val deadline = System.currentTimeMillis() + 2_000
+        while (viewModel.ctrlLocked.value && System.currentTimeMillis() < deadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(10)
+        }
 
         assertEquals(
             "the init collectors reconcile to zero tabs and clear the lock",
