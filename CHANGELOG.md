@@ -5,12 +5,17 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## v5.89.25
+## v5.89.27
 
-- **Fixed a crash on launch.** v5.89.24 could crash on startup with a null-pointer exception while building the terminal screen's view model. The lock added to serialise the session reconcile was declared after the block that starts the session watchers, and the first watcher fires while the view model is still being constructed — before the lock exists. The lock is now declared before the watchers start (#688).
+- **A jump server behind Tailscale or WireGuard connects.** A profile that reaches its jump host over a Route-through tunnel failed to connect, while connecting to that same jump profile directly worked. The direct path resolves the profile's tunnel before dialling; the jump leg dialled with no proxy at all, so a jump server reachable only over the tailnet was never routed through it. The jump leg now uses the jump profile's tunnel, and auto-reconnect re-resolves it the same way (#690).
+
 ## v5.89.26
 
 - **Rotating back no longer strands a duplicate prompt at the top row.** With the soft keyboard up, rotating portrait → landscape → portrait measured the window at its full height for one frame — the new configuration's height arrived before the keyboard's inset re-dispatched — so the terminal briefly resized to a phantom row count (40 rows where the settled grid is 23). The server repainted its prompt for that oversized grid, and the later shrink left the repaint pinned to the top row above the real prompt. The phantom grow is now held back until the inset re-arrives; a genuine keyboard hide still resizes immediately (#687).
+
+## v5.89.25
+
+- **Fixed a crash on launch.** v5.89.24 could crash on startup with a null-pointer exception while building the terminal screen's view model. The lock added to serialise the session reconcile was declared after the block that starts the session watchers, and the first watcher fires while the view model is still being constructed — before the lock exists. The lock is now declared before the watchers start (#688).
 
 ## v5.89.24
 
