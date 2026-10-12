@@ -6,6 +6,8 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertSame
@@ -94,6 +96,7 @@ class ConnectionsViewModelSessionTest {
     private lateinit var sessionManagerRegistry: SessionManagerRegistry
     private lateinit var sshKeyRepository: SshKeyRepository
     private lateinit var preferencesRepository: UserPreferencesRepository
+    private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver = mockk(relaxed = true)
     private lateinit var viewModel: ConnectionsViewModel
 
     @Before
@@ -245,7 +248,7 @@ class ConnectionsViewModelSessionTest {
             },
             hostKeyVerifier = mockk(relaxed = true),
             connectionLogRepository = connectionLogRepository,
-            tunnelResolver = mockk(relaxed = true),
+            tunnelResolver = tunnelResolver,
             portKnocker = mockk(relaxed = true),
             spaSender = spaSender,
             tunnelConfigRepository = mockk(relaxed = true) {
@@ -358,6 +361,37 @@ class ConnectionsViewModelSessionTest {
         id = "jump", label = "jump", host = "h", username = "u",
         connectionType = "SSH", authMethods = authMethods,
     )
+
+    // #690: a jump profile that routes through a tunnel must have that tunnel
+    // applied to the JUMP LEG's dial. The direct path resolves
+    // tunnelResolver.havenProxy for its connect; the jump leg used to dial
+    // with no proxy, so a tailnet-only jump server failed even though a
+    // direct connect to the same profile worked.
+    @Test
+    fun `a tunnel-routed jump profile dials the jump leg through its tunnel`() = runTest {
+        val jumpTunnel = mockk<sh.haven.core.ssh.HavenProxy>()
+        val jp = jumpProfile("PASSWORD").copy(sshPassword = "pw", tunnelConfigId = "ts1")
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        coEvery { repository.getById("jump") } returns jp
+        every { sshSessionManager.registerSession("jump", any(), any(), any()) } returns "jump-sess"
+        coEvery { tunnelResolver.havenProxy(jp) } returns jumpTunnel
+        val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
+        coEvery { jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any()) } returns null
+        viewModel.jumpClientFactory = { jumpClient }
+
+        val (sessionId, reused) = viewModel.connectJumpHost("jump", password = "")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("jump-sess", sessionId)
+        assertFalse("expected a newly opened jump session, not a reuse", reused)
+        // The gate: the dial must carry the jump profile's tunnel proxy.
+        // Reverting the fix (no proxy= argument) fails this with proxy=null.
+        coVerify(exactly = 1) {
+            jumpClient.connect(any(), any(), proxy = jumpTunnel, any(), any(), any(), any(), any())
+        }
+        // And the reconnect path re-resolves it, same contract as the direct path.
+        verify { sshSessionManager.setReconnectProxyProvider("jump-sess", any()) }
+    }
 
     private fun skKey() = SshKey(
         label = "yk", keyType = "sk-ssh-ed25519@openssh.com",

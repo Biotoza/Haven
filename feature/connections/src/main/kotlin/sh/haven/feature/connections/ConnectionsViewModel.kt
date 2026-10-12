@@ -4870,7 +4870,13 @@ class ConnectionsViewModel @Inject constructor(
      * Connect to a jump host profile, reusing an existing connected session if available.
      * Returns Pair(sessionId, reused) — reused=true if an existing session was used.
      */
-    private suspend fun connectJumpHost(
+    /**
+     * Seam for tests to observe the jump leg's dial (#690). Production keeps
+     * the plain JSch client, matching the pre-existing construction.
+     */
+    internal var jumpClientFactory: () -> SshConnection = { SshClient() }
+
+    internal suspend fun connectJumpHost(
         jumpProfileId: String,
         password: String,
         tunnelOwnerProfileId: String? = null,
@@ -4928,7 +4934,7 @@ class ConnectionsViewModel @Inject constructor(
         // security-key (ed25519-sk) auth method (e.g. SPICE/VNC/RDP-over-SSH)
         // otherwise fails instantly with "no FidoAuthenticator configured on
         // this SshClient", never reaching the touch prompt (#286).
-        val jumpClient = SshClient().apply {
+        val jumpClient = jumpClientFactory().apply {
             fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
             openKeychainClients = OpenKeychainClientFactory.from(appContext)
             verboseLogger = jumpVerbose
@@ -4951,10 +4957,18 @@ class ConnectionsViewModel @Inject constructor(
                     addressFamily = jumpProfile.addressFamilyForSsh,
                     reconnectPolicy = jumpProfile.reconnectPolicy,
                 )
-                Log.d(TAG, "Jump host SSH connecting...")
+                // #690: the jump leg must ride the JUMP profile's own
+                // Route-through tunnel. The direct path resolves
+                // tunnelResolver.havenProxy(profile) for its dial; the jump
+                // leg used to dial with no proxy at all, so a jump server
+                // only reachable over Tailscale/WireGuard failed here even
+                // though connecting to that same profile directly worked.
+                val jumpProxy = tunnelResolver.havenProxy(jumpProfile)
+                Log.d(TAG, "Jump host SSH connecting... (proxy=${jumpProxy != null})")
                 try {
                     val hostKeyEntry = jumpClient.connect(
                         config,
+                        proxy = jumpProxy,
                         keyboardInteractivePrompter = keyboardInteractivePrompter,
                         totpCodeProvider = buildTotpCodeProvider(jumpProfile),
                         confirmOtp = jumpProfile.totpConfirmBeforeSend,
@@ -4978,6 +4992,11 @@ class ConnectionsViewModel @Inject constructor(
                 }
 
                 sshSessionManager.storeConnectionConfig(jumpSessionId, config, SessionManager.NONE)
+                // Re-resolve the jump profile's tunnel on auto-reconnect, same
+                // contract the direct path registers (#690).
+                sshSessionManager.setReconnectProxyProvider(jumpSessionId) {
+                    tunnelResolver.havenProxy(jumpProfile)
+                }
             }
 
             sshSessionManager.updateStatus(jumpSessionId, SshSessionManager.SessionState.Status.CONNECTED)
