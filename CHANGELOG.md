@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.31
+
+- **Connecting through a tailnet no longer stalls on an unreachable address.** When a hostname resolved to several addresses over the tailnet, Haven dialled only the first; if that one was black-holed the connection hung instead of trying the others. Every resolved address is now tried in turn, each with its own share of the timeout, so a dead address is given up on in time to reach a live one (#691).
+
 ## v5.89.30
 
 - **Coloured prompts with Nerd Font icons no longer paint a stray character.** A prompt or command output carrying an icon above U+FFFF (many Nerd Font / Powerline glyphs) could show one extra character after it — the terminal read one cell past the end of the styled run and painted whatever the previous run had left in the reused buffer. The run length is now counted in screen columns rather than UTF-16 code units, which also fixes double-width characters being under-counted (#693).
