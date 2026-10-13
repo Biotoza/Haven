@@ -42,6 +42,8 @@ import (
 	"tailscale.com/net/netmon"
 	"tailscale.com/tsnet"
 
+	dns "golang.org/x/net/dns/dnsmessage"
+
 	"sh.haven/rcbridge/socks5"
 )
 
@@ -381,11 +383,101 @@ func (t *TunnelHandle) Dial(host string, port int, timeoutMs int) (*Conn, error)
 		time.Duration(timeoutMs)*time.Millisecond,
 	)
 	defer cancel()
+
+	// A console-configured global/split nameserver is only reachable
+	// *through* the tailnet, but tsnet's own dial path resolves
+	// non-MagicDNS names with Go's system resolver (the phone's DNS),
+	// which can't reach it — so such names fail with "no such host"
+	// before any dial happens (#691; upstream tailscale/tailscale#5840).
+	// Resolve the name through the tailnet's own resolver first and dial
+	// the resulting IP. On any miss (not a name, no tailnet resolver,
+	// NXDOMAIN, timeout) fall back to the plain dial so MagicDNS names,
+	// IPs and public hosts keep working exactly as before.
+	if target, ok := resolveViaTailnet(ctx, srv, host); ok {
+		host = target
+	}
+
 	c, err := srv.Dial(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 	if err != nil {
 		return nil, fmt.Errorf("dial %s:%d via tailnet: %w", host, port, err)
 	}
 	return &Conn{c: c}, nil
+}
+
+// resolveViaTailnet resolves host through the tailnet's DNS resolver
+// (which honours the tailnet's global/split nameserver config) and
+// returns the first A-record answer as a bare IP string. ok is false —
+// meaning the caller should fall back to the plain dial — when host is
+// already an IP, the resolver is unavailable, the query fails, or no A
+// record comes back. MagicDNS names resolve here too (the resolver
+// consults the netmap), so this is a superset of the old behaviour.
+func resolveViaTailnet(ctx context.Context, srv *tsnet.Server, host string) (ip string, ok bool) {
+	// This resolver path is less trodden than MagicDNS (which resolves via
+	// the netmap, not here), so treat any panic — a malformed name reaching
+	// MustNewName, a nil subsystem mid-teardown — as a miss and let the
+	// caller fall back to the plain dial rather than crash it.
+	defer func() {
+		if r := recover(); r != nil {
+			ip, ok = "", false
+		}
+	}()
+	if net.ParseIP(host) != nil {
+		return "", false
+	}
+	res := srv.Sys().DNSManager.Get().Resolver()
+	if res == nil {
+		return "", false
+	}
+	qname := dns.MustNewName(host + ".")
+	b := dns.NewBuilder(nil, dns.Header{RecursionDesired: true})
+	b.StartQuestions()
+	if err := b.Question(dns.Question{Name: qname, Type: dns.TypeA, Class: dns.ClassINET}); err != nil {
+		return "", false
+	}
+	query, err := b.Finish()
+	if err != nil {
+		return "", false
+	}
+	// Give the resolver query its own short budget so a tailnet with no
+	// reachable nameserver for this name can't eat the whole dial timeout
+	// before we fall back to the plain dial. The caller's ctx still caps it.
+	qctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	// The resolver keys off the query bytes, not `from`; a loopback
+	// source is what upstream's own split-DNS test uses.
+	from := netip.MustParseAddrPort("127.0.0.1:0")
+	resp, err := res.Query(qctx, query, "udp", from)
+	if err != nil {
+		return "", false
+	}
+	return parseFirstA(resp)
+}
+
+// parseFirstA extracts the first A-record answer from a DNS response.
+// Returns ok=false on a parse failure or when the response carries no A
+// record, so the caller falls back to the plain dial.
+func parseFirstA(resp []byte) (string, bool) {
+	var p dns.Parser
+	if _, err := p.Start(resp); err != nil {
+		return "", false
+	}
+	if err := p.SkipAllQuestions(); err != nil {
+		return "", false
+	}
+	for {
+		h, err := p.AnswerHeader()
+		if err != nil {
+			return "", false // no more answers, or a parse error
+		}
+		if h.Type != dns.TypeA {
+			continue
+		}
+		a, err := p.AResource()
+		if err != nil {
+			return "", false
+		}
+		return netip.AddrFrom4(a.A).String(), true
+	}
 }
 
 // ListenUDP opens an unconnected UDP socket on the tailnet, bound to the
