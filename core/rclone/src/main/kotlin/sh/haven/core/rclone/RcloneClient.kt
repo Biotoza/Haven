@@ -141,6 +141,31 @@ class RcloneClient @Inject constructor(
         rpc("config/delete", JSONObject().put("name", name))
     }
 
+    /**
+     * Stop rclone's in-flight OAuth flow (#697).
+     *
+     * rclone's `config/create` for OAuth providers blocks on a loopback
+     * auth server bound to the FIXED port 127.0.0.1:53682 (Google's
+     * registered redirect port) and only closes it when the blocked call
+     * unwinds. Cancelling the Kotlin future cannot interrupt the gomobile
+     * call, so a cancelled or timed-out flow leaves the server bound:
+     * the next auth either attaches to the stale, already-authenticated
+     * server or collides on the port. `config/oauthstop` cancels the
+     * flow's context, which unwinds the blocked call and frees the port.
+     *
+     * Returns true if a flow was stopped, false if rclone reports none
+     * in progress (its error for that case — not a failure here).
+     */
+    fun stopOAuth(): Boolean {
+        return try {
+            rpc("config/oauthstop")
+            true
+        } catch (e: RcloneException) {
+            Log.d(TAG, "config/oauthstop: ${e.error}")
+            false
+        }
+    }
+
     // ── File operations ─────────────────────────────────────────────────
 
     /**
