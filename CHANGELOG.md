@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.30
+
+- **Coloured prompts with Nerd Font icons no longer paint a stray character.** A prompt or command output carrying an icon above U+FFFF (many Nerd Font / Powerline glyphs) could show one extra character after it — the terminal read one cell past the end of the styled run and painted whatever the previous run had left in the reused buffer. The run length is now counted in screen columns rather than UTF-16 code units, which also fixes double-width characters being under-counted (#693).
+- **Dictate uses your default speech app.** The Dictate key always popped the app picker, even when a default voice-input app was set, because it forced the chooser. It now launches the recognizer directly: with one installed it opens straight away, and with several the OS "Just once / Always" choice is remembered instead of asking on every tap (#694).
+
 ## v5.89.29
 
 - **Tunnels to hosts on a Tailscale console nameserver connect.** A Tailscale connection to a hostname served by a global or split nameserver configured in the Tailscale admin console failed with "no such host" before dialling — the console's nameserver is only reachable through the tailnet, but the dial path looked the name up with the phone's own DNS. Hostnames are now resolved through the tailnet's resolver first, falling back to the previous lookup for anything it doesn't serve, so MagicDNS names, IP addresses and public hosts are unchanged (#691).
