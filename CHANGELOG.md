@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.29
+
+- **Tunnels to hosts on a Tailscale console nameserver connect.** A Tailscale connection to a hostname served by a global or split nameserver configured in the Tailscale admin console failed with "no such host" before dialling — the console's nameserver is only reachable through the tailnet, but the dial path looked the name up with the phone's own DNS. Hostnames are now resolved through the tailnet's resolver first, falling back to the previous lookup for anything it doesn't serve, so MagicDNS names, IP addresses and public hosts are unchanged (#691).
+
 ## v5.89.28
 
 - **The preview SSH engine keeps command output again.** The experimental second SSH engine (Settings → SSH engine) could lose a command's stderr when the server closed the channel quickly — the output-loss regression that sshlib 0.4.2 had fixed came back in 0.5.0. The engine is pinned back to 0.4.2 until upstream resolves it (#692).
