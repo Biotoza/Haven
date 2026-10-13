@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.28
+
+- **The preview SSH engine keeps command output again.** The experimental second SSH engine (Settings → SSH engine) could lose a command's stderr when the server closed the channel quickly — the output-loss regression that sshlib 0.4.2 had fixed came back in 0.5.0. The engine is pinned back to 0.4.2 until upstream resolves it (#692).
+
 ## v5.89.27
 
 - **A jump server behind Tailscale or WireGuard connects.** A profile that reaches its jump host over a Route-through tunnel failed to connect, while connecting to that same jump profile directly worked. The direct path resolves the profile's tunnel before dialling; the jump leg dialled with no proxy at all, so a jump server reachable only over the tailnet was never routed through it. The jump leg now uses the jump profile's tunnel, and auto-reconnect re-resolves it the same way (#690).
