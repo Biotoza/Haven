@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.33
+
+- **The experimental SSH engine no longer drops command output.** A profile opted into the experimental engine (the `HavenSshEngine sshlib` option) could lose a command's output — particularly stderr — when the remote closed the channel, because output still buffered at that moment was discarded. The engine is now on sshlib 0.5.1, which preserves buffered output through teardown (#692).
+
 ## v5.89.32
 
 - **Google Drive and other OAuth sign-ins work on a second attempt.** Authenticating an rclone remote (Google Drive, and any provider using the browser sign-in) binds a loopback server on the fixed redirect port, which was only released when the sign-in call finished. Cancelling or timing out a sign-in left that server bound, so the next attempt either attached to the stale, already-authenticated one or failed with a port conflict. The active flow is now stopped on cancel, on timeout, and before a new flow starts, freeing the port between attempts (#697, thanks UlyssesZh).
