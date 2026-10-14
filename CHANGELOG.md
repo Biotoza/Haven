@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.32
+
+- **Google Drive and other OAuth sign-ins work on a second attempt.** Authenticating an rclone remote (Google Drive, and any provider using the browser sign-in) binds a loopback server on the fixed redirect port, which was only released when the sign-in call finished. Cancelling or timing out a sign-in left that server bound, so the next attempt either attached to the stale, already-authenticated one or failed with a port conflict. The active flow is now stopped on cancel, on timeout, and before a new flow starts, freeing the port between attempts (#697, thanks UlyssesZh).
+
 ## v5.89.31
 
 - **Connecting through a tailnet no longer stalls on an unreachable address.** When a hostname resolved to several addresses over the tailnet, Haven dialled only the first; if that one was black-holed the connection hung instead of trying the others. Every resolved address is now tried in turn, each with its own share of the timeout, so a dead address is given up on in time to reach a live one (#691).
