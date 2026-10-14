@@ -1499,6 +1499,17 @@ class DesktopViewModel @Inject constructor(
 
     // --- Tab management ---
 
+    /**
+     * Test seam: install [tab] as the sole active tab without a live connect,
+     * so the input-ordering of the typing verbs can be asserted against a mock
+     * client (#700). Production tab creation goes through addVncSession et al.
+     */
+    @androidx.annotation.VisibleForTesting
+    internal fun addTabForTest(tab: DesktopTab) {
+        _tabs.value = listOf(tab)
+        _activeTabIndex.value = 0
+    }
+
     fun selectTab(index: Int) {
         val tabs = _tabs.value
         if (index in tabs.indices) {
@@ -2455,14 +2466,18 @@ class DesktopViewModel @Inject constructor(
 
     /**
      * Type a string sequentially via the active VNC tab — see
-     * [VncClient.typeText]. Also pushes the text to the remote VNC
-     * clipboard as defence-in-depth (Ctrl+V on the remote then works
-     * regardless of synth-typing fidelity).
+     * [VncClient.typeText].
+     *
+     * Deliberately does NOT push [text] to the remote clipboard (#700).
+     * This path carries whatever the IME commits, including partial
+     * composition deltas, so copying it stamped intermediate text onto the
+     * remote clipboard. The explicit clipboard action
+     * ([VncDesktopSession.sendClipboardText]) is the only route that
+     * writes the remote clipboard.
      */
     fun typeVncText(text: String) {
         val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
         inputLane.submit {
-            client.copyText(text)
             client.typeText(text)
         }
     }
