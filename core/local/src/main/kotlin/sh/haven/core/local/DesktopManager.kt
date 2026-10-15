@@ -811,11 +811,15 @@ class DesktopManager @Inject constructor(
      * (ProotManager.runCommandInProot's `env -i`). Launch scripts re-export
      * their own DISPLAY/XDG_RUNTIME_DIR/etc. on top of this base.
      */
-    private fun cleanGuestEnv(): List<String> {
+    private fun cleanGuestEnv(
+        guestUser: ProotManager.GuestUserSpec = ProotManager.GuestUserSpec.ROOT,
+    ): List<String> {
         val locale = runBlocking { userPreferencesRepository.terminalLocale.first() }
         return listOf(
             "/usr/bin/env", "-i",
-            "HOME=/root",
+            "HOME=${guestUser.home}",
+            "USER=${guestUser.username}",
+            "LOGNAME=${guestUser.username}",
             "TERM=xterm-256color",
             "LANG=$locale",
             "LC_ALL=$locale",
@@ -823,10 +827,16 @@ class DesktopManager @Inject constructor(
             "SHELL=/bin/sh",
             "TMPDIR=/tmp",
             "XDG_RUNTIME_DIR=/tmp",
-            "XDG_DATA_HOME=/root/.local/share",
+            "XDG_DATA_HOME=${guestUser.home}/.local/share",
             "XDG_DATA_DIRS=/usr/local/share:/usr/share",
-            "XDG_CONFIG_HOME=/root/.config",
-            "XDG_CACHE_HOME=/root/.cache",
+            "XDG_CONFIG_HOME=${guestUser.home}/.config",
+            "XDG_CACHE_HOME=${guestUser.home}/.cache",
+            // #718: Arch's gdk-pixbuf2 (2.44+) delegates SVG icon loading to
+            // glycin (`libglycin-2.so.0`), which spawns `bwrap --unshare-all --seccomp`
+            // and aborts `xfce4-panel` and `xfdesktop` 3 seconds after launch inside
+            // PRoot. `GLYCIN_DISABLE_SANDBOX=i-know-the-risks` disables the bwrap
+            // sandbox so GTK/Xfce4 panels render their icons cleanly.
+            "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
         )
     }
 
@@ -842,6 +852,8 @@ class DesktopManager @Inject constructor(
         ).absolutePath
         val rootfsDir = prootManager.activeRootfsDir
         val rootHome = File(rootfsDir, "root").apply { mkdirs() }
+        val guestUser = prootManager.ensureGuestUser(rootfsDir)
+        val userHomeDir = File(rootfsDir, guestUser.home.trimStart('/')).apply { mkdirs() }
 
         val launch = de.spec.launch as LaunchSpec.X11Vnc
 
@@ -874,6 +886,10 @@ class DesktopManager @Inject constructor(
         File(context.cacheDir, ".X${display}-lock").delete()
         File(rootHome, ".ICEauthority").apply { if (!exists()) createNewFile() }
         File(rootHome, ".Xauthority").apply { if (!exists()) createNewFile() }
+        if (!guestUser.isRoot) {
+            File(userHomeDir, ".ICEauthority").apply { if (!exists()) createNewFile() }
+            File(userHomeDir, ".Xauthority").apply { if (!exists()) createNewFile() }
+        }
 
         val passwdFile = File(rootfsDir, "root/.vnc/passwd")
         val useAuth = passwdFile.exists() && passwdFile.length() >= 8
@@ -882,7 +898,7 @@ class DesktopManager @Inject constructor(
         } else {
             "-SecurityTypes None"
         }
-        Log.d(TAG, "Starting Xvnc :$display: useAuth=$useAuth")
+        Log.d(TAG, "Starting Xvnc :$display: useAuth=$useAuth user=${guestUser.username}")
 
         val shellCmd =
             // `;` not `&&` before the backgrounded Xvnc: with `&&` the `&`
@@ -891,6 +907,7 @@ class DesktopManager @Inject constructor(
             // subshell, orphaned Xvnc, and proot (alive while any tracee
             // lives) never exited: the RUNNING-forever zombie of #550/#551.
             "rm -f /tmp/.X${display}-lock /tmp/.X11-unix/X${display} ; " +
+                "mkdir -p /tmp/.X11-unix ; chmod 1777 /tmp/.X11-unix 2>/dev/null || true ; " +
                 "Xvnc :${display} -geometry 1280x720 " +
                 "$securityArg " +
                 "-BlacklistThreshold 10000 " +
@@ -898,21 +915,27 @@ class DesktopManager @Inject constructor(
                 // The Custom-X11 tail kills this PID when the session command
                 // exits (#550/#551); catalog DEs never reference it.
                 "XVNC_PID=\$! ; " +
-                "sleep 3; " +
+                // #718: under qemu-user emulation (e.g. archlinux-x86_64 on ARM64),
+                // Xvnc can take > 3 s to bind `/tmp/.X11-unix/X<display>`. Poll up
+                // to 15 s (75 * 0.2 s) so xfwm4/xfce4-panel never race the X socket.
+                "i=0; while [ ! -S /tmp/.X11-unix/X${display} ] && [ \$i -lt 75 ]; do sleep 0.2; i=\$((i + 1)); done; " +
                 "export DISPLAY=:${display}; " +
-                "export HOME=/root; " +
-                // #370: establish a session dbus bus so desktop components that
-                // need one (Xfce4's settings/session daemons, and whatever the
-                // Custom-X11 command launches) find DBUS_SESSION_BUS_ADDRESS
-                // instead of failing to start. Best-effort: `command -v` guards
-                // desktops whose package set has no dbus-launch (e.g. Openbox,
-                // which doesn't need one), so this never breaks their launch.
-                // Mirrors the native-Wayland path's dbus-run-session; here the
-                // exports are inherited by the backgrounded WM/panel children.
-                // --exit-with-x11: the dbus-daemon dies when the X server does, so a
-                // force-stopped session (SIGKILL on proot bypasses
-                // --kill-on-exit) can't leak one dbus-daemon per stop (#551).
-                "{ command -v dbus-launch >/dev/null 2>&1 && eval \"\$(dbus-launch --sh-syntax --exit-with-x11)\"; } || true; " +
+                "export HOME=${guestUser.home}; " +
+                "export USER=${guestUser.username}; " +
+                "export LOGNAME=${guestUser.username}; " +
+                "export GLYCIN_DISABLE_SANDBOX=i-know-the-risks; " +
+                // #718: TigerVNC's Xvnc requires `vncconfig` running on the X
+                // display to bridge X11 CLIPBOARD/PRIMARY selections to RFB
+                // CutText messages for bidirectional copy/paste.
+                "{ command -v vncconfig >/dev/null 2>&1 && vncconfig -nowin & } 2>/dev/null || true; " +
+                // #370 / #718: establish a session dbus bus so desktop components
+                // (Xfce4's xfconfd/xfce4-panel/xfwm4) find DBUS_SESSION_BUS_ADDRESS.
+                // Arch Linux builds `dbus-launch` without X11 support, so
+                // `dbus-launch --sh-syntax --exit-with-x11` exits 1 ("Session
+                // lifetime based on X11 requested, but X11 support not compiled in");
+                // fall back to plain `dbus-launch --sh-syntax` when `--exit-with-x11`
+                // is unsupported (`--kill-on-exit` on proot still reaps the daemon).
+                "{ command -v dbus-launch >/dev/null 2>&1 && eval \"\$(dbus-launch --sh-syntax --exit-with-x11 2>/dev/null || dbus-launch --sh-syntax)\"; } || true; " +
                 "[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh; " +
                 // NO virgl — software rendering for VNC desktops. Force the
                 // Mesa software rasteriser so GPU-less GL apps (KiCad/eeschema)
@@ -924,8 +947,13 @@ class DesktopManager @Inject constructor(
                 "$startCommands " +
                 "wait"
 
+        val identityArgs = if (guestUser.isRoot) {
+            listOf("-0")
+        } else {
+            listOf("-i", "${guestUser.uid}:${guestUser.gid}")
+        }
         val prootArgs = mutableListOf(
-            prootBin, "-0", "--link2symlink", "--sysvipc",
+            prootBin, *identityArgs.toTypedArray(), "--link2symlink", "--sysvipc",
             // #550/#551: when the launch script exits, kill every remaining
             // tracee. Without this, the dbus-daemon that `dbus-launch` forks
             // outlives the session, proot stays alive tracing it, the host
@@ -959,11 +987,12 @@ class DesktopManager @Inject constructor(
         prootArgs.addAll(prootManager.customBindShortArgs(prootManager.activeDistroId))
         // /bin/sh works on both Alpine (symlink to busybox) and Debian
         // (symlink to dash). See ProotManager.runCommandInProot.
-        prootArgs.addAll(listOf("-w", "/root") + cleanGuestEnv() + listOf("/bin/sh", "-c", shellCmd))
+        prootArgs.addAll(listOf("-w", guestUser.home) + cleanGuestEnv(guestUser) + listOf("/bin/sh", "-c", shellCmd))
 
         return ProcessBuilder(prootArgs).apply {
             environment().apply {
-                put("HOME", "/root")
+                put("HOME", guestUser.home)
+                put("USER", guestUser.username)
                 put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
                 // Pin TMPDIR to the cacheDir-backed /tmp bind; else the desktop
                 // session (and terminals opened from it) inherit the Android
@@ -1147,13 +1176,14 @@ class DesktopManager @Inject constructor(
             // uid-1000 passwd/group entry exists — idempotent (grep-guarded)
             // so it appends once and works for existing installs too. The
             // real Android app uid owns the rootfs, so the guest can write.
-            append("grep -q '^haven:' /etc/passwd 2>/dev/null || echo 'haven:x:1000:1000:Haven:/root:/bin/bash' >> /etc/passwd ; ")
-            append("grep -q '^haven:' /etc/group 2>/dev/null || echo 'haven:x:1000:' >> /etc/group ; ")
+            append("grep -q ':x:1000:' /etc/passwd 2>/dev/null || echo 'haven:x:1000:1000:Haven:/root:/bin/bash' >> /etc/passwd ; ")
+            append("grep -q ':x:1000:' /etc/group 2>/dev/null || echo 'haven:x:1000:' >> /etc/group ; ")
             append("mkdir -p $xdgInProot ; chmod 700 $xdgInProot ; ")
             append("export XDG_RUNTIME_DIR=$xdgInProot ; ")
             append("export HOME=/root ; ")
             append("[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh ; ")
             append("export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ; ")
+            append("export GLYCIN_DISABLE_SANDBOX=i-know-the-risks ; ")
             append("export WLR_BACKENDS=headless ; ")
             append("export WLR_HEADLESS_OUTPUTS=1 ; ")
             append("export WLR_LIBINPUT_NO_DEVICES=1 ; ")

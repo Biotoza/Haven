@@ -31,4 +31,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">双指平移视图（点按切换为滚动远程端）</string>
     <string name="vnc_cd_two_finger_scroll_on">双指滚动远程端（点按切换为平移视图）</string>
+    <string name="vnc_cd_paste">粘贴剪贴板</string>
 </resources>

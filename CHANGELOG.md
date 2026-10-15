@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.35
+
+- **Arch Linux x86_64 emulated desktops install, uninstall, and keep their panels (#718, thanks NAZY-OS).** Adding a foreign-arch catalog distro (`archlinux-x86_64`, `void-x86_64`) now strips the tarball's top-level directory (`stripComponents = 1`) and runs the distro's post-extract setup (`pacman -Syu` and `locale-gen`) and baseline packages, preventing `libgcc`/`libstdc++` file conflicts when installing a desktop; `Pacman.looksLikeStaleDb` also catches file conflicts for existing un-upgraded rootfses. Uninstalling a desktop on Arch now uses `pacman -Rsu --noconfirm` so shared base dependencies (`dbus`, `xfconf`) do not abort removal, and writes an empty `root/.haven-desktop` marker instead of deleting the file and falling back to `usr/bin/xterm` probing. On launch, X11 desktops fall back to `dbus-launch --sh-syntax` when `--exit-with-x11` is disabled at compile time (Arch's `dbus` package) and set `GLYCIN_DISABLE_SANDBOX=i-know-the-risks` so `gdk-pixbuf2` 2.44+'s `glycin` image loader does not abort `xfce4-panel` and `xfdesktop` by spawning `bwrap` inside PRoot.
+- **VNC desktops support two-way clipboard copy and paste (#718).** Local X11 desktops now start `vncconfig -nowin` alongside `Xvnc` to bridge X11 clipboard selections with RFB `ServerCutText`/`ClientCutText`, incoming remote clipboard updates copy to the Android clipboard, and the VNC viewer toolbar and fullscreen menu include a Paste button to send the Android clipboard to the desktop.
+- **Local Linux shells and desktops can run as a non-root user with sudo (#718).** Desktop → Manage → Options & mounts adds a Guest user setting: setting a username provisions `/home/<user>` (uid 1000) with passwordless `sudo` in `/etc/sudoers.d/<user>` and launches local shells and X11 desktops under PRoot `-i 1000:1000` (`sudo` is now included in baseline packages for Arch, Debian, and Ubuntu).
+
 ## v5.89.34
 
 - **The cursor stays on the prompt when the keyboard hides and shows.** When the terminal grew in height and pulled lines back out of scrollback to fill the top of the screen, the screen buffer shifted down without advancing the cursor's row to match, leaving the cursor stranded above the prompt and subsequent typing overwriting earlier lines (#712).

@@ -31,4 +31,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">Deux doigts déplacent la vue (toucher pour faire défiler l\'écran distant)</string>
     <string name="vnc_cd_two_finger_scroll_on">Deux doigts font défiler l\'écran distant (toucher pour déplacer la vue)</string>
+    <string name="vnc_cd_paste">Coller le presse-papiers</string>
 </resources>

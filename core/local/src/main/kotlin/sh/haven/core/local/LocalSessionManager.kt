@@ -302,9 +302,15 @@ class LocalSessionManager @Inject constructor(
             // #301: per-distro user-defined extra binds (any Android path into
             // the guest). Keyed on the distro this session actually runs.
             val customBinds = prootManager.customBindShortArgs(targetDistro).toTypedArray()
+            val guestUser = prootManager.ensureGuestUser(rootfsDir)
+            val identityArgs = if (guestUser.isRoot) {
+                arrayOf("-0")
+            } else {
+                arrayOf("-i", "${guestUser.uid}:${guestUser.gid}")
+            }
             val args = arrayOf(
                 prootBinary,
-                "-0",                    // fake root
+                *identityArgs,           // #718: -0 (root) or -i 1000:1000 (non-root user)
                 "--link2symlink",        // fix link() for X11 lock files
                 "--sysvipc",             // #375: SysV IPC emulation (fakeroot/makepkg)
                 // #325: foreign-arch rootfs runs through the bundled qemu-user
@@ -338,11 +344,12 @@ class LocalSessionManager @Inject constructor(
                 *(prootManager.deviceModelDevicetreeBind()?.let { arrayOf("-b", it) } ?: emptyArray()),
                 // #304 part 2: optionally expose Android's system partitions (opt-in).
                 *prootManager.androidSystemBindArgs(longForm = false),
-                "-w", "/root",
+                "-w", guestUser.home,
             ) + shellArgs
             val env = arrayOf(
-                "HOME=/root",
-                "USER=root",
+                "HOME=${guestUser.home}",
+                "USER=${guestUser.username}",
+                "LOGNAME=${guestUser.username}",
                 "TERM=xterm-256color",
                 "LANG=$terminalLocale",
                 // LC_ALL outranks LANG for every locale category, and older seeded
@@ -356,10 +363,13 @@ class LocalSessionManager @Inject constructor(
                 // runtime dir instead of erroring (#261). RUNTIME_DIR == /tmp,
                 // which is the cacheDir bind (writable).
                 "XDG_RUNTIME_DIR=/tmp",
-                "XDG_DATA_HOME=/root/.local/share",
+                "XDG_DATA_HOME=${guestUser.home}/.local/share",
                 "XDG_DATA_DIRS=/usr/local/share:/usr/share",
-                "XDG_CONFIG_HOME=/root/.config",
-                "XDG_CACHE_HOME=/root/.cache",
+                "XDG_CONFIG_HOME=${guestUser.home}/.config",
+                "XDG_CACHE_HOME=${guestUser.home}/.cache",
+                // #718: gdk-pixbuf2 2.44+ uses glycin for SVG icon loading, which
+                // spawns `bwrap --unshare-all --seccomp` and aborts GTK apps inside PRoot.
+                "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
                 "PROOT_TMP_DIR=${context.cacheDir.absolutePath}",
                 "PROOT_LOADER=${java.io.File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath}",
                 "PROOT_L2S_DIR=${prootManager.l2sEnvValue(targetDistro)}",

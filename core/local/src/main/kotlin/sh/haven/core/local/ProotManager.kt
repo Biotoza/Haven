@@ -43,6 +43,7 @@ private const val PREF_SHARE_STORAGE = "share_storage_with_guest"
 private const val PREF_BIND_ANDROID_SYSTEM = "bind_android_system"
 private const val PREF_DNS_MODE = "proot_dns_mode"
 private const val PREF_DNS_SERVERS = "proot_dns_servers"
+private const val PREF_GUEST_USERNAME = "guest_username"
 
 /** Per-distro custom bind mounts (#301). Key suffix is the distro id. */
 private const val PREF_CUSTOM_BINDS_PREFIX = "custom_binds_"
@@ -503,6 +504,54 @@ class ProotManager @Inject constructor(
         prefs.edit().putString(PREF_DNS_SERVERS, trimmed).apply()
         _dnsServers.value = trimmed
     }
+
+    /**
+     * In-guest identity for interactive PRoot shell and desktop launches (#718).
+     * When [isRoot] is true, PRoot passes `-0` (fake_id0 root emulation).
+     * When [isRoot] is false, PRoot passes `-i <uid>:<gid>` (e.g. `-i 1000:1000`),
+     * which still activates fake_id0 in PRoot so setuid binaries (`/usr/bin/sudo`)
+     * elevate to `uid=0(root)` while normal user processes (`makepkg`, browsers,
+     * desktop sessions) run unprivileged as [username].
+     */
+    data class GuestUserSpec(
+        val username: String,
+        val uid: Int,
+        val gid: Int,
+        val home: String,
+    ) {
+        val isRoot: Boolean get() = uid == 0
+        val prootIdentityFlag: String get() = if (isRoot) "-0" else "-i $uid:$gid"
+        val prootLongIdentityArg: String get() = if (isRoot) "--root-id" else "--change-id=$uid:$gid"
+
+        companion object {
+            val ROOT = GuestUserSpec(username = "root", uid = 0, gid = 0, home = "/root")
+        }
+    }
+
+    private val _guestUsername = MutableStateFlow(
+        sanitizeGuestUsername(prefs.getString(PREF_GUEST_USERNAME, "").orEmpty()),
+    )
+
+    /**
+     * Non-root guest username for PRoot shell and desktop sessions (#718).
+     * Empty string means run as `root` (`-0`, the historical default).
+     */
+    val guestUsernameFlow: StateFlow<String> = _guestUsername.asStateFlow()
+    val guestUsername: String get() = _guestUsername.value
+
+    fun setGuestUsername(raw: String) {
+        val clean = sanitizeGuestUsername(raw)
+        if (clean == _guestUsername.value) return
+        prefs.edit().putString(PREF_GUEST_USERNAME, clean).apply()
+        _guestUsername.value = clean
+    }
+
+    /**
+     * Provision the configured [guestUsername] inside [rootfsDir] if non-empty,
+     * returning the [GuestUserSpec] to launch PRoot with.
+     */
+    fun ensureGuestUser(rootfsDir: File): GuestUserSpec =
+        provisionGuestUser(rootfsDir, _guestUsername.value)
 
     /**
      * Write `etc/resolv.conf` under [rootfsDir] from the current DNS setting, returning
@@ -1069,20 +1118,7 @@ class ProotManager @Inject constructor(
         if (!java.nio.file.Files.exists(binSh, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
             return emptySet()
         }
-        // Prefer Haven's `.haven-desktop` marker — written by [setupDesktop]
-        // only after a DE's packages AND config both succeed — over raw
-        // verifyBinary existence. apt unpacks a DE's binary partway through a
-        // multi-package install, so binary detection alone reports the DE as
-        // installed while setupDesktop is still running (and `desktopSetupState`
-        // is still "Installing") — the state-reporting lag. Marker absent =
-        // legacy rootfs from before this gating; fall back to binary detection.
-        val markedNames = File(rootfs, "root/.haven-desktop").takeIf { it.exists() }
-            ?.readText()?.lineSequence()
-            ?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet()
-        return DesktopEnvironment.entries.filter { de ->
-            val binaryPresent = File(rootfs, de.verifyBinary).exists()
-            if (markedNames != null) de.name in markedNames && binaryPresent else binaryPresent
-        }.toSet()
+        return installedDesktopsInRootfs(rootfs)
     }
 
     /** Compat alias — returns the first installed DE. */
@@ -1370,15 +1406,32 @@ class ProotManager @Inject constructor(
                 }
             }
 
-            // Register the distro and write the completion marker only now
-            // that extract succeeded (#262). Size = the extracted tree's size.
+            // Register the distro in customDistros and switch activeDistroId so
+            // any post-extract hooks + baseline package install (for foreign-arch
+            // catalog distros like `archlinux-x86_64` or `void-x86_64`, #718)
+            // execute against the newly extracted rootfs before ROOTFS_READY_MARKER
+            // is written. Raw user-imported tarballs have empty hooks and baseline
+            // packages and complete immediately.
             val sizeMb = runCatching { (folderSize(targetDir) / (1024 * 1024)).toInt() }.getOrDefault(0)
             val distro = DistroCatalog.customDistro(slug, label.ifBlank { slug }, family, sizeMb)
             persistCustomDistros((customDistros.filter { it.id != slug }) + distro)
+            setActiveDistroId(slug)
+
+            if (distro.postExtractHooks.isNotEmpty() || distro.baselinePackages.isNotEmpty()) {
+                installLogRepository.logEvent(
+                    distroId = slug,
+                    phase = "RootfsExtract",
+                    exit = 0,
+                    ok = true,
+                    message = "Extracted to ${targetDir.absolutePath}",
+                )
+                if (!runPostExtractSetup(distro, installStartedAt)) return
+                return
+            }
+
             runCatching { File(targetDir, ROOTFS_READY_MARKER).writeText("ready\n") }
                 .onFailure { Log.w(TAG, "import marker write failed for $slug: ${it.message}") }
 
-            setActiveDistroId(slug)
             _state.value = SetupState.Ready
             installLogRepository.logEvent(
                 distroId = slug, phase = "Ready", exit = 0, ok = true,
@@ -2417,6 +2470,7 @@ class ProotManager @Inject constructor(
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "TERM=xterm-256color",
             "TMPDIR=/tmp",
+            "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
             "/bin/sh", "-lc", command,
         )
         return ProcessBuilder(args).apply {
@@ -2911,11 +2965,30 @@ chmod +x /root/.vnc/xstartup""")
      * the old glibc-fortify shim in place on Alpine, where it failed to
      * relocate `__fprintf_chk`.
      */
-    private fun stageWayvncShim(de: DesktopEnvironment) {
-        if (de.spec.launch !is LaunchSpec.NestedWayland) return
-        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull {
+    /**
+     * Resolve the Android asset ABI (`arm64-v8a`, `x86_64`, `armeabi-v7a`) matching
+     * [rootfsDir]'s ELF architecture when foreign (#718), falling back to the host's
+     * [Build.SUPPORTED_ABIS]. Without this, an `x86_64` rootfs running under `qemu-user`
+     * on an ARM64 phone had the `arm64-v8a` `libhaven_wayvnc_shim.so` staged into its
+     * `LD_PRELOAD`, which the `x86_64` dynamic linker cannot load.
+     */
+    private fun guestAbiFor(rootfsDir: File): String? {
+        val markerAbi = runCatching {
+            File(rootfsDir, ROOTFS_ARCH_MARKER).readText().trim()
+        }.getOrNull()?.takeIf { it.isNotEmpty() }
+        val rootfsArch = markerAbi?.let { abi -> Arch.entries.firstOrNull { it.abi == abi } }
+            ?: detectRootfsArch(rootfsDir)
+        rootfsArch?.abi?.let { abi ->
+            if (abi == "arm64-v8a" || abi == "x86_64" || abi == "armeabi-v7a") return abi
+        }
+        return android.os.Build.SUPPORTED_ABIS.firstOrNull {
             it == "arm64-v8a" || it == "x86_64" || it == "armeabi-v7a"
         }
+    }
+
+    private fun stageWayvncShim(de: DesktopEnvironment) {
+        if (de.spec.launch !is LaunchSpec.NestedWayland) return
+        val abi = guestAbiFor(activeRootfsDir)
         if (abi == null) {
             Log.w(TAG, "[de-config ${de.spec.id}] no wayvnc shim asset for ABI ${android.os.Build.SUPPORTED_ABIS.toList()}")
             return
@@ -2947,9 +3020,7 @@ chmod +x /root/.vnc/xstartup""")
      * process can run them.
      */
     fun stageHavenUsbArtifacts(): String? {
-        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull {
-            it == "arm64-v8a" || it == "x86_64" || it == "armeabi-v7a"
-        }
+        val abi = guestAbiFor(activeRootfsDir)
             ?: run { Log.w(TAG, "[haven-usb] no artifact for ABI ${android.os.Build.SUPPORTED_ABIS.toList()}"); return null }
 
         fun copy(assetRel: String, target: File, executable: Boolean): Boolean = try {
@@ -3152,8 +3223,14 @@ chmod +x /root/.vnc/xstartup""")
             }
 
             val marker = File(activeRootfsDir, "root/.haven-desktop")
+            marker.parentFile?.mkdirs()
             if (others.isEmpty()) {
-                marker.delete()
+                // Keep an empty marker file (`""`) rather than deleting it (#718):
+                // [installedDesktopsInRootfs] treats a missing marker as a legacy
+                // pre-marker rootfs and falls back to binary probing (`usr/bin/xterm`,
+                // etc.), which falsely marks uninstalled desktops as installed whenever
+                // a shared binary like `xterm` remains on disk.
+                marker.writeText("")
             } else {
                 marker.writeText(others.joinToString("\n") { it.name })
             }
@@ -3563,6 +3640,119 @@ chmod +x /root/.vnc/xstartup""")
         }
         _state.value = if (isReady) SetupState.Ready else SetupState.NotInstalled
         Log.d(TAG, "Deleted distro: $distroId")
+    }
+
+    companion object {
+        private val GUEST_USERNAME_REGEX = Regex("^[a-z_][a-z0-9_-]{0,30}$")
+
+        /**
+         * Detect installed desktops in [rootfs] using `root/.haven-desktop` when
+         * present, falling back to binary probing only for legacy rootfses that
+         * predate the marker file (#718). An existing empty marker file (`""`)
+         * means zero desktops are installed.
+         */
+        internal fun installedDesktopsInRootfs(rootfs: File): Set<DesktopEnvironment> {
+            val markedNames = File(rootfs, "root/.haven-desktop").takeIf { it.exists() }
+                ?.readText()?.lineSequence()
+                ?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet()
+            return DesktopEnvironment.entries.filter { de ->
+                val binaryPresent = File(rootfs, de.verifyBinary).exists()
+                if (markedNames != null) de.name in markedNames && binaryPresent else binaryPresent
+            }.toSet()
+        }
+
+        /**
+         * Normalize a POSIX username for non-root guest mode (#718).
+         * Returns `""` (meaning `root`) if [raw] is blank, `"root"`, or does not
+         * match `[a-z_][a-z0-9_-]{0,30}`.
+         */
+        fun sanitizeGuestUsername(raw: String): String {
+            val clean = raw.trim().lowercase()
+            if (clean.isEmpty() || clean == "root") return ""
+            return if (GUEST_USERNAME_REGEX.matches(clean)) clean else ""
+        }
+
+        /**
+         * Ensure [rawUsername] (uid 1000 / gid 1000) is provisioned in [rootfsDir]'s
+         * `/etc/passwd`, `/etc/group`, `/etc/shadow`, `/etc/sudoers.d/<user>`, and
+         * `/home/<user>` so PRoot can launch sessions with `-i 1000:1000` (#718).
+         * Pure file manipulation on the host side — no guest process spawn required
+         * and safe to call before every PRoot launch.
+         */
+        fun provisionGuestUser(rootfsDir: File, rawUsername: String): GuestUserSpec {
+            val username = sanitizeGuestUsername(rawUsername)
+            if (username.isEmpty() || !rootfsDir.isDirectory) return GuestUserSpec.ROOT
+
+            val uid = 1000
+            val gid = 1000
+            val homeRel = "home/$username"
+            val homeGuest = "/$homeRel"
+            val homeDir = File(rootfsDir, homeRel).apply { mkdirs() }
+
+            // Seed default configs from /root into /home/<user> if missing so X11/Wayland
+            // desktops find their seeded .config and .vnc files when launched as non-root.
+            val rootHome = File(rootfsDir, "root")
+            for (sub in listOf(".config", ".vnc")) {
+                val src = File(rootHome, sub)
+                val dst = File(homeDir, sub)
+                if (src.exists() && !dst.exists()) {
+                    runCatching { src.copyRecursively(dst, overwrite = false) }
+                }
+            }
+
+            val shell = if (File(rootfsDir, "bin/bash").exists() || File(rootfsDir, "usr/bin/bash").exists()) {
+                "/bin/bash"
+            } else {
+                "/bin/sh"
+            }
+
+            val etcDir = File(rootfsDir, "etc").apply { mkdirs() }
+
+            val passwdFile = File(etcDir, "passwd")
+            val passwdLines = if (passwdFile.exists()) passwdFile.readLines().toMutableList() else mutableListOf()
+            val passwdEntry = "$username:x:$uid:$gid:Haven user:$homeGuest:$shell"
+            val existingPasswdIdx = passwdLines.indexOfFirst { it.startsWith("$username:") || it.contains(":$uid:$gid:") }
+            if (existingPasswdIdx >= 0) {
+                if (passwdLines[existingPasswdIdx] != passwdEntry) {
+                    passwdLines[existingPasswdIdx] = passwdEntry
+                    runCatching { passwdFile.writeText(passwdLines.joinToString("\n") + "\n") }
+                }
+            } else {
+                passwdLines.add(passwdEntry)
+                runCatching { passwdFile.writeText(passwdLines.joinToString("\n") + "\n") }
+            }
+
+            val groupFile = File(etcDir, "group")
+            val groupLines = if (groupFile.exists()) groupFile.readLines().toMutableList() else mutableListOf()
+            if (groupLines.none { it.startsWith("$username:") || it.contains(":x:$gid:") }) {
+                groupLines.add("$username:x:$gid:")
+                runCatching { groupFile.writeText(groupLines.joinToString("\n") + "\n") }
+            }
+
+            val shadowFile = File(etcDir, "shadow")
+            if (shadowFile.exists()) {
+                val shadowLines = shadowFile.readLines().toMutableList()
+                if (shadowLines.none { it.startsWith("$username:") }) {
+                    shadowLines.add("$username::19000:0:99999:7:::")
+                    runCatching { shadowFile.writeText(shadowLines.joinToString("\n") + "\n") }
+                }
+            }
+
+            val sudoersDir = File(etcDir, "sudoers.d").apply { mkdirs() }
+            val sudoersFile = File(sudoersDir, username)
+            val sudoersContent = "$username ALL=(ALL:ALL) NOPASSWD: ALL\n"
+            if (!sudoersFile.exists() || runCatching { sudoersFile.readText() }.getOrNull() != sudoersContent) {
+                runCatching {
+                    sudoersFile.writeText(sudoersContent)
+                    java.nio.file.Files.setPosixFilePermissions(
+                        sudoersFile.toPath(),
+                        java.nio.file.attribute.PosixFilePermissions.fromString("r--r-----"),
+                    )
+                }
+            }
+
+            return GuestUserSpec(username = username, uid = uid, gid = gid, home = homeGuest)
+        }
     }
 }
 

@@ -219,42 +219,54 @@ fun DesktopScreen(
             if (tab != null) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
-                        is DesktopTab.Vnc -> VncSessionContent(
-                            connected = tab.connected,
-                            frame = tab.frame,
-                            error = tab.error,
-                            toolbarLayout = toolbarLayout,
-                            onTap = { x, y -> desktopViewModel.sendClick(x, y) },
-                            onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
-                            onLongPress = { x, y -> desktopViewModel.sendClick(x, y, button = 3) },
-                            onDragStart = { x, y ->
-                                desktopViewModel.sendPointer(x, y)
-                                desktopViewModel.pressButton(1)
-                            },
-                            onDrag = { x, y -> desktopViewModel.sendPointer(x, y) },
-                            onDragEnd = { desktopViewModel.releaseButton(1) },
-                            onScrollUp = { desktopViewModel.scrollUp() },
-                            onScrollDown = { desktopViewModel.scrollDown() },
-                            onPressButton = { btn -> desktopViewModel.pressButton(btn) },
-                            onReleaseButton = { btn -> desktopViewModel.releaseButton(btn) },
-                            onTypeChar = { ch -> desktopViewModel.typeVncKey(charToKeySym(ch)) },
-                            onTypeText = { text -> desktopViewModel.typeVncText(text) },
-                            onKeyDown = { keySym -> desktopViewModel.sendVncKey(keySym, true) },
-                            onKeyUp = { keySym -> desktopViewModel.sendVncKey(keySym, false) },
-                            onDisconnect = { desktopViewModel.closeTab(tab.id) },
-                            onFullscreenChanged = onFullscreenChanged,
-                            cursor = tab.cursor,
-                            pointerPos = tab.pointerPos,
-                            inputMode = inputMode,
-                            onSetInputMode = onSetInputMode,
-                            bandwidthSuggestion = tab.bandwidthSuggestion,
-                            onAcceptBandwidthSuggestion = { desktopViewModel.acceptBandwidthSuggestion(tab.id) },
-                            onDismissBandwidthSuggestion = { desktopViewModel.dismissBandwidthSuggestion(tab.id) },
-                            currentOrientation = desktopOrientation,
-                            onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
-                            onRetry = { desktopViewModel.retryTab(tab.id) },
-                            onClose = { desktopViewModel.closeTab(tab.id) },
-                        )
+                        is DesktopTab.Vnc -> {
+                            val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                            val remoteClip by tab.remoteClipboard.collectAsState()
+                            LaunchedEffect(remoteClip) {
+                                val text = remoteClip
+                                if (!text.isNullOrEmpty()) {
+                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(text))
+                                    tab._remoteClipboard.value = null
+                                }
+                            }
+                            VncSessionContent(
+                                connected = tab.connected,
+                                frame = tab.frame,
+                                error = tab.error,
+                                toolbarLayout = toolbarLayout,
+                                onTap = { x, y -> desktopViewModel.sendClick(x, y) },
+                                onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
+                                onLongPress = { x, y -> desktopViewModel.sendClick(x, y, button = 3) },
+                                onDragStart = { x, y ->
+                                    desktopViewModel.sendPointer(x, y)
+                                    desktopViewModel.pressButton(1)
+                                },
+                                onDrag = { x, y -> desktopViewModel.sendPointer(x, y) },
+                                onDragEnd = { desktopViewModel.releaseButton(1) },
+                                onScrollUp = { desktopViewModel.scrollUp() },
+                                onScrollDown = { desktopViewModel.scrollDown() },
+                                onPressButton = { btn -> desktopViewModel.pressButton(btn) },
+                                onReleaseButton = { btn -> desktopViewModel.releaseButton(btn) },
+                                onTypeChar = { ch -> desktopViewModel.typeVncKey(charToKeySym(ch)) },
+                                onTypeText = { text -> desktopViewModel.typeVncText(text) },
+                                onSendClipboard = { text -> desktopViewModel.sendVncClipboardText(text) },
+                                onKeyDown = { keySym -> desktopViewModel.sendVncKey(keySym, true) },
+                                onKeyUp = { keySym -> desktopViewModel.sendVncKey(keySym, false) },
+                                onDisconnect = { desktopViewModel.closeTab(tab.id) },
+                                onFullscreenChanged = onFullscreenChanged,
+                                cursor = tab.cursor,
+                                pointerPos = tab.pointerPos,
+                                inputMode = inputMode,
+                                onSetInputMode = onSetInputMode,
+                                bandwidthSuggestion = tab.bandwidthSuggestion,
+                                onAcceptBandwidthSuggestion = { desktopViewModel.acceptBandwidthSuggestion(tab.id) },
+                                onDismissBandwidthSuggestion = { desktopViewModel.dismissBandwidthSuggestion(tab.id) },
+                                currentOrientation = desktopOrientation,
+                                onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
+                                onRetry = { desktopViewModel.retryTab(tab.id) },
+                                onClose = { desktopViewModel.closeTab(tab.id) },
+                            )
+                        }
 
                         is DesktopTab.Rdp -> RdpSessionContent(
                             connected = tab.connected,

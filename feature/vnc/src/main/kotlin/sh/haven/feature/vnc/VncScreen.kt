@@ -162,6 +162,8 @@ fun VncSessionContent(
     onReleaseButton: (Int) -> Unit = {},
     onTypeChar: (Char) -> Unit,
     onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
+    /** Push text to the remote VNC clipboard via RFB ClientCutText (#718). */
+    onSendClipboard: ((String) -> Unit)? = null,
     onKeyDown: (keySym: Int) -> Unit,
     onKeyUp: (keySym: Int) -> Unit,
     onDisconnect: () -> Unit,
@@ -271,6 +273,7 @@ fun VncSessionContent(
             onReleaseButton = onReleaseButton,
             onTypeChar = onTypeChar,
             onTypeText = onTypeText,
+            onSendClipboard = onSendClipboard,
             onKeyDown = onKeyDown,
             onKeyUp = onKeyUp,
             onToggleFullscreen = {
@@ -377,6 +380,7 @@ fun VncScreen(
         onReleaseButton = { btn -> viewModel.releaseButton(btn) },
         onTypeChar = { ch -> viewModel.typeKey(charToKeySym(ch)) },
         onTypeText = { text -> viewModel.typeText(text) },
+        onSendClipboard = { text -> viewModel.sendClipboardText(text) },
         onKeyDown = { keySym -> viewModel.sendKey(keySym, true) },
         onKeyUp = { keySym -> viewModel.sendKey(keySym, false) },
         onDisconnect = { viewModel.disconnect() },
@@ -521,6 +525,7 @@ private fun VncViewer(
     onReleaseButton: (Int) -> Unit = {},
     onTypeChar: (Char) -> Unit,
     onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
+    onSendClipboard: ((String) -> Unit)? = null,
     onKeyDown: (Int) -> Unit,
     onKeyUp: (Int) -> Unit,
     onToggleFullscreen: () -> Unit,
@@ -1337,6 +1342,14 @@ private fun VncViewer(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
+                val clipboardManager = LocalClipboardManager.current
+                val pasteClipboard: () -> Unit = {
+                    val text = clipboardManager.getText()?.text
+                    if (!text.isNullOrEmpty()) {
+                        onSendClipboard?.invoke(text)
+                        onTypeText(text)
+                    }
+                }
                 IconButton(onClick = onDisconnect) {
                     Icon(Icons.Default.Close, contentDescription = stringResource(R.string.vnc_cd_disconnect))
                 }
@@ -1347,6 +1360,16 @@ private fun VncViewer(
                         if (keyboardVisible) Icons.Default.KeyboardHide
                         else Icons.Default.Keyboard,
                         contentDescription = stringResource(R.string.vnc_cd_toggle_keyboard),
+                    )
+                }
+
+                // Paste from Android clipboard (#718): pushes text to remote RFB
+                // CutText (for Ctrl+V / middle-click paste via vncconfig) AND types
+                // it into the focused window.
+                IconButton(onClick = pasteClipboard) {
+                    Icon(
+                        Icons.Default.ContentPaste,
+                        contentDescription = stringResource(R.string.vnc_cd_paste),
                     )
                 }
 
@@ -1482,6 +1505,7 @@ private fun VncViewer(
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 shadowElevation = 8.dp,
             ) {
+                val clipboardManager = LocalClipboardManager.current
                 Column(
                     modifier = Modifier.padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1497,6 +1521,19 @@ private fun VncViewer(
                             if (keyboardVisible) Icons.Default.KeyboardHide
                             else Icons.Default.Keyboard,
                             contentDescription = stringResource(R.string.vnc_cd_toggle_keyboard),
+                        )
+                    }
+                    IconButton(onClick = {
+                        overlayVisible = false
+                        val text = clipboardManager.getText()?.text
+                        if (!text.isNullOrEmpty()) {
+                            onSendClipboard?.invoke(text)
+                            onTypeText(text)
+                        }
+                    }) {
+                        Icon(
+                            Icons.Default.ContentPaste,
+                            contentDescription = stringResource(R.string.vnc_cd_paste),
                         )
                     }
                     IconButton(onClick = onCycleOrientation) {

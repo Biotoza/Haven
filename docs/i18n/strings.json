@@ -1982,6 +1982,82 @@
      }
     },
     {
+     "name": "app_desktop_guest_user_title",
+     "en": "Guest user",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "مستخدم الضيف",
+      "bn": "গেস্ট ব্যবহারকারী",
+      "de": "Gastbenutzer",
+      "es": "Usuario invitado",
+      "fr": "Utilisateur invité",
+      "hi": "अतिथि उपयोगकर्ता",
+      "ja": "ゲストユーザー",
+      "ko": "게스트 사용자",
+      "pt": "Utilizador convidado",
+      "ru": "Гостевой пользователь",
+      "zh": "访客用户"
+     }
+    },
+    {
+     "name": "app_desktop_guest_user_description",
+     "en": "Run shells and X11 desktops as a normal user (uid 1000) with passwordless sudo instead of root. Leave blank or set to root for root mode.",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "تشغيل الصدفات وأسطح مكتب X11 كمستخدم عادي (uid 1000) مع صلاحية sudo بدون كلمة مرور بدلاً من الجذر. اتركه فارغاً أو اضبطه على root لوضع الجذر.",
+      "bn": "রুটের পরিবর্তে পাসওয়ার্ডহীন sudo সহ সাধারণ ব্যবহারকারী (uid 1000) হিসেবে শেল এবং X11 ডেস্কটপ চালান। রুট মোডের জন্য ফাঁকা রাখুন বা root লিখুন।",
+      "de": "Shells und X11-Desktops als normaler Benutzer (UID 1000) mit passwortlosem sudo statt als root ausführen. Für den Root-Modus leer lassen oder auf root setzen.",
+      "es": "Ejecuta shells y escritorios X11 como un usuario normal (uid 1000) con sudo sin contraseña en lugar de root. Déjalo en blanco o escribe root para el modo root.",
+      "fr": "Exécuter les shells et les bureaux X11 en tant qu\\'utilisateur normal (uid 1000) avec sudo sans mot de passe au lieu de root. Laisser vide ou définir sur root pour le mode root.",
+      "hi": "रूट के बजाय बिना पासवर्ड वाले sudo के साथ सामान्य उपयोगकर्ता (uid 1000) के रूप में शेल और X11 डेस्कटॉप चलाएं। रूट मोड के लिए खाली छोड़ें या root सेट करें।",
+      "ja": "root の代わりにパスワードなし sudo を持つ一般ユーザー (uid 1000) としてシェルと X11 デスクトップを実行します。root モードにするには空欄にするか root を指定してください。",
+      "ko": "root 대신 비밀번호 없는 sudo 권한을 가진 일반 사용자(uid 1000)로 셸과 X11 데스크톱을 실행합니다. root 모드를 사용하려면 비워 두거나 root로 설정하세요.",
+      "pt": "Executar shells e ambientes gráficos X11 como um utilizador normal (uid 1000) com sudo sem palavra-passe em vez de root. Deixe em branco ou defina como root para o modo root.",
+      "ru": "Запускать оболочки и рабочие столы X11 от имени обычного пользователя (uid 1000) с sudo без пароля вместо root. Оставьте пустым или укажите root для режима суперпользователя.",
+      "zh": "以具有免密 sudo 权限的普通用户 (uid 1000) 而非 root 身份运行 shell 和 X11 桌面。留空或设为 root 则使用 root 模式。"
+     }
+    },
+    {
+     "name": "app_desktop_guest_user_label",
+     "en": "Username",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "اسم المستخدم",
+      "bn": "ব্যবহারকারীর নাম",
+      "de": "Benutzername",
+      "es": "Nombre de usuario",
+      "fr": "Nom d\\'utilisateur",
+      "hi": "उपयोगकर्ता नाम",
+      "ja": "ユーザー名",
+      "ko": "사용자 이름",
+      "pt": "Nome de utilizador",
+      "ru": "Имя пользователя",
+      "zh": "用户名"
+     }
+    },
+    {
+     "name": "app_desktop_guest_user_hint",
+     "en": "root (or e.g. user)",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "root (أو مثلاً user)",
+      "bn": "root (অথবা যেমন user)",
+      "de": "root (oder z. B. user)",
+      "es": "root (o p. ej. user)",
+      "fr": "root (ou p. ex. user)",
+      "hi": "root (या उदा. user)",
+      "ja": "root (または user など)",
+      "ko": "root (또는 예: user)",
+      "pt": "root (ou ex. user)",
+      "ru": "root (или, например, user)",
+      "zh": "root（或例如 user）"
+     }
+    },
+    {
      "name": "app_desktop_bind_android_system_title",
      "en": "Expose Android system to guest",
      "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
@@ -46377,6 +46453,25 @@
       "ru": "Показать/скрыть клавиатуру",
       "sr": "Укљ./искљ. тастатуру",
       "zh": "切换键盘"
+     }
+    },
+    {
+     "name": "vnc_cd_paste",
+     "en": "Paste clipboard",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لصق الحافظة",
+      "bn": "ক্লিপবোর্ড পেস্ট করুন",
+      "de": "Zwischenablage einfügen",
+      "es": "Pegar portapapeles",
+      "fr": "Coller le presse-papiers",
+      "hi": "क्लिपबोर्ड पेस्ट करें",
+      "ja": "クリップボードを貼り付け",
+      "ko": "클립보드 붙여넣기",
+      "pt": "Colar área de transferência",
+      "ru": "Вставить из буфера обмена",
+      "zh": "粘贴剪贴板"
      }
     },
     {

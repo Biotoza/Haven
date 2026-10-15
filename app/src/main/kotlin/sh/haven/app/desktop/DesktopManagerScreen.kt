@@ -124,6 +124,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val mirrorRegion by viewModel.mirrorRegion.collectAsState()
     val dnsMode by viewModel.dnsMode.collectAsState()
     val dnsServers by viewModel.dnsServers.collectAsState()
+    val guestUsername by viewModel.guestUsername.collectAsState()
     val remapLowPorts by viewModel.remapLowPorts.collectAsState()
     val shareStorageWithGuest by viewModel.shareStorageWithGuest.collectAsState()
     val bindAndroidSystem by viewModel.bindAndroidSystem.collectAsState()
@@ -187,6 +188,8 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onSetDnsMode = { viewModel.setDnsMode(it) },
             dnsServers = dnsServers,
             onSetDnsServers = { viewModel.setDnsServers(it) },
+            guestUsername = guestUsername,
+            onSetGuestUsername = { viewModel.setGuestUsername(it) },
             remapLowPorts = remapLowPorts,
             onSetRemapLowPorts = { viewModel.setRemapLowPorts(it) },
             shareStorageWithGuest = shareStorageWithGuest,
@@ -1436,6 +1439,37 @@ private fun dnsModeLabel(mode: ProotDnsMode): String = when (mode) {
     ProotDnsMode.CUSTOM -> stringResource(AppR.string.app_desktop_dns_mode_custom)
 }
 
+/**
+ * Guest non-root user (#718). When non-blank and not "root", Haven provisions
+ * `/home/<user>` (uid 1000) with passwordless sudo in `/etc/sudoers.d/99-haven`
+ * and runs local shells and X11 desktops via PRoot `-i 1000:1000`.
+ */
+@Composable
+private fun GuestUserRow(
+    username: String,
+    onUsernameChange: (String) -> Unit,
+) {
+    Text(
+        stringResource(AppR.string.app_desktop_guest_user_title),
+        style = MaterialTheme.typography.titleSmall,
+    )
+    Spacer(Modifier.height(2.dp))
+    Text(
+        stringResource(AppR.string.app_desktop_guest_user_description),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(8.dp))
+    OutlinedTextField(
+        value = username,
+        onValueChange = onUsernameChange,
+        label = { Text(stringResource(AppR.string.app_desktop_guest_user_label)) },
+        placeholder = { Text(stringResource(AppR.string.app_desktop_guest_user_hint)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
 /** A title + description + Switch row, styled like [MirrorRegionRow]. */
 @Composable
 private fun BindingToggleRow(
@@ -1481,6 +1515,8 @@ private fun DesktopManagerSection(
     onSetDnsMode: (ProotDnsMode) -> Unit,
     dnsServers: String,
     onSetDnsServers: (String) -> Unit,
+    guestUsername: String,
+    onSetGuestUsername: (String) -> Unit,
     remapLowPorts: Boolean,
     onSetRemapLowPorts: (Boolean) -> Unit,
     shareStorageWithGuest: Boolean,
@@ -1935,6 +1971,11 @@ private fun DesktopManagerSection(
                         servers = dnsServers,
                         onSelectMode = onSetDnsMode,
                         onServersChange = onSetDnsServers,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    GuestUserRow(
+                        username = guestUsername,
+                        onUsernameChange = onSetGuestUsername,
                     )
                     Spacer(Modifier.height(8.dp))
                     BindingToggleRow(

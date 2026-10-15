@@ -169,6 +169,13 @@ class DesktopViewModel @Inject constructor(
         prootManager.setDnsServers(servers)
     }
 
+    /** #718: non-root guest username for PRoot shell and desktop sessions (`""` = root). */
+    val guestUsername: StateFlow<String> get() = prootManager.guestUsernameFlow
+
+    fun setGuestUsername(username: String) {
+        prootManager.setGuestUsername(username)
+    }
+
     /**
      * Local-shell open requests keyed by the resolved profile id. Collected
      * by HavenNavHost (which is always composed, unlike TerminalScreen) so
@@ -294,6 +301,7 @@ class DesktopViewModel @Inject constructor(
                     family = distro.family,
                     source = source.url,
                     format = formatFor(source.url),
+                    stripComponents = source.stripComponents,
                     expectedSha256 = source.sha256,
                 )
             } catch (e: Exception) {
@@ -448,16 +456,17 @@ class DesktopViewModel @Inject constructor(
                 return@launch
             }
             val port = desktopManager.getVncPort(de) ?: 5901
-            // Wait up to 8 s for the Xvnc server to start listening,
-            // racing the poll against the DesktopManager's own error
-            // state — if the launch throws inside DesktopManager (e.g.
-            // missing compositor binary on the Arch nested-Wayland path,
-            // GlassHaven/Haven#162 bug B), the manager records ERROR +
-            // an errorMessage and we exit the wait immediately with the
-            // diagnostic instead of running out the full timeout and
+            // Wait up to 20 s for the Xvnc / wayvnc server to start listening
+            // (#718: foreign-arch rootfses under qemu-user emulation take longer
+            // than the 8 s host-arch budget), racing the poll against the
+            // DesktopManager's own error state — if the launch throws inside
+            // DesktopManager (e.g. missing compositor binary on the Arch
+            // nested-Wayland path, GlassHaven/Haven#162 bug B), the manager
+            // records ERROR + an errorMessage and we exit the wait immediately
+            // with the diagnostic instead of running out the full timeout and
             // leaving the user staring at a spinner. See #169.
             val outcome = withContext(Dispatchers.IO) {
-                val deadline = System.currentTimeMillis() + 8000
+                val deadline = System.currentTimeMillis() + 20_000
                 while (System.currentTimeMillis() < deadline) {
                     val managerInstance = desktopManager.desktops.value[de]
                     if (managerInstance?.state == DesktopManager.DesktopState.ERROR) {
@@ -1718,6 +1727,7 @@ class DesktopViewModel @Inject constructor(
             val cursor = MutableStateFlow<CursorOverlay?>(null)
             val pointerPos = MutableStateFlow(0 to 0)
             val bandwidthSuggestion = MutableStateFlow<String?>(null)
+            val remoteClipboard = MutableStateFlow<String?>(null)
 
             // Hoisted out of try so the catch / onError can clean it up
             // when the dial fails (#121). tunnelLease owns the forward +
@@ -1782,6 +1792,10 @@ class DesktopViewModel @Inject constructor(
                     }
                 }
 
+                val isLocalGuest = profileId == null &&
+                    !sshForward &&
+                    (host == "localhost" || host == "127.0.0.1")
+
                 val config = VncConfig().apply {
                     this.colorDepth = runCatching { ColorDepth.valueOf(colorDepth) }
                         .getOrDefault(ColorDepth.BPP_24_TRUE)
@@ -1825,6 +1839,21 @@ class DesktopViewModel @Inject constructor(
                         // the password, and this line put 50 characters of it in
                         // logcat for anyone who reads a bug report (#518).
                         Log.d(TAG, "VNC clipboard ($tabId): ${text.length} chars")
+                        if (text.isNotEmpty()) {
+                            // #718: local PRoot desktops run on the user's own device,
+                            // so copying inside the local guest should always populate
+                            // the Android clipboard; remote VNC hosts remain gated on
+                            // `remoteClipboardToLocalEnabled` (security-review #15).
+                            if (isLocalGuest) {
+                                remoteClipboard.value = text
+                            } else {
+                                viewModelScope.launch {
+                                    if (preferencesRepository.remoteClipboardToLocalEnabled.first()) {
+                                        remoteClipboard.value = text
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1849,6 +1878,7 @@ class DesktopViewModel @Inject constructor(
                     _cursor = cursor,
                     _pointerPos = pointerPos,
                     _bandwidthSuggestion = bandwidthSuggestion,
+                    _remoteClipboard = remoteClipboard,
                     tunnelLease = tunnelLease,
                     profileId = profileId,
                     originalHost = host,
@@ -2479,6 +2509,16 @@ class DesktopViewModel @Inject constructor(
         val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
         inputLane.submit {
             client.typeText(text)
+        }
+    }
+
+    /**
+     * Push [text] to the active VNC tab's remote clipboard via RFB ClientCutText (#718).
+     */
+    fun sendVncClipboardText(text: String) {
+        val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
+        inputLane.submit {
+            client.copyText(text)
         }
     }
 

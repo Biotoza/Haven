@@ -331,6 +331,15 @@ class VncViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Push [text] to the remote VNC clipboard via RFB ClientCutText (#718).
+     */
+    fun sendClipboardText(text: String) {
+        viewModelScope.launch(keyboardDispatcher) {
+            client?.copyText(text)
+        }
+    }
+
     fun scrollUp() {
         viewModelScope.launch(Dispatchers.IO) { client?.click(4) }
     }

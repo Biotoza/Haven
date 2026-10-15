@@ -31,4 +31,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">दो उँगलियाँ व्यू पैन करती हैं (रिमोट स्क्रॉल करने के लिए टैप करें)</string>
     <string name="vnc_cd_two_finger_scroll_on">दो उँगलियाँ रिमोट स्क्रॉल करती हैं (व्यू पैन करने के लिए टैप करें)</string>
+    <string name="vnc_cd_paste">क्लिपबोर्ड पेस्ट करें</string>
 </resources>

@@ -31,4 +31,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">إصبعان يحرّكان العرض (اضغط لتمرير الشاشة البعيدة)</string>
     <string name="vnc_cd_two_finger_scroll_on">إصبعان يمرّران الشاشة البعيدة (اضغط لتحريك العرض)</string>
+    <string name="vnc_cd_paste">لصق الحافظة</string>
 </resources>

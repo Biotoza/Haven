@@ -30,4 +30,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">Два пальца перемещают вид (нажмите, чтобы прокручивать удалённый экран)</string>
     <string name="vnc_cd_two_finger_scroll_on">Два пальца прокручивают удалённый экран (нажмите, чтобы перемещать вид)</string>
+    <string name="vnc_cd_paste">Вставить из буфера обмена</string>
 </resources>
