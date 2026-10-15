@@ -1307,7 +1307,6 @@ class TerminalViewModel @Inject constructor(
                     enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
                     onKeyboardInput = { data -> reCoalescer.send(applyModifiers(data)) },
                     onResize = { dims ->
-                        for (tab in _tabs.value) tab.resize(dims.columns, dims.rows)
                         source.getActive(sessionId)?.resize(dims.columns, dims.rows)
                     },
                     maxScrollbackLines = terminalScrollbackRows.value,
@@ -1405,9 +1404,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> localCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "LOCAL onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     localSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
@@ -1613,11 +1609,6 @@ class TerminalViewModel @Inject constructor(
             val coalescer = InputCoalescer { data -> b.session?.sendToSsh(data) }
             sshEmulatorOwner.setInputSink(sessionId) { data -> coalescer.send(applyModifiers(data)) }
             sshEmulatorOwner.setResizeSink(sessionId) { dims ->
-                // Only the active tab's Terminal composable fires onResize; resize
-                // ALL tabs so inactive ones don't keep a stale PTY size.
-                for (tab in _tabs.value) {
-                    tab.resize(dims.columns, dims.rows)
-                }
                 b.session?.resize(dims.columns, dims.rows)
             }
 
@@ -1710,9 +1701,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> rnsCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "RNS onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     rnsSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
@@ -2054,9 +2042,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> moshCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "MOSH onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     moshSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
@@ -2162,9 +2147,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> etCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "ET onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     etSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,

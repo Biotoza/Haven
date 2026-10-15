@@ -593,4 +593,70 @@ class TerminalViewModelTest {
         assertEquals("the locked Alt is not", true, viewModel.altActive.value)
         assertEquals(2, viewModel.toolbarModifierMask())
     }
+
+    // #713: When the active tab's TerminalEmulator resizes (e.g. active tab in
+    // alt-screen reflowing to keyboard height, or rotating), its onResize
+    // callback must NOT loop over _tabs.value and call tab.resize(cols, rows)
+    // on inactive tabs — because inactive tabs are not composed, their local
+    // TerminalEmulator stays at its old dimensions while the remote PTY is
+    // resized out from under it, desynchronizing remote vs local dimensions.
+    @Test
+    fun `resizing one tab does not resize another tab's remote transport out from under its emulator`() =
+        runTest(testDispatcher) {
+            val sshSession1 = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+            val sshSession2 = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+            val resizeSinks = mutableMapOf<String, (org.connectbot.terminal.TerminalDimensions) -> Unit>()
+
+            val s1 = sessionManager.registerSession("p1", "Server 1", mockk(relaxed = true))
+            sessionManager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+            val s2 = sessionManager.registerSession("p2", "Server 2", mockk(relaxed = true))
+            sessionManager.updateStatus(s2, SshSessionManager.SessionState.Status.CONNECTED)
+
+            val bundle1 = SshTerminalEmulatorOwner.Bundle(
+                sessionId = s1,
+                profileId = "p1",
+                label = "Server 1",
+                oscHandler = OscHandler(),
+                cwdFlow = MutableStateFlow(null),
+                hyperlinkFlow = MutableStateFlow(null),
+                mouseTracker = MouseModeTracker(),
+                recorder = null,
+            ).apply {
+                emulator = mockk(relaxed = true)
+                feedOutput = { _, _, _ -> }
+                session = sshSession1
+            }
+            val bundle2 = SshTerminalEmulatorOwner.Bundle(
+                sessionId = s2,
+                profileId = "p2",
+                label = "Server 2",
+                oscHandler = OscHandler(),
+                cwdFlow = MutableStateFlow(null),
+                hyperlinkFlow = MutableStateFlow(null),
+                mouseTracker = MouseModeTracker(),
+                recorder = null,
+            ).apply {
+                emulator = mockk(relaxed = true)
+                feedOutput = { _, _, _ -> }
+                session = sshSession2
+            }
+
+            every { sshEmulatorOwner.bundleFor(s1) } returns bundle1
+            every { sshEmulatorOwner.bundleFor(s2) } returns bundle2
+            every { sshEmulatorOwner.setResizeSink(any(), any()) } answers {
+                resizeSinks[firstArg()] = secondArg()
+            }
+
+            viewModel.syncSessions()
+            assertEquals(2, viewModel.tabs.value.size)
+
+            // Active tab 1's emulator fires onResize(51 cols, 23 rows)
+            resizeSinks.getValue(s1).invoke(
+                org.connectbot.terminal.TerminalDimensions(rows = 23, columns = 51),
+            )
+
+            verify(exactly = 1) { sshSession1.resize(51, 23) }
+            verify(exactly = 0) { sshSession2.resize(any(), any()) }
+        }
 }
+
