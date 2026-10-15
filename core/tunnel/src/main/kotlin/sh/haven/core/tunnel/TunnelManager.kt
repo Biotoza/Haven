@@ -53,6 +53,8 @@ interface TunnelFactory {
  *  - [TunnelConfigType.WIREGUARD] → [WireguardTunnel] (wireguard-go +
  *    gVisor netstack, bundled into libgojni.so).
  *  - [TunnelConfigType.TAILSCALE] → [TailscaleTunnel] (tsnet, same .so).
+ *  - [TunnelConfigType.ANYCONNECT] → [AnyConnectTunnel] (ocbridge: Cisco
+ *    AnyConnect / ocserv over CSTP into a gVisor netstack, same .so).
  *
  * Tailscale needs a per-config writable state directory for node keys +
  * cert cache. Created under `<filesDir>/tailscale-<configId>/` the first
@@ -231,6 +233,13 @@ class DefaultTunnelFactory @Inject constructor(
                 hostname = deriveHostname(config.label),
                 managementURL = parsed.managementURL,
             )
+        }
+        TunnelConfigType.ANYCONNECT -> {
+            val parsed = AnyConnectConfigBlob.parse(config.configText)
+                ?: throw IOException(
+                    "AnyConnect tunnel '${config.label}' is missing its server or username — edit the tunnel",
+                )
+            AnyConnectTunnel(parsed)
         }
     }
 

@@ -46344,6 +46344,266 @@
       "sr": "Cloudflare Access JWT (није обавезно)",
       "zh": "Cloudflare Access JWT（可选）"
      }
+    },
+    {
+     "name": "tunnel_anyconnect_help",
+     "en": "Connect through a Cisco AnyConnect or ocserv (OpenConnect) VPN without the Cisco app. Only profiles that route through this tunnel use it; the rest of your phone does not. Username/password, auth groups and TOTP or push second factors are supported; SAML/SSO and client certificates are not.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "اتصل عبر شبكة VPN من Cisco AnyConnect أو ocserv (OpenConnect) دون تطبيق Cisco. تستخدمها فقط الملفات الشخصية الموجّهة عبر هذا النفق، وليس بقية حركة الهاتف. يدعم اسم المستخدم/كلمة المرور ومجموعات المصادقة وعامل التحقق الثاني TOTP أو الإشعار؛ ولا يدعم SAML/SSO وشهادات العميل.",
+      "bn": "Cisco অ্যাপ ছাড়াই Cisco AnyConnect বা ocserv (OpenConnect) VPN-এর মাধ্যমে সংযোগ করুন। শুধু এই টানেল দিয়ে রুট হওয়া প্রোফাইলগুলো এটি ব্যবহার করে; ফোনের বাকি ট্রাফিক নয়। ব্যবহারকারীর নাম/পাসওয়ার্ড, অথ গ্রুপ এবং TOTP বা পুশ দ্বিতীয় ফ্যাক্টর সমর্থিত; SAML/SSO ও ক্লায়েন্ট সার্টিফিকেট নয়।",
+      "de": "Verbindung über ein Cisco-AnyConnect- oder ocserv-(OpenConnect-)VPN ohne die Cisco-App. Nur Profile, die über diesen Tunnel geleitet werden, nutzen ihn; der Rest deines Telefons nicht. Unterstützt werden Benutzername/Passwort, Authentifizierungsgruppen sowie TOTP- oder Push-Zweitfaktoren; SAML/SSO und Client-Zertifikate nicht.",
+      "es": "Conéctate a través de una VPN Cisco AnyConnect u ocserv (OpenConnect) sin la app de Cisco. Solo la usan los perfiles que pasan por este túnel; el resto del teléfono no. Se admiten usuario/contraseña, grupos de autenticación y segundo factor TOTP o push; SAML/SSO y certificados de cliente no.",
+      "fr": "Connexion via un VPN Cisco AnyConnect ou ocserv (OpenConnect) sans l\\'app Cisco. Seuls les profils qui passent par ce tunnel l\\'utilisent ; le reste du téléphone non. Identifiant/mot de passe, groupes d\\'authentification et second facteur TOTP ou push sont pris en charge ; SAML/SSO et certificats client ne le sont pas.",
+      "hi": "Cisco ऐप के बिना Cisco AnyConnect या ocserv (OpenConnect) VPN के ज़रिए कनेक्ट करें। केवल इस टनल से रूट होने वाली प्रोफ़ाइल इसका उपयोग करती हैं; फ़ोन का बाकी ट्रैफ़िक नहीं। उपयोगकर्ता नाम/पासवर्ड, ऑथ ग्रुप और TOTP या पुश दूसरा फ़ैक्टर समर्थित हैं; SAML/SSO और क्लाइंट प्रमाणपत्र नहीं।",
+      "ja": "Cisco アプリなしで Cisco AnyConnect または ocserv（OpenConnect）VPN 経由で接続します。このトンネルを経由するプロファイルだけが使用し、端末のその他の通信は使用しません。ユーザー名/パスワード、認証グループ、TOTP またはプッシュによる二要素認証に対応しています。SAML/SSO とクライアント証明書には対応していません。",
+      "ko": "Cisco 앱 없이 Cisco AnyConnect 또는 ocserv(OpenConnect) VPN으로 연결합니다. 이 터널을 거치는 프로필만 사용하며 휴대폰의 나머지 트래픽은 사용하지 않습니다. 사용자 이름/비밀번호, 인증 그룹, TOTP 또는 푸시 2단계 인증을 지원하며 SAML/SSO와 클라이언트 인증서는 지원하지 않습니다.",
+      "pt": "Conecte-se por uma VPN Cisco AnyConnect ou ocserv (OpenConnect) sem o app da Cisco. Só os perfis roteados por este túnel o usam; o resto do telefone não. São suportados usuário/senha, grupos de autenticação e segundo fator TOTP ou push; SAML/SSO e certificados de cliente não.",
+      "ru": "Подключение через VPN Cisco AnyConnect или ocserv (OpenConnect) без приложения Cisco. Его используют только профили, направленные через этот туннель; остальной трафик телефона — нет. Поддерживаются логин/пароль, группы аутентификации и второй фактор TOTP или push; SAML/SSO и клиентские сертификаты — нет.",
+      "sr": "Повежите се преко Cisco AnyConnect или ocserv (OpenConnect) VPN-а без Cisco апликације. Користе га само профили који се усмеравају кроз овај тунел; остатак телефона не. Подржани су корисничко име/лозинка, групе за аутентификацију и други фактор TOTP или push; SAML/SSO и клијентски сертификати нису.",
+      "zh": "无需 Cisco 应用即可通过 Cisco AnyConnect 或 ocserv（OpenConnect）VPN 连接。只有通过此隧道路由的配置会使用它，手机的其余流量不会。支持用户名/密码、认证组以及 TOTP 或推送二次验证；不支持 SAML/SSO 和客户端证书。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_server_label",
+     "en": "Server",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "الخادم",
+      "bn": "সার্ভার",
+      "de": "Server",
+      "es": "Servidor",
+      "fr": "Serveur",
+      "hi": "सर्वर",
+      "ja": "サーバー",
+      "ko": "서버",
+      "pt": "Servidor",
+      "ru": "Сервер",
+      "sr": "Сервер",
+      "zh": "服务器"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_server_help",
+     "en": "Gateway host as you would type it into Cisco\\'s app, optionally with :port or a group path.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "مضيف البوابة كما تكتبه في تطبيق Cisco، مع :المنفذ أو مسار مجموعة اختياريًا.",
+      "bn": "Cisco অ্যাপে যেভাবে লেখেন সেভাবে গেটওয়ে হোস্ট, চাইলে :পোর্ট বা গ্রুপ পাথসহ।",
+      "de": "Gateway-Host wie in der Cisco-App, optional mit :Port oder Gruppenpfad.",
+      "es": "Host del gateway tal como lo escribirías en la app de Cisco, opcionalmente con :puerto o una ruta de grupo.",
+      "fr": "Hôte de la passerelle tel que saisi dans l\\'app Cisco, éventuellement avec :port ou un chemin de groupe.",
+      "hi": "गेटवे होस्ट जैसा आप Cisco ऐप में लिखते हैं, चाहें तो :पोर्ट या ग्रुप पाथ के साथ।",
+      "ja": "Cisco アプリに入力するゲートウェイのホスト。必要に応じて :ポート やグループパスを付けます。",
+      "ko": "Cisco 앱에 입력하는 게이트웨이 호스트이며, 필요하면 :포트나 그룹 경로를 붙입니다.",
+      "pt": "Host do gateway como você digitaria no app da Cisco, opcionalmente com :porta ou um caminho de grupo.",
+      "ru": "Адрес шлюза, как в приложении Cisco, при необходимости с :портом или путём группы.",
+      "sr": "Адреса гејтвеја као у Cisco апликацији, по потреби са :портом или путањом групе.",
+      "zh": "与在 Cisco 应用中输入的网关地址相同，可附带 :端口 或组路径。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_username_label",
+     "en": "Username",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "اسم المستخدم",
+      "bn": "ব্যবহারকারীর নাম",
+      "de": "Benutzername",
+      "es": "Usuario",
+      "fr": "Nom d\\'utilisateur",
+      "hi": "उपयोगकर्ता नाम",
+      "ja": "ユーザー名",
+      "ko": "사용자 이름",
+      "pt": "Usuário",
+      "ru": "Имя пользователя",
+      "sr": "Корисничко име",
+      "zh": "用户名"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_password_label",
+     "en": "Password",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "كلمة المرور",
+      "bn": "পাসওয়ার্ড",
+      "de": "Passwort",
+      "es": "Contraseña",
+      "fr": "Mot de passe",
+      "hi": "पासवर्ड",
+      "ja": "パスワード",
+      "ko": "비밀번호",
+      "pt": "Senha",
+      "ru": "Пароль",
+      "sr": "Лозинка",
+      "zh": "密码"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_group_label",
+     "en": "Auth group (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "مجموعة المصادقة (اختياري)",
+      "bn": "অথ গ্রুপ (ঐচ্ছিক)",
+      "de": "Authentifizierungsgruppe (optional)",
+      "es": "Grupo de autenticación (opcional)",
+      "fr": "Groupe d\\'authentification (facultatif)",
+      "hi": "ऑथ ग्रुप (वैकल्पिक)",
+      "ja": "認証グループ（任意）",
+      "ko": "인증 그룹(선택)",
+      "pt": "Grupo de autenticação (opcional)",
+      "ru": "Группа аутентификации (необязательно)",
+      "sr": "Група за аутентификацију (опционо)",
+      "zh": "认证组（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_group_help",
+     "en": "The group or profile to choose from the server\\'s list. Leave blank for the default.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "المجموعة أو الملف الشخصي المطلوب اختياره من قائمة الخادم. اتركه فارغًا لاستخدام الافتراضي.",
+      "bn": "সার্ভারের তালিকা থেকে বেছে নেওয়ার গ্রুপ বা প্রোফাইল। ডিফল্টের জন্য খালি রাখুন।",
+      "de": "Die Gruppe bzw. das Profil aus der Liste des Servers. Leer lassen für die Standardgruppe.",
+      "es": "El grupo o perfil que elegir de la lista del servidor. Déjalo en blanco para usar el predeterminado.",
+      "fr": "Le groupe ou profil à choisir dans la liste du serveur. Laissez vide pour le groupe par défaut.",
+      "hi": "सर्वर की सूची से चुना जाने वाला ग्रुप या प्रोफ़ाइल। डिफ़ॉल्ट के लिए खाली छोड़ें।",
+      "ja": "サーバーの一覧から選ぶグループまたはプロファイル。空欄ならデフォルトを使用します。",
+      "ko": "서버 목록에서 선택할 그룹 또는 프로필입니다. 기본값을 쓰려면 비워 두세요.",
+      "pt": "O grupo ou perfil a escolher na lista do servidor. Deixe em branco para o padrão.",
+      "ru": "Группа или профиль из списка сервера. Оставьте пустым для группы по умолчанию.",
+      "sr": "Група или профил са листе сервера. Оставите празно за подразумевану.",
+      "zh": "从服务器列表中选择的组或配置文件。留空则使用默认组。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_otp_label",
+     "en": "OTP secret (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "سر OTP (اختياري)",
+      "bn": "OTP সিক্রেট (ঐচ্ছিক)",
+      "de": "OTP-Geheimnis (optional)",
+      "es": "Secreto OTP (opcional)",
+      "fr": "Secret OTP (facultatif)",
+      "hi": "OTP सीक्रेट (वैकल्पिक)",
+      "ja": "OTP シークレット（任意）",
+      "ko": "OTP 비밀 키(선택)",
+      "pt": "Segredo OTP (opcional)",
+      "ru": "Секрет OTP (необязательно)",
+      "sr": "OTP тајна (опционо)",
+      "zh": "OTP 密钥（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_otp_help",
+     "en": "Base32 secret or otpauth:// link from your authenticator setup. Haven answers the code prompt itself, which lets the tunnel reconnect unattended.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "سر Base32 أو رابط otpauth:// من إعداد تطبيق المصادقة. يجيب Haven عن طلب الرمز بنفسه، ما يسمح للنفق بإعادة الاتصال تلقائيًا.",
+      "bn": "আপনার অথেন্টিকেটর সেটআপের Base32 সিক্রেট বা otpauth:// লিংক। Haven নিজেই কোডের প্রম্পটের উত্তর দেয়, ফলে টানেল নিজে থেকেই পুনরায় সংযোগ করতে পারে।",
+      "de": "Base32-Geheimnis oder otpauth://-Link aus der Einrichtung deines Authenticators. Haven beantwortet die Code-Abfrage selbst, sodass sich der Tunnel unbeaufsichtigt neu verbinden kann.",
+      "es": "Secreto Base32 o enlace otpauth:// de la configuración de tu autenticador. Haven responde él mismo a la petición del código, lo que permite que el túnel se reconecte solo.",
+      "fr": "Secret Base32 ou lien otpauth:// issu de la configuration de votre authentificateur. Haven répond lui-même à la demande de code, ce qui permet au tunnel de se reconnecter sans intervention.",
+      "hi": "आपके ऑथेंटिकेटर सेटअप का Base32 सीक्रेट या otpauth:// लिंक। Haven कोड प्रॉम्प्ट का जवाब खुद देता है, जिससे टनल बिना आपकी मदद के फिर से कनेक्ट हो सकता है।",
+      "ja": "認証アプリ設定時の Base32 シークレットまたは otpauth:// リンク。Haven がコード入力に自動で応答するため、トンネルは無人で再接続できます。",
+      "ko": "인증 앱 설정 시 받은 Base32 비밀 키 또는 otpauth:// 링크입니다. Haven이 코드 요청에 직접 응답하므로 터널이 자동으로 다시 연결될 수 있습니다.",
+      "pt": "Segredo Base32 ou link otpauth:// da configuração do seu autenticador. O Haven responde ao pedido de código sozinho, o que permite ao túnel reconectar sem intervenção.",
+      "ru": "Секрет Base32 или ссылка otpauth:// из настройки аутентификатора. Haven сам отвечает на запрос кода, поэтому туннель может переподключаться без вашего участия.",
+      "sr": "Base32 тајна или otpauth:// веза из подешавања аутентификатора. Haven сам одговара на захтев за код, па се тунел може поново повезати без вас.",
+      "zh": "来自身份验证器设置的 Base32 密钥或 otpauth:// 链接。Haven 会自动回答验证码提示，使隧道可以无人值守地重新连接。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_secondary_label",
+     "en": "Second-factor answer (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إجابة العامل الثاني (اختياري)",
+      "bn": "দ্বিতীয় ফ্যাক্টরের উত্তর (ঐচ্ছিক)",
+      "de": "Antwort für den zweiten Faktor (optional)",
+      "es": "Respuesta del segundo factor (opcional)",
+      "fr": "Réponse du second facteur (facultatif)",
+      "hi": "दूसरे फ़ैक्टर का उत्तर (वैकल्पिक)",
+      "ja": "二要素の応答（任意）",
+      "ko": "2단계 응답(선택)",
+      "pt": "Resposta do segundo fator (opcional)",
+      "ru": "Ответ второго фактора (необязательно)",
+      "sr": "Одговор за други фактор (опционо)",
+      "zh": "二次验证应答（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_secondary_help",
+     "en": "A fixed answer to the second prompt, e.g. push for Duo. Used only when no OTP secret is set.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إجابة ثابتة عن الطلب الثاني، مثل push لـ Duo. تُستخدم فقط عند عدم تعيين سر OTP.",
+      "bn": "দ্বিতীয় প্রম্পটের একটি নির্দিষ্ট উত্তর, যেমন Duo-র জন্য push। শুধু OTP সিক্রেট না থাকলে ব্যবহৃত হয়।",
+      "de": "Eine feste Antwort auf die zweite Abfrage, z. B. push für Duo. Wird nur verwendet, wenn kein OTP-Geheimnis gesetzt ist.",
+      "es": "Una respuesta fija a la segunda petición, p. ej. push para Duo. Solo se usa si no hay secreto OTP.",
+      "fr": "Une réponse fixe à la seconde demande, par ex. push pour Duo. Utilisée uniquement sans secret OTP.",
+      "hi": "दूसरे प्रॉम्प्ट का एक निश्चित उत्तर, जैसे Duo के लिए push। केवल तब उपयोग होता है जब OTP सीक्रेट सेट न हो।",
+      "ja": "2 回目の入力に対する固定の応答（例: Duo の push）。OTP シークレット未設定時のみ使用します。",
+      "ko": "두 번째 요청에 대한 고정 응답입니다(예: Duo의 push). OTP 비밀 키가 없을 때만 사용됩니다.",
+      "pt": "Uma resposta fixa ao segundo pedido, ex.: push para Duo. Usada apenas quando não há segredo OTP.",
+      "ru": "Фиксированный ответ на второй запрос, например push для Duo. Используется, только если секрет OTP не задан.",
+      "sr": "Фиксни одговор на други захтев, нпр. push за Duo. Користи се само ако OTP тајна није постављена.",
+      "zh": "对第二个提示的固定应答，例如 Duo 的 push。仅在未设置 OTP 密钥时使用。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_cert_label",
+     "en": "Server certificate (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "شهادة الخادم (اختياري)",
+      "bn": "সার্ভার সার্টিফিকেট (ঐচ্ছিক)",
+      "de": "Serverzertifikat (optional)",
+      "es": "Certificado del servidor (opcional)",
+      "fr": "Certificat du serveur (facultatif)",
+      "hi": "सर्वर प्रमाणपत्र (वैकल्पिक)",
+      "ja": "サーバー証明書（任意）",
+      "ko": "서버 인증서(선택)",
+      "pt": "Certificado do servidor (opcional)",
+      "ru": "Сертификат сервера (необязательно)",
+      "sr": "Сертификат сервера (опционо)",
+      "zh": "服务器证书（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_cert_help",
+     "en": "Only for self-signed gateways: a pin-sha256:… value. If the certificate is not trusted, the connection error shows the value to paste here.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "للبوابات ذاتية التوقيع فقط: قيمة pin-sha256:…. إذا لم تكن الشهادة موثوقة، يعرض خطأ الاتصال القيمة التي يجب لصقها هنا.",
+      "bn": "শুধু সেলফ-সাইনড গেটওয়ের জন্য: একটি pin-sha256:… মান। সার্টিফিকেট বিশ্বস্ত না হলে সংযোগের ত্রুটিতে এখানে পেস্ট করার মানটি দেখানো হয়।",
+      "de": "Nur für selbstsignierte Gateways: ein pin-sha256:…-Wert. Ist das Zertifikat nicht vertrauenswürdig, zeigt die Verbindungsfehlermeldung den hier einzufügenden Wert.",
+      "es": "Solo para gateways autofirmados: un valor pin-sha256:…. Si el certificado no es de confianza, el error de conexión muestra el valor que debes pegar aquí.",
+      "fr": "Uniquement pour les passerelles auto-signées : une valeur pin-sha256:…. Si le certificat n\\'est pas approuvé, l\\'erreur de connexion affiche la valeur à coller ici.",
+      "hi": "केवल सेल्फ़-साइन्ड गेटवे के लिए: pin-sha256:… मान। प्रमाणपत्र भरोसेमंद न होने पर कनेक्शन त्रुटि यहाँ चिपकाने वाला मान दिखाती है।",
+      "ja": "自己署名ゲートウェイ専用: pin-sha256:… の値。証明書が信頼されていない場合、接続エラーにここへ貼り付ける値が表示されます。",
+      "ko": "자체 서명 게이트웨이 전용: pin-sha256:… 값입니다. 인증서를 신뢰할 수 없으면 연결 오류에 여기 붙여 넣을 값이 표시됩니다.",
+      "pt": "Apenas para gateways autoassinados: um valor pin-sha256:…. Se o certificado não for confiável, o erro de conexão mostra o valor a colar aqui.",
+      "ru": "Только для шлюзов с самоподписанным сертификатом: значение pin-sha256:…. Если сертификат не доверенный, ошибка подключения покажет значение, которое нужно вставить сюда.",
+      "sr": "Само за самопотписане гејтвеје: вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.",
+      "zh": "仅用于自签名网关：pin-sha256:… 值。如果证书不受信任，连接错误会显示应粘贴到此处的值。"
+     }
     }
    ]
   },

@@ -23,6 +23,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.repository.ConnectionLogRepository
 import sh.haven.core.data.repository.TunnelConfigRepository
+import sh.haven.core.tunnel.AnyConnectConfigBlob
 import sh.haven.core.tunnel.NetbirdConfigBlob
 import sh.haven.core.tunnel.TailscaleConfigBlob
 
@@ -185,5 +186,82 @@ class TunnelViewModelTest {
         assertEquals("NBKEY-x", parsed!!.setupKey)
         assertEquals("https://netbird.example.com", parsed.managementURL)
         assertEquals("NETBIRD", saved.captured.type)
+    }
+
+    @Test
+    fun addAnyConnect_plainHttpServer_setsErrorAndSkipsSave() = runTest {
+        viewModel.addAnyConnectConfig("Corp", AnyConnectForm("http://vpn.example.com", "alice", "pw"))
+        advanceUntilIdle()
+        assertEquals(
+            "Server must use https:// (AnyConnect gateways never use plain http)",
+            viewModel.error.value,
+        )
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun addAnyConnect_missingUsername_setsErrorAndSkipsSave() = runTest {
+        viewModel.addAnyConnectConfig("Corp", AnyConnectForm("vpn.example.com", " ", "pw"))
+        advanceUntilIdle()
+        assertEquals("Username is required", viewModel.error.value)
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun addAnyConnect_badCertPin_setsErrorAndSkipsSave() = runTest {
+        viewModel.addAnyConnectConfig(
+            "Corp",
+            AnyConnectForm("vpn.example.com", "alice", "pw", serverCert = "not-a-pin"),
+        )
+        advanceUntilIdle()
+        assertEquals(
+            "Server certificate must look like pin-sha256:<base64>, sha256:<hex> or sha1:<hex>",
+            viewModel.error.value,
+        )
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun updateAnyConnect_happyPath_normalisesAndKeepsIdentity() = runTest {
+        val existing = existingRow(TunnelConfigType.ANYCONNECT, ownerProfileId = "p9")
+        coEvery { repository.getById("t1") } returns existing
+        val saved = slot<TunnelConfig>()
+        coEvery { repository.save(capture(saved)) } just runs
+
+        viewModel.updateAnyConnectConfig(
+            "t1",
+            " Corp VPN ",
+            AnyConnectForm(
+                server = " https://vpn.example.com:8443/eng/ ",
+                username = " alice ",
+                password = " pw with spaces ",
+                authGroup = " Engineering ",
+                otpSecret = " JBSWY3DPEHPK3PXP ",
+                serverCert = "pin-sha256:S3KaYstbxN7utxyPDQBCHpRA6AlxqG8UgNVY3CQJnRA=",
+            ),
+        )
+        advanceUntilIdle()
+
+        val parsed = AnyConnectConfigBlob.parse(saved.captured.configText)!!
+        assertEquals("vpn.example.com:8443/eng", parsed.server)
+        assertEquals("alice", parsed.username)
+        assertEquals(" pw with spaces ", parsed.password)
+        assertEquals("Engineering", parsed.authGroup)
+        assertEquals("JBSWY3DPEHPK3PXP", parsed.otpSecret)
+        assertEquals("Corp VPN", saved.captured.label)
+        assertEquals("ANYCONNECT", saved.captured.type)
+        assertEquals("t1", saved.captured.id)
+        assertEquals(12345L, saved.captured.createdAt)
+        assertEquals("p9", saved.captured.ownerProfileId)
+    }
+
+    @Test
+    fun anyConnectForm_fromBlob_prefillsEveryField() {
+        val blob = AnyConnectConfigBlob("vpn", "u", "p", "g", "o", "x", "c")
+        assertEquals(
+            AnyConnectForm("vpn", "u", "p", "g", "o", "x", "c"),
+            AnyConnectForm.from(blob),
+        )
+        assertEquals(AnyConnectForm("", "", ""), AnyConnectForm.from(null))
     }
 }

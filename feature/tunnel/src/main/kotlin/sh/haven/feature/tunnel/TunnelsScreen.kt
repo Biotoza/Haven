@@ -3,6 +3,7 @@ package sh.haven.feature.tunnel
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -47,6 +51,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.db.entities.typeEnum
+import sh.haven.core.tunnel.AnyConnectConfigBlob
 import sh.haven.core.tunnel.NetbirdConfigBlob
 import sh.haven.core.tunnel.TailscaleConfigBlob
 import java.text.SimpleDateFormat
@@ -189,6 +196,10 @@ fun TunnelsScreen(
                 viewModel.addNetbirdConfig(label, setupKey, managementUrl)
                 showAddDialog = false
             },
+            onSubmitAnyConnect = { label, form ->
+                viewModel.addAnyConnectConfig(label, form)
+                showAddDialog = false
+            },
         )
     } else {
         editTarget?.let { existing ->
@@ -206,6 +217,10 @@ fun TunnelsScreen(
                 },
                 onSubmitNetbird = { label, setupKey, managementUrl ->
                     viewModel.updateNetbirdConfig(existing.id, label, setupKey, managementUrl)
+                    editTarget = null; pendingEditId = null
+                },
+                onSubmitAnyConnect = { label, form ->
+                    viewModel.updateAnyConnectConfig(existing.id, label, form)
                     editTarget = null; pendingEditId = null
                 },
             )
@@ -350,6 +365,7 @@ private fun AddTunnelDialog(
     onSubmitWireguard: (label: String, configText: String) -> Unit,
     onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
     onSubmitNetbird: (label: String, setupKey: String, managementUrl: String) -> Unit,
+    onSubmitAnyConnect: (label: String, form: AnyConnectForm) -> Unit,
 ) {
     var type by remember { mutableStateOf(initialType) }
     var label by remember { mutableStateOf(existing?.label ?: "") }
@@ -388,6 +404,14 @@ private fun AddTunnelDialog(
             existing?.takeIf { it.typeEnum == TunnelConfigType.NETBIRD }
                 ?.let { NetbirdConfigBlob.parse(it.configText)?.managementURL }
                 .orEmpty(),
+        )
+    }
+    var anyConnect by remember {
+        mutableStateOf(
+            AnyConnectForm.from(
+                existing?.takeIf { it.typeEnum == TunnelConfigType.ANYCONNECT }
+                    ?.let { AnyConnectConfigBlob.parse(it.configText) },
+            ),
         )
     }
     val context = LocalContext.current
@@ -446,7 +470,10 @@ private fun AddTunnelDialog(
             // an SSH-profile transport (GH #154), not a standalone tunnel.
             // In edit mode the row's type IS its identity (the payload
             // blob and key fields are typed) — chips lock.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
                 TunnelConfigType.entries
                     .filter { it != TunnelConfigType.CLOUDFLARE_ACCESS }
                     .forEach { t ->
@@ -584,6 +611,15 @@ private fun AddTunnelDialog(
                     )
                     androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                 }
+                TunnelConfigType.ANYCONNECT -> {
+                    AnyConnectFields(
+                        form = anyConnect,
+                        onChange = { anyConnect = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                }
                 TunnelConfigType.CLOUDFLARE_ACCESS -> {
                     // Retired from this dialog (GH #154). Filtered out of
                     // the chip row above, so this branch is unreachable in
@@ -603,6 +639,8 @@ private fun AddTunnelDialog(
                     TunnelConfigType.WIREGUARD -> configText.isNotBlank()
                     TunnelConfigType.TAILSCALE -> authKey.isNotBlank()
                     TunnelConfigType.NETBIRD -> setupKey.isNotBlank()
+                    TunnelConfigType.ANYCONNECT ->
+                        anyConnect.server.isNotBlank() && anyConnect.username.isNotBlank()
                     TunnelConfigType.CLOUDFLARE_ACCESS -> false
                 }
                 Button(
@@ -614,6 +652,8 @@ private fun AddTunnelDialog(
                                 onSubmitTailscale(label, authKey, controlUrl)
                             TunnelConfigType.NETBIRD ->
                                 onSubmitNetbird(label, setupKey, managementUrl)
+                            TunnelConfigType.ANYCONNECT ->
+                                onSubmitAnyConnect(label, anyConnect)
                             TunnelConfigType.CLOUDFLARE_ACCESS -> Unit
                         }
                     },
@@ -630,6 +670,97 @@ private fun tunnelTypeLabel(t: TunnelConfigType): String =
         TunnelConfigType.WIREGUARD -> "WireGuard"
         TunnelConfigType.TAILSCALE -> "Tailscale"
         TunnelConfigType.NETBIRD -> "NetBird"
+        TunnelConfigType.ANYCONNECT -> "AnyConnect"
         TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
     }
+
+/**
+ * The AnyConnect form. Scrolls on its own because, unlike the other
+ * backends' one or two fields, it has seven and the dialog column doesn't.
+ * Secrets use password masking; the OTP secret too, since it is
+ * equivalent to the authenticator itself.
+ */
+@Composable
+private fun AnyConnectFields(
+    form: AnyConnectForm,
+    onChange: (AnyConnectForm) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val mono = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            stringResource(R.string.tunnel_anyconnect_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedTextField(
+            value = form.server,
+            onValueChange = { onChange(form.copy(server = it)) },
+            label = { Text(stringResource(R.string.tunnel_anyconnect_server_label)) },
+            placeholder = { Text("vpn.example.com/group", fontFamily = FontFamily.Monospace) },
+            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_server_help)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = mono,
+        )
+        OutlinedTextField(
+            value = form.username,
+            onValueChange = { onChange(form.copy(username = it)) },
+            label = { Text(stringResource(R.string.tunnel_anyconnect_username_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.password,
+            onValueChange = { onChange(form.copy(password = it)) },
+            label = { Text(stringResource(R.string.tunnel_anyconnect_password_label)) },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.authGroup,
+            onValueChange = { onChange(form.copy(authGroup = it)) },
+            label = { Text(stringResource(R.string.tunnel_anyconnect_group_label)) },
+            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_group_help)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.otpSecret,
+            onValueChange = { onChange(form.copy(otpSecret = it)) },
+            label = { Text(stringResource(R.string.tunnel_anyconnect_otp_label)) },
+            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_otp_help)) },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = mono,
+        )
+        OutlinedTextField(
+            value = form.secondaryPassword,
+            onValueChange = { onChange(form.copy(secondaryPassword = it)) },
+            label = { Text(stringResource(R.string.tunnel_anyconnect_secondary_label)) },
+            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_secondary_help)) },
+            singleLine = true,
+            enabled = form.otpSecret.isBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.serverCert,
+            onValueChange = { onChange(form.copy(serverCert = it)) },
+            label = { Text(stringResource(R.string.tunnel_anyconnect_cert_label)) },
+            placeholder = { Text("pin-sha256:…", fontFamily = FontFamily.Monospace) },
+            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_cert_help)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = mono,
+        )
+    }
+}
 

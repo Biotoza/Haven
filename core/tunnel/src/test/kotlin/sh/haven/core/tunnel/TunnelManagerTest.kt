@@ -191,6 +191,41 @@ class TunnelManagerTest {
         assertTrue(ex.message!!.contains("setup key"))
     }
 
+    @Test
+    fun anyconnectConfigReachesFactoryThroughManager() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-ac") } returns TunnelConfig(
+            id = "cfg-ac",
+            label = "corp vpn",
+            type = TunnelConfigType.ANYCONNECT.name,
+            configText = AnyConnectConfigBlob("vpn.example.com", "alice", "pw").encode(),
+        )
+        val factory = CountingFactory()
+        val manager = TunnelManager(repo, factory)
+
+        val tunnel = manager.acquire("cfg-ac", "p1")
+        assertSame(tunnel, manager.acquire("cfg-ac", "p2"))
+        assertEquals(1, factory.createCount)
+        assertEquals(TunnelConfigType.ANYCONNECT, factory.lastConfig?.typeEnum)
+    }
+
+    @Test
+    fun defaultFactoryRejectsAnyConnectConfigWithoutServer() {
+        // Parse guard runs before the native start (and before Context use).
+        val factory = DefaultTunnelFactory(mockk(), OkHttpClient())
+        val ex = assertThrows(IOException::class.java) {
+            factory.create(
+                TunnelConfig(
+                    id = "ac-broken",
+                    label = "ac",
+                    type = TunnelConfigType.ANYCONNECT.name,
+                    configText = """{"username":"alice"}""".toByteArray(),
+                ),
+            )
+        }
+        assertTrue(ex.message!!.contains("server or username"))
+    }
+
     private fun wgConfig(id: String) = TunnelConfig(
         id = id,
         label = "test",
