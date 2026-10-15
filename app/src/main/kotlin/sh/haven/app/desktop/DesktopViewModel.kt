@@ -36,7 +36,6 @@ import sh.haven.core.knock.KnockSequence
 import sh.haven.core.knock.PortKnocker
 import sh.haven.core.local.AppScanResult
 import sh.haven.core.local.DesktopManager
-import sh.haven.core.local.GuestAppScanner
 import sh.haven.core.local.InstalledApp
 import sh.haven.core.local.LocalSessionManager
 import sh.haven.core.local.ProotManager
@@ -777,16 +776,16 @@ class DesktopViewModel @Inject constructor(
     private val _scanningApps = MutableStateFlow(false)
     val scanningApps: StateFlow<Boolean> = _scanningApps.asStateFlow()
 
-    /** Scan the active guest's `.desktop` catalog. Idempotent; safe to re-call. */
+    /** Scan the active guest's `.desktop` catalog (UML guest + PRoot rootfs). Idempotent; safe to re-call. */
     fun refreshInstalledApps() {
         viewModelScope.launch(Dispatchers.IO) {
-            if (!prootManager.isRootfsInstalled) {
+            if (!umlAvailable && !prootManager.isRootfsInstalled) {
                 _installedApps.value = AppScanResult(emptyList(), 0, 0)
                 return@launch
             }
             _scanningApps.value = true
             try {
-                _installedApps.value = GuestAppScanner(prootManager).scan()
+                _installedApps.value = desktopManager.scanInstalledApps()
             } catch (e: Exception) {
                 Log.w(TAG, "installed-app scan failed", e)
                 _userMessages.emit("Couldn't scan installed apps: ${e.message}")

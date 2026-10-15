@@ -1547,10 +1547,13 @@ class TerminalViewModel @Inject constructor(
             .map { it.sessionId }
             .toSet()
 
-        // Find UML guest sessions that are connected
+        // Find UML guest sessions that are connected (excluding internal
+        // headless desktop/cage boots driven by UmlDesktopManager, which pass
+        // `haven.desktop=1` and have no ConnectionProfile row).
         val activeGuestIds = guestSessions.values
             .filter {
-                it.status == sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED
+                it.status == sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED &&
+                    sh.haven.core.local.uml.UmlDesktopManager.DESKTOP_KERNEL_ARG !in it.extraKernelArgs
             }
             .map { it.sessionId }
             .toSet()

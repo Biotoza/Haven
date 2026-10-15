@@ -73,6 +73,37 @@ internal fun mergeEnv(base: Array<String>, overlay: Map<String, String>): Array<
 }
 
 /**
+ * Resolve the effective locale to export into [rootfsDir] (#721).
+ * On glibc distros (where `usr/lib/locale` exists), exporting `LC_ALL=en_US.UTF-8`
+ * before `locale-gen` has generated `/usr/lib/locale/locale-archive` (or
+ * `/usr/lib/locale/en_US.utf8`) causes bash and every child tool to emit
+ * `setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory`.
+ * Fall back to `C.UTF-8` (built into glibc) until the requested locale is present.
+ * Non-glibc rootfses (e.g. Alpine musl, no `usr/lib/locale`) return [requestedLocale] unchanged.
+ */
+internal fun resolveGuestLocale(rootfsDir: java.io.File, requestedLocale: String): String {
+    if (
+        requestedLocale.isBlank() ||
+        requestedLocale.equals("C.UTF-8", ignoreCase = true) ||
+        requestedLocale.equals("C", ignoreCase = true) ||
+        requestedLocale.equals("POSIX", ignoreCase = true)
+    ) {
+        return requestedLocale
+    }
+    val localeRoot = java.io.File(rootfsDir, "usr/lib/locale")
+    if (!localeRoot.isDirectory) return requestedLocale
+    if (java.io.File(localeRoot, "locale-archive").exists()) return requestedLocale
+    val normalized = requestedLocale.replace("UTF-8", "utf8").replace("utf-8", "utf8")
+    if (
+        java.io.File(localeRoot, requestedLocale).exists() ||
+        java.io.File(localeRoot, normalized).exists()
+    ) {
+        return requestedLocale
+    }
+    return "C.UTF-8"
+}
+
+/**
  * Manages active local terminal sessions.
  * Follows the same lifecycle pattern as MoshSessionManager.
  */
@@ -346,16 +377,17 @@ class LocalSessionManager @Inject constructor(
                 *prootManager.androidSystemBindArgs(longForm = false),
                 "-w", guestUser.home,
             ) + shellArgs
+            val effectiveLocale = resolveGuestLocale(rootfsDir, terminalLocale)
             val env = arrayOf(
                 "HOME=${guestUser.home}",
                 "USER=${guestUser.username}",
                 "LOGNAME=${guestUser.username}",
                 "TERM=xterm-256color",
-                "LANG=$terminalLocale",
+                "LANG=$effectiveLocale",
                 // LC_ALL outranks LANG for every locale category, and older seeded
                 // .profiles force LC_ALL=C.UTF-8 when unset — set it too so the
                 // user's chosen locale actually takes effect (#374).
-                "LC_ALL=$terminalLocale",
+                "LC_ALL=$effectiveLocale",
                 "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                 "SHELL=/bin/sh",
                 // XDG base dirs so desktop/X11 apps and `startx`/dbus-run-session

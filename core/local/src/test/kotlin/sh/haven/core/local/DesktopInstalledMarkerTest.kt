@@ -118,4 +118,63 @@ class DesktopInstalledMarkerTest {
         assertTrue(rootSpec.isRoot)
         assertEquals("-0", rootSpec.prootIdentityFlag)
     }
+
+    @Test
+    fun `provisionGuestUser configures PAM su, unlocks root shadow, and writes apt nosandbox (#721)`() {
+        val rootfs = tmp.newFolder("rootfs-721")
+        File(rootfs, "etc/pam.d").mkdirs()
+        File(rootfs, "etc/apt/apt.conf.d").mkdirs()
+        File(rootfs, "etc/passwd").writeText("root:x:0:0:root:/root:/bin/bash\n")
+        File(rootfs, "etc/group").writeText("root:x:0:\n")
+        File(rootfs, "etc/shadow").writeText("root:*:19000:0:99999:7:::\n")
+        File(rootfs, "etc/pam.d/su").writeText(
+            "auth       sufficient pam_rootok.so\n" +
+                "@include common-auth\n",
+        )
+
+        ProotManager.provisionGuestUser(rootfs, "debianuser")
+
+        val pamSu = File(rootfs, "etc/pam.d/su").readText()
+        assertTrue("PAM su must include pam_permit.so after pam_rootok.so", pamSu.contains("pam_permit.so"))
+        val shadow = File(rootfs, "etc/shadow").readText()
+        assertTrue("root shadow password field must be unlocked", shadow.contains("root::19000:0:99999:7:::"))
+        val aptConf = File(rootfs, "etc/apt/apt.conf.d/99haven-nosandbox")
+        assertTrue("apt nosandbox config must be written", aptConf.isFile)
+        assertEquals("APT::Sandbox::User \"root\";\n", aptConf.readText())
+    }
+
+    @Test
+    fun `isRootfsComplete rejects truncated APT rootfs missing dpkg cputable (#721)`() {
+        val rootfs = tmp.newFolder("rootfs-truncated-apt")
+        File(rootfs, "bin").mkdirs()
+        File(rootfs, "bin/sh").writeText("#!/bin/sh\n")
+        File(rootfs, "usr/bin").mkdirs()
+        File(rootfs, "usr/bin/apt").writeText("#!/bin/sh\n")
+        File(rootfs, ROOTFS_READY_MARKER).writeText("ready\n")
+
+        assertFalse(
+            "APT rootfs missing usr/share/dpkg/cputable must be treated as incomplete (#721)",
+            isRootfsComplete(rootfs),
+        )
+
+        File(rootfs, "usr/share/dpkg").mkdirs()
+        File(rootfs, "usr/share/dpkg/cputable").writeText("arm64\taarch64\n")
+        assertTrue(
+            "Complete APT rootfs with usr/share/dpkg/cputable must be treated as complete",
+            isRootfsComplete(rootfs),
+        )
+    }
+
+    @Test
+    fun `resolveGuestLocale falls back to C_UTF-8 when glibc locale is not yet generated (#721)`() {
+        val alpineRootfs = tmp.newFolder("rootfs-alpine")
+        assertEquals("en_US.UTF-8", resolveGuestLocale(alpineRootfs, "en_US.UTF-8"))
+
+        val unconfiguredGlibcRootfs = tmp.newFolder("rootfs-glibc-unconfigured")
+        File(unconfiguredGlibcRootfs, "usr/lib/locale/C.utf8").mkdirs()
+        assertEquals("C.UTF-8", resolveGuestLocale(unconfiguredGlibcRootfs, "en_US.UTF-8"))
+
+        File(unconfiguredGlibcRootfs, "usr/lib/locale/locale-archive").writeText("archive")
+        assertEquals("en_US.UTF-8", resolveGuestLocale(unconfiguredGlibcRootfs, "en_US.UTF-8"))
+    }
 }

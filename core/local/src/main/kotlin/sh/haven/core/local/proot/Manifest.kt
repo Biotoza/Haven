@@ -286,6 +286,13 @@ object DistroCatalog {
             ),
         ),
         baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux", "sudo"),
+        postExtractHooks = listOf(
+            RootfsHook(
+                id = "locale-gen en_US.UTF-8",
+                command = "if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi",
+            ),
+        ),
         sizeEstimateMb = 130,
     )
 
@@ -324,6 +331,13 @@ object DistroCatalog {
             ),
         ),
         baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux", "sudo"),
+        postExtractHooks = listOf(
+            RootfsHook(
+                id = "locale-gen en_US.UTF-8",
+                command = "if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi",
+            ),
+        ),
         sizeEstimateMb = 130,
     )
 
@@ -373,6 +387,13 @@ object DistroCatalog {
             ),
         ),
         baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux", "sudo"),
+        postExtractHooks = listOf(
+            RootfsHook(
+                id = "locale-gen en_US.UTF-8",
+                command = "if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi",
+            ),
+        ),
         sizeEstimateMb = 150,
     )
 

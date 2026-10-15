@@ -116,6 +116,16 @@ internal class PresentationHostViewModel @Inject constructor(
     val pending: StateFlow<List<PresentedMedia>> = manager.pending
     val minimizedIds: StateFlow<Set<Long>> = manager.minimizedIds
 
+    init {
+        viewModelScope.launch {
+            desktopManager.appWindowExits.collect { exitedSid ->
+                manager.pending.value
+                    .filter { it.kind == PresentedMediaKind.APP_WINDOW && it.sessionId == exitedSid }
+                    .forEach { dismiss(it) }
+            }
+        }
+    }
+
     /** Background an app window to an edge icon (keeps the cage + VNC alive). */
     fun minimize(id: Long) = manager.minimize(id)
 

@@ -3313,10 +3313,10 @@ internal class McpTools(
         val swayRules = args.optJSONArray("swayRules")?.let { arr ->
             (0 until arr.length()).mapNotNull { i -> arr.optString(i).ifEmpty { null } }
         } ?: emptyList()
-        if (!prootManager.isRootfsInstalled) {
+        val dm = localSessionManager.desktopManager
+        if (!dm.isUmlCageAvailable && !prootManager.isRootfsInstalled) {
             throw McpError(-32603, "Active distro '${prootManager.activeDistroId}' has no installed rootfs")
         }
-        val dm = localSessionManager.desktopManager
         val resolution = resolutionArg ?: preferencesRepository.appWindowDefaultResolution.first()
         val scale = scaleArg ?: preferencesRepository.appWindowDefaultScale.first()
         // The cage runs the app as a single-app sway kiosk; install sway+wayvnc

@@ -79,14 +79,23 @@ internal fun rootfsFilesPresent(rootfsDir: File): Boolean =
     java.nio.file.Files.exists(
         File(rootfsDir, "bin/sh").toPath(),
         java.nio.file.LinkOption.NOFOLLOW_LINKS,
-    )
+    ) && (
+        !java.nio.file.Files.exists(
+            File(rootfsDir, "usr/bin/apt").toPath(),
+            java.nio.file.LinkOption.NOFOLLOW_LINKS,
+        ) || java.nio.file.Files.exists(
+            File(rootfsDir, "usr/share/dpkg/cputable").toPath(),
+            java.nio.file.LinkOption.NOFOLLOW_LINKS,
+        )
+        )
 
 /**
  * Whether [rootfsDir] holds a *complete* install: files present AND the
  * [ROOTFS_READY_MARKER] written at the end of a successful install. An
- * install interrupted before the marker (app killed mid-extract) reads
- * as incomplete and is re-run cleanly rather than mistaken for ready
- * (#262).
+ * install interrupted before the marker (app killed mid-extract) or a
+ * PAX-truncated Debian/Ubuntu extract missing `/usr/share/dpkg/cputable`
+ * (#721) reads as incomplete and is re-run cleanly rather than mistaken
+ * for ready (#262).
  */
 internal fun isRootfsComplete(rootfsDir: File): Boolean =
     rootfsFilesPresent(rootfsDir) && File(rootfsDir, ROOTFS_READY_MARKER).exists()
@@ -1911,6 +1920,23 @@ class ProotManager @Inject constructor(
                     sizeStr.trim().toLong(8)
                 } catch (_: Exception) { 0L }
 
+                // POSIX.1-2001 PAX extended header ('x' = next entry, 'g' = global).
+                // Must be handled BEFORE nameMarksDir/entryIsDir so a PAX header whose
+                // 100-byte ustar name happens to truncate on '/' (e.g. `.../PaxHeaders/`
+                // in proot-distro's Debian 13 trixie tarball) is never mistaken for a
+                // directory entry whose payload goes unread (#721).
+                if (typeFlag == 'x'.code.toByte() || typeFlag == 'g'.code.toByte()) {
+                    val paxBytes = ByteArray(size.toInt())
+                    readFully(gzIn, paxBytes)
+                    skipToBlock(gzIn, size)
+                    if (typeFlag == 'x'.code.toByte()) {
+                        val pax = parsePaxExtendedHeader(paxBytes)
+                        pax["path"]?.takeIf { it.isNotEmpty() }?.let { pendingLongName = it }
+                        pax["linkpath"]?.takeIf { it.isNotEmpty() }?.let { pendingLongLink = it }
+                    }
+                    continue
+                }
+
                 // GNU long name: type 'L' means the data is a long filename
                 // for the NEXT entry
                 if (typeFlag == 'L'.code.toByte()) {
@@ -1961,7 +1987,7 @@ class ProotManager @Inject constructor(
                     val parts = collapsedName.trimEnd('/').split('/').drop(source.stripComponents)
                     if (parts.isEmpty()) {
                         // Wrapper directory itself — skip header data
-                        if (size > 0) skipToBlock(gzIn, size)
+                        skipEntryData(gzIn, size)
                         continue
                     }
                     parts.joinToString("/")
@@ -1969,7 +1995,7 @@ class ProotManager @Inject constructor(
                     collapsedName
                 }
                 if (entryName.isEmpty()) {
-                    if (size > 0) skipToBlock(gzIn, size)
+                    skipEntryData(gzIn, size)
                     continue
                 }
 
@@ -1980,7 +2006,7 @@ class ProotManager @Inject constructor(
                 // otherwise clobber Haven's own files. (security-review #21)
                 if (!isWithinDir(destDir, outFile)) {
                     Log.w(TAG, "Rejecting rootfs tar entry escaping the install dir: $entryName")
-                    if (size > 0) skipToBlock(gzIn, size)
+                    skipEntryData(gzIn, size)
                     continue
                 }
                 val entryIsDir = typeFlag == '5'.code.toByte() || nameMarksDir
@@ -1997,7 +2023,7 @@ class ProotManager @Inject constructor(
                         modeStr.trim().toIntOrNull(8)?.let {
                             deferredDirModes.add(outFile to (it and 0xFFF))
                         }
-                        if (size > 0) skipToBlock(gzIn, size)
+                        skipEntryData(gzIn, size)
                     }
                     typeFlag == '2'.code.toByte() -> {
                         // Symlink
@@ -2012,6 +2038,7 @@ class ProotManager @Inject constructor(
                         } catch (e: Exception) {
                             Log.w(TAG, "Symlink failed: $entryName -> $linkTarget: ${e.message}")
                         }
+                        skipEntryData(gzIn, size)
                     }
                     typeFlag == '1'.code.toByte() -> {
                         // Hard link — copy the target file. The tar's link target
@@ -2043,6 +2070,7 @@ class ProotManager @Inject constructor(
                         } catch (e: Exception) {
                             Log.w(TAG, "Hard link failed: $entryName -> $linkTarget: ${e.message}")
                         }
+                        skipEntryData(gzIn, size)
                     }
                     typeFlag == '0'.code.toByte() || typeFlag == 0.toByte() -> {
                         // Regular file
@@ -2074,17 +2102,7 @@ class ProotManager @Inject constructor(
                     }
                     else -> {
                         // Skip unknown types (but still consume data)
-                        if (size > 0) {
-                            var remaining = size
-                            val skipBuf = ByteArray(8192)
-                            while (remaining > 0) {
-                                val toRead = minOf(remaining.toInt(), skipBuf.size)
-                                val n = gzIn.read(skipBuf, 0, toRead)
-                                if (n <= 0) break
-                                remaining -= n
-                            }
-                            skipToBlock(gzIn, size)
-                        }
+                        skipEntryData(gzIn, size)
                     }
                 }
             }
@@ -2151,6 +2169,20 @@ class ProotManager @Inject constructor(
             val skip = ByteArray(remainder.toInt())
             readFully(input, skip)
         }
+    }
+
+    /** Consume [dataSize] payload bytes plus any 512-byte block padding (#721). */
+    private fun skipEntryData(input: java.io.InputStream, dataSize: Long) {
+        if (dataSize <= 0L) return
+        var remaining = dataSize
+        val skipBuf = ByteArray(8192)
+        while (remaining > 0) {
+            val toRead = minOf(remaining.toInt(), skipBuf.size)
+            val n = input.read(skipBuf, 0, toRead)
+            if (n <= 0) break
+            remaining -= n
+        }
+        skipToBlock(input, dataSize)
     }
 
     /**
@@ -2227,6 +2259,8 @@ class ProotManager @Inject constructor(
                 fakerootShim.setExecutable(true, false)
             }
         }
+
+        ensureAptSandboxConfig(rootfsDir)
     }
 
     /** Copy an asset into [target] unless [target] already exists. Best-effort. */
@@ -2383,6 +2417,7 @@ class ProotManager @Inject constructor(
         // resolv.conf points at resolvers the network won't route to — so it must
         // reflect the current DNS setting, not whatever was written at install time.
         applyResolvConf(activeRootfsDir)
+        ensureAptSandboxConfig(activeRootfsDir)
         val loaderPath = File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath
         // Mirror termux/proot-distro v4.29.0's `run_proot_cmd` invocation
         // (distro-plugins runner). Empirically that's the proven pattern
@@ -3673,15 +3708,85 @@ chmod +x /root/.vnc/xstartup""")
         }
 
         /**
+         * Parse POSIX.1-2001 PAX extended header records (`"%d %s=%s\n"`) into
+         * a keyword-to-value map (#721).
+         */
+        internal fun parsePaxExtendedHeader(data: ByteArray): Map<String, String> {
+            val result = LinkedHashMap<String, String>()
+            var pos = 0
+            while (pos < data.size) {
+                if (data[pos] == 0.toByte()) break
+                var spaceIdx = pos
+                while (spaceIdx < data.size && data[spaceIdx] != ' '.code.toByte()) {
+                    spaceIdx++
+                }
+                if (spaceIdx >= data.size) break
+                val lenStr = String(data, pos, spaceIdx - pos, Charsets.US_ASCII).trim()
+                val recordLen = lenStr.toIntOrNull()
+                val recordEnd = if (
+                    recordLen != null &&
+                    recordLen > (spaceIdx - pos + 1) &&
+                    pos + recordLen <= data.size
+                ) {
+                    pos + recordLen
+                } else {
+                    var nl = spaceIdx + 1
+                    while (nl < data.size && data[nl] != '\n'.code.toByte()) nl++
+                    if (nl < data.size) nl + 1 else data.size
+                }
+                val payloadEnd = if (
+                    recordEnd > spaceIdx + 1 &&
+                    data[recordEnd - 1] == '\n'.code.toByte()
+                ) {
+                    recordEnd - 1
+                } else {
+                    recordEnd
+                }
+                val kv = String(data, spaceIdx + 1, payloadEnd - (spaceIdx + 1), Charsets.UTF_8)
+                val eqIdx = kv.indexOf('=')
+                if (eqIdx > 0) {
+                    result[kv.substring(0, eqIdx)] = kv.substring(eqIdx + 1)
+                }
+                pos = recordEnd
+            }
+            return result
+        }
+
+        /**
+         * Disable apt's `_apt` privilege-drop sandbox inside [rootfsDir] (#721).
+         * Under PRoot on Android (especially secondary users / Work Profiles where
+         * host UID >= 65536, or non-root guest sessions), apt's `DropPrivileges()`
+         * in `/usr/lib/apt/methods/http` is unnecessary and can fail on UID/GID
+         * verification. Writing `APT::Sandbox::User "root";` into
+         * `/etc/apt/apt.conf.d/99haven-nosandbox` tells apt to run its fetcher
+         * methods without switching UIDs. No-op on non-APT rootfses.
+         */
+        fun ensureAptSandboxConfig(rootfsDir: File) {
+            val aptConfD = File(rootfsDir, "etc/apt/apt.conf.d")
+            if (!aptConfD.isDirectory) return
+            val confFile = File(aptConfD, "99haven-nosandbox")
+            val content = "APT::Sandbox::User \"root\";\n"
+            if (!confFile.exists() || runCatching { confFile.readText() }.getOrNull() != content) {
+                runCatching {
+                    confFile.setWritable(true, true)
+                    confFile.writeText(content)
+                }
+            }
+        }
+
+        /**
          * Ensure [rawUsername] (uid 1000 / gid 1000) is provisioned in [rootfsDir]'s
-         * `/etc/passwd`, `/etc/group`, `/etc/shadow`, `/etc/sudoers.d/<user>`, and
-         * `/home/<user>` so PRoot can launch sessions with `-i 1000:1000` (#718).
+         * `/etc/passwd`, `/etc/group`, `/etc/shadow`, `/etc/sudoers.d/<user>`,
+         * `/etc/pam.d/su`, and `/home/<user>` so PRoot can launch sessions with
+         * `-i 1000:1000` and elevate via `sudo` or `su` (#718, #721).
          * Pure file manipulation on the host side — no guest process spawn required
          * and safe to call before every PRoot launch.
          */
         fun provisionGuestUser(rootfsDir: File, rawUsername: String): GuestUserSpec {
+            if (!rootfsDir.isDirectory) return GuestUserSpec.ROOT
+            ensureAptSandboxConfig(rootfsDir)
             val username = sanitizeGuestUsername(rawUsername)
-            if (username.isEmpty() || !rootfsDir.isDirectory) return GuestUserSpec.ROOT
+            if (username.isEmpty()) return GuestUserSpec.ROOT
 
             val uid = 1000
             val gid = 1000
@@ -3715,26 +3820,54 @@ chmod +x /root/.vnc/xstartup""")
             if (existingPasswdIdx >= 0) {
                 if (passwdLines[existingPasswdIdx] != passwdEntry) {
                     passwdLines[existingPasswdIdx] = passwdEntry
-                    runCatching { passwdFile.writeText(passwdLines.joinToString("\n") + "\n") }
+                    runCatching {
+                        passwdFile.setWritable(true, true)
+                        passwdFile.writeText(passwdLines.joinToString("\n") + "\n")
+                    }
                 }
             } else {
                 passwdLines.add(passwdEntry)
-                runCatching { passwdFile.writeText(passwdLines.joinToString("\n") + "\n") }
+                runCatching {
+                    passwdFile.setWritable(true, true)
+                    passwdFile.writeText(passwdLines.joinToString("\n") + "\n")
+                }
             }
 
             val groupFile = File(etcDir, "group")
             val groupLines = if (groupFile.exists()) groupFile.readLines().toMutableList() else mutableListOf()
             if (groupLines.none { it.startsWith("$username:") || it.contains(":x:$gid:") }) {
                 groupLines.add("$username:x:$gid:")
-                runCatching { groupFile.writeText(groupLines.joinToString("\n") + "\n") }
+                runCatching {
+                    groupFile.setWritable(true, true)
+                    groupFile.writeText(groupLines.joinToString("\n") + "\n")
+                }
             }
 
             val shadowFile = File(etcDir, "shadow")
             if (shadowFile.exists()) {
                 val shadowLines = shadowFile.readLines().toMutableList()
+                var shadowModified = false
                 if (shadowLines.none { it.startsWith("$username:") }) {
                     shadowLines.add("$username::19000:0:99999:7:::")
-                    runCatching { shadowFile.writeText(shadowLines.joinToString("\n") + "\n") }
+                    shadowModified = true
+                }
+                // Unlock root's shadow entry (`root::...`) so non-PAM `su`
+                // implementations (e.g. Alpine BusyBox) allow switching to root
+                // in user mode (#721).
+                val rootIdx = shadowLines.indexOfFirst { it.startsWith("root:") }
+                if (rootIdx >= 0) {
+                    val parts = shadowLines[rootIdx].split(':').toMutableList()
+                    if (parts.size >= 2 && parts[1].isNotEmpty()) {
+                        parts[1] = ""
+                        shadowLines[rootIdx] = parts.joinToString(":")
+                        shadowModified = true
+                    }
+                }
+                if (shadowModified) {
+                    runCatching {
+                        shadowFile.setWritable(true, true)
+                        shadowFile.writeText(shadowLines.joinToString("\n") + "\n")
+                    }
                 }
             }
 
@@ -3743,11 +3876,56 @@ chmod +x /root/.vnc/xstartup""")
             val sudoersContent = "$username ALL=(ALL:ALL) NOPASSWD: ALL\n"
             if (!sudoersFile.exists() || runCatching { sudoersFile.readText() }.getOrNull() != sudoersContent) {
                 runCatching {
+                    if (sudoersFile.exists()) sudoersFile.setWritable(true, true)
                     sudoersFile.writeText(sudoersContent)
                     java.nio.file.Files.setPosixFilePermissions(
                         sudoersFile.toPath(),
                         java.nio.file.attribute.PosixFilePermissions.fromString("r--r-----"),
                     )
+                }
+            }
+
+            // Allow passwordless `su` in user mode on PAM-based distros (#721) by
+            // inserting `auth sufficient pam_permit.so` after `pam_rootok.so`.
+            val pamDir = File(etcDir, "pam.d")
+            if (pamDir.isDirectory) {
+                for (pamName in listOf("su", "su-l")) {
+                    val pamFile = File(pamDir, pamName)
+                    if (!pamFile.isFile) continue
+                    val lines = runCatching { pamFile.readLines() }.getOrNull() ?: continue
+                    val hasPermit = lines.any { line ->
+                        val trimmed = line.trim()
+                        !trimmed.startsWith("#") &&
+                            trimmed.contains("pam_permit.so") &&
+                            trimmed.startsWith("auth")
+                    }
+                    if (!hasPermit) {
+                        val updated = mutableListOf<String>()
+                        var inserted = false
+                        for (line in lines) {
+                            updated.add(line)
+                            if (!inserted && !line.trim().startsWith("#") && line.contains("pam_rootok.so")) {
+                                updated.add("auth       sufficient pam_permit.so")
+                                inserted = true
+                            }
+                        }
+                        if (!inserted) {
+                            updated.add(0, "auth       sufficient pam_permit.so")
+                        }
+                        runCatching {
+                            pamFile.setWritable(true, true)
+                            pamFile.writeText(updated.joinToString("\n") + "\n")
+                        }
+                    }
+                }
+            }
+
+            // Ensure S_ISUID (04755) is set on su/sudo binaries so PRoot's fake_id0
+            // extension grants euid=0 + fake CAP_SETUID on execve (#721).
+            for (relBin in listOf("bin/su", "usr/bin/su", "usr/bin/sudo", "bin/busybox")) {
+                val bin = File(rootfsDir, relBin)
+                if (bin.isFile && !java.nio.file.Files.isSymbolicLink(bin.toPath())) {
+                    runCatching { android.system.Os.chmod(bin.absolutePath, 0b100_111_101_101) } // 04755
                 }
             }
 

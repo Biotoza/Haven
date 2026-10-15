@@ -1280,6 +1280,15 @@ private fun VncViewer(
         // hidden by default so the rows don't eat screen space unsummoned;
         // allowed in fullscreen too, since the immersive desktop is exactly
         // where the compositor keybinds (Super+D / Super+Return) are needed.
+        val clipboardManager = LocalClipboardManager.current
+        val pasteClipboard: () -> Unit = {
+            val text = clipboardManager.getText()?.text
+            if (!text.isNullOrEmpty()) {
+                onSendClipboard?.invoke(text)
+                onTypeText(text)
+            }
+        }
+
         if (keyboardVisible || imeVisible) {
             VncKeyToolbar(
                 layout = toolbarLayout,
@@ -1313,6 +1322,7 @@ private fun VncViewer(
                     if (superActive) { onKeyUp(XK_SUPER_L); superActive = false }
                 },
                 onToggleKeyboard = toggleKeyboard,
+                onPaste = pasteClipboard,
             )
         }
 
@@ -1342,14 +1352,6 @@ private fun VncViewer(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
-                val clipboardManager = LocalClipboardManager.current
-                val pasteClipboard: () -> Unit = {
-                    val text = clipboardManager.getText()?.text
-                    if (!text.isNullOrEmpty()) {
-                        onSendClipboard?.invoke(text)
-                        onTypeText(text)
-                    }
-                }
                 IconButton(onClick = onDisconnect) {
                     Icon(Icons.Default.Close, contentDescription = stringResource(R.string.vnc_cd_disconnect))
                 }
@@ -1819,6 +1821,7 @@ private fun VncKeyToolbar(
     onToggleSuper: () -> Unit,
     onVncKey: (keySym: Int) -> Unit,
     onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
 ) {
     val presentNavKeys = layout.rows.flatten()
         .filterIsInstance<sh.haven.core.data.preferences.ToolbarItem.BuiltIn>()
@@ -1847,12 +1850,12 @@ private fun VncKeyToolbar(
                     Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                         VncToggleButton("Super", superActive, onToggleSuper)
                         for (item in row1Left) {
-                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                         }
                     }
                     Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                         for (item in row2Left) {
-                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                         }
                     }
                 }
@@ -1887,7 +1890,7 @@ private fun VncKeyToolbar(
                         if (row1Right.isNotEmpty()) {
                             Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                                 for (item in row1Right) {
-                                    VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                                    VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                                 }
                             }
                         } else {
@@ -1895,7 +1898,7 @@ private fun VncKeyToolbar(
                         }
                         Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                             for (item in row2Right) {
-                                VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                                VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                             }
                         }
                     }
@@ -1920,7 +1923,7 @@ private fun VncKeyToolbar(
                             superPlaced = true
                         }
                         for (item in row) {
-                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                         }
                     }
                 }
@@ -1940,10 +1943,11 @@ private fun VncRenderItem(
     onToggleShift: () -> Unit,
     onVncKey: (keySym: Int) -> Unit,
     onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
 ) {
     when (item) {
         is sh.haven.core.data.preferences.ToolbarItem.BuiltIn -> {
-            VncBuiltInKey(item.key, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+            VncBuiltInKey(item.key, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
         }
         is sh.haven.core.data.preferences.ToolbarItem.Custom -> {
             VncSymbolButton(item.label) {
@@ -2050,6 +2054,7 @@ private fun VncBuiltInKey(
     onToggleShift: () -> Unit,
     onVncKey: (keySym: Int) -> Unit,
     onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
 ) {
     when (key) {
         ToolbarKey.KEYBOARD -> {
@@ -2060,6 +2065,7 @@ private fun VncBuiltInKey(
                 Icon(Icons.Default.Keyboard, contentDescription = stringResource(R.string.vnc_cd_toggle_keyboard), modifier = Modifier.size(18.dp))
             }
         }
+        ToolbarKey.PASTE -> VncTextButton(key.label, onPaste)
         ToolbarKey.CTRL -> VncToggleButton("Ctrl", ctrlActive, onToggleCtrl)
         ToolbarKey.ALT -> VncToggleButton("Alt", altActive, onToggleAlt)
         ToolbarKey.ALTGR -> {
