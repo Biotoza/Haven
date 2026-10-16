@@ -905,7 +905,10 @@ class DesktopManager @Inject constructor(
         } else {
             "-SecurityTypes None"
         }
-        Log.d(TAG, "Starting Xvnc :$display: useAuth=$useAuth user=${guestUser.username}")
+        // uid, not the username: the guest name is user-chosen (#718) and must not
+        // reach logcat (#518). uid says the same debugging thing — root vs the
+        // unprivileged identity Xvnc launches under — without the PII.
+        Log.d(TAG, "Starting Xvnc :$display: useAuth=$useAuth uid=${guestUser.uid}")
 
         val shellCmd =
             // `;` not `&&` before the backgrounded Xvnc: with `&&` the `&`
