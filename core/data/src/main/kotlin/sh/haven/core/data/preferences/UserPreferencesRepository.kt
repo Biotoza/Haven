@@ -1444,6 +1444,10 @@ class UserPreferencesRepository @Inject constructor(
         prefs[booleanPreferencesKey("ambiwidth")] ?: false
     }
 
+    suspend fun setAmbiwidth(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[booleanPreferencesKey("ambiwidth")] = enabled }
+    }
+
     /**
      * Minimum width (dp) every terminal-toolbar key is stretched to. 0 = each
      * key hugs its content; larger values give bigger, more tappable keys at
