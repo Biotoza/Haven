@@ -5,7 +5,7 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.39
 
 - **Route a profile through a Cisco AnyConnect or ocserv VPN, without the Cisco app.** Tunnels gains an AnyConnect type: Haven logs in to the gateway itself (Cisco's XML auth: username/password, auth-group selection, and a TOTP code or a fixed answer such as `push` for the second factor) and carries the tunnel (CSTP over TLS) into a private userspace network stack, the same per-app model as the WireGuard, Tailscale and NetBird tunnels. Only profiles routed through it use the VPN; the rest of the phone is unaffected and the system VPN slot stays free. After a network change the session reconnects with its cookie, or logs in again if the gateway expired it, while open SSH sessions wait it out; a rejected login is never retried, so it can't lock the account. Self-signed gateways can be pinned with `pin-sha256:` (an untrusted certificate's error shows the value to paste). Not supported yet: SAML/SSO, client certificates, HostScan/posture, DTLS.
 - **Fixed: the pre-push hook failed every clean push from a worktree.** Git hands the hook its own `GIT_DIR`, so the hook's per-submodule `git -C` calls kept talking to the parent repo and flagged all nine submodules as having uncommitted changes (which fails the push). The submodule checks now strip `GIT_DIR` and inspect the submodule's own checkout.
