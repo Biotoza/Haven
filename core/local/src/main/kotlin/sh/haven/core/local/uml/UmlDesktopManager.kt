@@ -159,10 +159,17 @@ class UmlDesktopManager @Inject constructor(
                 }
             }
             DesktopState.Status.STARTING, DesktopState.Status.INSTALLING -> {
-                driveJobs.remove(kind)?.cancel()
+                val job = driveJobs.remove(kind)
                 ioScope.launch {
+                    // Cancel and let the driver unwind first: its catch
+                    // releases the guest it booted. Reading sharedSessionId
+                    // before the job settles races ensureGuestLocked's write
+                    // and can miss the lock holder entirely (#686 on the
+                    // cancel path).
+                    job?.cancel()
+                    job?.join()
                     val sid = sessionIds.remove(kind) ?: sharedSessionId
-                    if (activeCageSlots.isEmpty()) {
+                    if (sid != null && activeCageSlots.isEmpty()) {
                         closeSharedGuest(sid)
                     }
                     markStopped(kind)
@@ -607,8 +614,15 @@ class UmlDesktopManager @Inject constructor(
                 awaitRfb(sessionId, port, timeoutMs = 60_000)
                 update(kind) { it.copy(status = DesktopState.Status.RUNNING, port = port) }
             }
+        } catch (ce: CancellationException) {
+            // stopDesktop during STARTING cancels this job; its own close
+            // coroutine races us for sharedSessionId and may read it before
+            // ensureGuestLocked set it. Close here so the rootfs-lock holder
+            // is always released (#686 on the cancel path).
+            val sid = bootedSid ?: sessionIds[kind] ?: sharedSessionId
+            if (sid != null) closeSharedGuest(sid)
+            throw ce
         } catch (e: Exception) {
-            if (e is CancellationException) throw e
             val sid = bootedSid ?: sessionIds[kind] ?: sharedSessionId
             if (sid != null) {
                 fail(kind, "Desktop start failed", e, sid)
