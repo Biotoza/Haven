@@ -8,6 +8,7 @@ compare link is appended automatically — don't add it here.
 ## Unreleased
 
 - **Toolbar keys can be scaled up (#641).** The toolbar config dialog gains a key-scale slider (100%-200% in 5% steps) next to the minimum-key-width one. The factor multiplies the density the toolbar's body is resolved against, so key heights, icons, spacing and glyph text grow together instead of only stretching keys wider; the minimum-key-width setting keeps working in the scaled unit. Applies to the terminal toolbar; the wayland desktop toolbar keeps the default size for now.
+- **Material You's ANSI palette follows the theme (#139).** When the Material You scheme's palette is applied (the opt-in toggle), it is now derived from the wallpaper-driven dynamic colours instead of a fixed fallback: black/white/grey slots come from the theme's surface roles, cyan takes the theme's accent, and the red/green/yellow/blue/magenta slots keep recognisable standard hues so SGR semantics (diffs, mutt, git) survive. Re-derives on wallpaper and light/dark changes.
 
 ## v5.89.39
 

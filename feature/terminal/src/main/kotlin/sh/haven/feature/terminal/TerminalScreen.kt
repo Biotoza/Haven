@@ -1105,6 +1105,8 @@ fun TerminalScreen(
         else Color(activeTabScheme.background)
     val terminalFg: Color = if (activeTabScheme.isDynamic) MaterialTheme.colorScheme.onSurface
         else Color(activeTabScheme.foreground)
+    // The live scheme MATERIAL_YOU's palette is derived from (see #139).
+    val themeCs = MaterialTheme.colorScheme
 
     // Terminal background opacity (see-through to wallpaper). The active
     // tab's per-profile override wins over the global pref, mirroring the
@@ -1873,7 +1875,17 @@ fun TerminalScreen(
                         // palette, matching pre-#165 behaviour.
                         val terminalFgArgb = terminalFg.toArgb()
                         val terminalBgArgb = terminalBg.toArgb()
-                        val ansiPalette = remember(activeTabScheme) { activeTabScheme.ansiPaletteArgb() }
+                        // MATERIAL_YOU derives its palette from the live theme
+                        // (#139), so it re-derives on theme/wallpaper changes the
+                        // same way terminalFg/Bg do; static schemes use the
+                        // enum's fixed longs.
+                        val ansiPalette = remember(activeTabScheme, themeCs) {
+                            if (activeTabScheme.isDynamic) {
+                                materialYouAnsiPalette(themeCs)
+                            } else {
+                                activeTabScheme.ansiPaletteArgb()
+                            }
+                        }
                         val applyScheme: (TerminalEmulator) -> Unit = { emu ->
                             if (applySchemePalette) {
                                 emu.applyColorScheme(ansiPalette, terminalFgArgb, terminalBgArgb)
