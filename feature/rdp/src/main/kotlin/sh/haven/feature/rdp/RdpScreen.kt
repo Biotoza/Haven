@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.ScreenLockLandscape
 import androidx.compose.material.icons.filled.ScreenLockPortrait
 import androidx.compose.material.icons.filled.ScreenRotation
@@ -60,7 +61,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -167,6 +170,10 @@ fun RdpSessionContent(
     inputMode: String = "DIRECT",
     /** Switch DIRECT/TOUCHPAD from the toolbar (#183/#212). Null hides the toggle. */
     onSetInputMode: ((String) -> Unit)? = null,
+    /** TOUCHPAD-mode speed multiplier; gesture math scales deltas by it (#696). */
+    touchpadSensitivity: Float = 1f,
+    /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
+    onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
     /**
      * Activity orientation constant
      * (`ActivityInfo.SCREEN_ORIENTATION_*`) currently in effect for
@@ -248,6 +255,8 @@ fun RdpSessionContent(
             pointerPos = pointerState,
             inputMode = inputMode,
             onSetInputMode = onSetInputMode,
+            touchpadSensitivity = touchpadSensitivity,
+            onSetTouchpadSensitivity = onSetTouchpadSensitivity,
             currentOrientation = currentOrientation,
             onCycleOrientation = onCycleOrientation,
             chipAnchor = chipAnchor,
@@ -428,6 +437,10 @@ private fun RdpViewer(
     pointerPos: Pair<Int, Int> = 0 to 0,
     inputMode: String = "DIRECT",
     onSetInputMode: ((String) -> Unit)? = null,
+    /** TOUCHPAD-mode speed multiplier; gesture math scales deltas by it (#696). */
+    touchpadSensitivity: Float = 1f,
+    /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
+    onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
     currentOrientation: Int = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
     onCycleOrientation: () -> Unit = {},
     chipAnchor: sh.haven.core.data.preferences.RdpChipAnchor =
@@ -460,6 +473,13 @@ private fun RdpViewer(
 
     // Touchpad-mode virtual cursor — composable scope so it survives lifts.
     var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
+    // #696: float accumulator for the same cursor — per-event Int rounding
+    // would otherwise drop sub-pixel steps at low sensitivity (a slow drag
+    // would round to zero and never move). The Int pair above stays the
+    // emitted/consumed value.
+    var virtualCursorF by remember(inputMode) {
+        mutableStateOf(Offset(pointerPos.first.toFloat(), pointerPos.second.toFloat()))
+    }
 
     // #598: the server only sends a cursor SHAPE when the guest first moves its
     // own cursor, so a freshly connected session has input but nothing to draw
@@ -640,6 +660,9 @@ private fun RdpViewer(
 
     // Fullscreen overlay toolbar
     var overlayVisible by remember { mutableStateOf(false) }
+    // Trackpad sensitivity dialog (#696) — opened from the speed button next
+    // to the input-mode toggle while TOUCHPAD is active.
+    var showSensitivityDialog by remember { mutableStateOf(false) }
 
     // Auto-hide overlay after 4 seconds
     LaunchedEffect(overlayVisible) {
@@ -691,7 +714,9 @@ private fun RdpViewer(
                 .focusable()
                 .onFocusChanged { canvasFocused = it.isFocused }
                 .onSizeChanged { viewSize = it }
-                .pointerInput(frame.width, frame.height, viewSize, inputMode) {
+                // Sensitivity is a key so an in-flight drag does not carry the
+                // stale multiplier from capture time (#696).
+                .pointerInput(frame.width, frame.height, viewSize, inputMode, touchpadSensitivity) {
                     val touchSlopPx = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val firstDown = awaitFirstDown(
@@ -801,10 +826,18 @@ private fun RdpViewer(
                                 lastSinglePos = change.position
                                 if (inputMode == "TOUCHPAD") {
                                     val scale = if (zoom > 0f) zoom else 1f
-                                    val nx = (virtualCursor.first + (deltaScreen.x / scale).toInt())
-                                        .coerceIn(0, frame.width - 1)
-                                    val ny = (virtualCursor.second + (deltaScreen.y / scale).toInt())
-                                        .coerceIn(0, frame.height - 1)
+                                    // #696: scale the finger delta by the trackpad
+                                    // sensitivity multiplier; keep the position in
+                                    // float space so per-event rounding can't drop
+                                    // sub-pixel steps at low sensitivity.
+                                    val fx = virtualCursorF.x + deltaScreen.x / scale * touchpadSensitivity
+                                    val fy = virtualCursorF.y + deltaScreen.y / scale * touchpadSensitivity
+                                    virtualCursorF = Offset(
+                                        fx.coerceIn(0f, (frame.width - 1).toFloat()),
+                                        fy.coerceIn(0f, (frame.height - 1).toFloat()),
+                                    )
+                                    val nx = fx.toInt().coerceIn(0, frame.width - 1)
+                                    val ny = fy.toInt().coerceIn(0, frame.height - 1)
                                     virtualCursor = nx to ny
                                     if (totalMovement >= touchSlopPx) {
                                         if (isFollowUpTouch && !dragButtonPressed) {
@@ -1025,8 +1058,10 @@ private fun RdpViewer(
                     Icon(orientationMode.icon, contentDescription = orientationDesc)
                 }
 
-                // Direct/trackpad input-mode toggle — #183/#212.
-                onSetInputMode?.let { InputModeToggle(inputMode, it) }
+                // Direct/trackpad input-mode toggle + speed button — #183/#696.
+                InputModeToggle(inputMode, onSetInputMode, onSetTouchpadSensitivity) {
+                    showSensitivityDialog = true
+                }
                 // Two-finger drag: viewport pan vs remote scroll — #286.
                 ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
 
@@ -1157,8 +1192,10 @@ private fun RdpViewer(
                     IconButton(onClick = onCycleOrientation) {
                         Icon(orientationMode.icon, contentDescription = orientationDesc)
                     }
-                    // Direct/trackpad input-mode toggle — #183/#212.
-                    onSetInputMode?.let { InputModeToggle(inputMode, it) }
+                    // Direct/trackpad input-mode toggle + speed button — #183/#696.
+                    InputModeToggle(inputMode, onSetInputMode, onSetTouchpadSensitivity) {
+                        showSensitivityDialog = true
+                    }
                     // Two-finger drag: viewport pan vs remote scroll — #286.
                     ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
@@ -1184,6 +1221,14 @@ private fun RdpViewer(
         }
     }
     } // end Box
+
+    if (showSensitivityDialog) {
+        TrackpadSensitivityDialog(
+            sensitivity = touchpadSensitivity,
+            onSetSensitivity = { onSetTouchpadSensitivity?.invoke(it) },
+            onDismiss = { showSensitivityDialog = false },
+        )
+    }
 }
 
 /**
@@ -1193,19 +1238,76 @@ private fun RdpViewer(
  * Checked (highlighted) = trackpad mode.
  */
 @Composable
-private fun InputModeToggle(inputMode: String, onSetInputMode: (String) -> Unit) {
+private fun InputModeToggle(
+    inputMode: String,
+    onSetInputMode: ((String) -> Unit)?,
+    onSetTouchpadSensitivity: ((Float) -> Unit)?,
+    onOpenSensitivity: () -> Unit,
+) {
+    if (onSetInputMode == null) return
     val touchpad = inputMode == "TOUCHPAD"
-    FilledIconToggleButton(
-        checked = touchpad,
-        onCheckedChange = { onSetInputMode(if (touchpad) "DIRECT" else "TOUCHPAD") },
-        modifier = Modifier.size(40.dp),
-    ) {
-        Icon(
-            Icons.Default.TouchApp,
-            contentDescription = if (touchpad) stringResource(R.string.rdp_cd_input_mode_trackpad_on)
-                                 else stringResource(R.string.rdp_cd_input_mode_direct),
-        )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        FilledIconToggleButton(
+            checked = touchpad,
+            onCheckedChange = { onSetInputMode(if (touchpad) "DIRECT" else "TOUCHPAD") },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                Icons.Default.TouchApp,
+                contentDescription = if (touchpad) stringResource(R.string.rdp_cd_input_mode_trackpad_on)
+                                     else stringResource(R.string.rdp_cd_input_mode_direct),
+            )
+        }
+        // Speed control (#696): only while trackpad mode is on — direct touch
+        // has no speed to tune. Opens the sensitivity dialog.
+        if (touchpad && onSetTouchpadSensitivity != null) {
+            val speedDesc = stringResource(R.string.rdp_cd_trackpad_sensitivity)
+            IconButton(onClick = onOpenSensitivity) {
+                Icon(Icons.Default.Speed, contentDescription = speedDesc)
+            }
+        }
     }
+}
+
+/**
+ * Trackpad sensitivity dialog (#696): a slider over the relative-motion
+ * multiplier the VNC and RDP touchpad paths share. Commits on release and on
+ * Close, so the value can be tuned live; leaving without a drag keeps the old
+ * value.
+ */
+@Composable
+private fun TrackpadSensitivityDialog(
+    sensitivity: Float,
+    onSetSensitivity: (Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var value by remember { mutableStateOf(sensitivity.coerceIn(TOUCHPAD_SENSITIVITY_MIN, TOUCHPAD_SENSITIVITY_MAX)) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onSetSensitivity(value); onDismiss() }) {
+                Text(stringResource(R.string.rdp_action_close))
+            }
+        },
+        icon = { Icon(Icons.Default.Speed, contentDescription = null) },
+        title = { Text(stringResource(R.string.rdp_cd_trackpad_sensitivity)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "%.1f×".format(value),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Slider(
+                    value = value,
+                    onValueChange = { value = it },
+                    onValueChangeFinished = { onSetSensitivity(value) },
+                    valueRange = TOUCHPAD_SENSITIVITY_MIN..TOUCHPAD_SENSITIVITY_MAX,
+                    steps = 27,
+                )
+            }
+        },
+    )
 }
 
 /** Two-finger drag target: viewport pan (off) vs remote scroll-wheel (on). */
@@ -1803,6 +1905,11 @@ internal const val SC_CTRL_R = EXT or 0x1D
 internal const val SC_ALT_R = EXT or 0x38
 internal const val SC_WIN_R = EXT or 0x5C
 internal const val SC_F1 = 0x3B
+// Trackpad sensitivity slider range (#696): 0.2 (very fine) up to 3 (fast);
+// slider steps are 0.1 granularity.
+private const val TOUCHPAD_SENSITIVITY_MIN = 0.2f
+private const val TOUCHPAD_SENSITIVITY_MAX = 3f
+
 private const val SC_F2 = 0x3C
 private const val SC_F3 = 0x3D
 private const val SC_F4 = 0x3E

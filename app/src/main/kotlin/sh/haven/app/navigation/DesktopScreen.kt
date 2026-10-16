@@ -82,6 +82,10 @@ fun DesktopScreen(
     toolbarUniformGrid: Boolean = false,
     inputMode: String = "DIRECT",
     onSetInputMode: ((String) -> Unit)? = null,
+    /** TOUCHPAD-mode speed multiplier; viewer-side gesture math scales by it (#696). */
+    touchpadSensitivity: Float = 1f,
+    /** Persist trackpad sensitivity changes from the toolbar (#696); null hides the control. */
+    onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
     isActive: Boolean = true,
     /** When the active viewer is fullscreen, the manager's own chrome (the
      *  compact Manage row + tab bar) is hidden too, so a small-screen RDP/VNC
@@ -258,6 +262,8 @@ fun DesktopScreen(
                                 pointerPos = tab.pointerPos,
                                 inputMode = inputMode,
                                 onSetInputMode = onSetInputMode,
+                                touchpadSensitivity = touchpadSensitivity,
+                                onSetTouchpadSensitivity = onSetTouchpadSensitivity,
                                 bandwidthSuggestion = tab.bandwidthSuggestion,
                                 onAcceptBandwidthSuggestion = { desktopViewModel.acceptBandwidthSuggestion(tab.id) },
                                 onDismissBandwidthSuggestion = { desktopViewModel.dismissBandwidthSuggestion(tab.id) },
@@ -301,6 +307,8 @@ fun DesktopScreen(
                             pointerPos = tab.pointerPos,
                             inputMode = inputMode,
                             onSetInputMode = onSetInputMode,
+                            touchpadSensitivity = touchpadSensitivity,
+                            onSetTouchpadSensitivity = onSetTouchpadSensitivity,
                             currentOrientation = desktopOrientation,
                             onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                             onRetry = { desktopViewModel.retryTab(tab.id) },
@@ -339,6 +347,8 @@ fun DesktopScreen(
                             pointerPos = tab.pointerPos,
                             inputMode = inputMode,
                             onSetInputMode = onSetInputMode,
+                            touchpadSensitivity = touchpadSensitivity,
+                            onSetTouchpadSensitivity = onSetTouchpadSensitivity,
                             currentOrientation = desktopOrientation,
                             onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                             onRetry = { desktopViewModel.retryTab(tab.id) },

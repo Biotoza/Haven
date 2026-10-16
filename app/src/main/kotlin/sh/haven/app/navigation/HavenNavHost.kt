@@ -484,6 +484,8 @@ fun HavenNavHost(
         .collectAsState(initial = true)
     val desktopInputMode by preferencesRepository.desktopInputMode
         .collectAsState(initial = "DIRECT")
+    val desktopTouchpadSensitivity by preferencesRepository.desktopTouchpadSensitivity
+        .collectAsState(initial = 1f)
 
     // Profile ID to focus when navigating to terminal
     var pendingTerminalProfileId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -804,6 +806,10 @@ fun HavenNavHost(
                         inputMode = desktopInputMode,
                         onSetInputMode = { mode ->
                             coroutineScope.launch { preferencesRepository.setDesktopInputMode(mode) }
+                        },
+                        touchpadSensitivity = desktopTouchpadSensitivity,
+                        onSetTouchpadSensitivity = { value ->
+                            coroutineScope.launch { preferencesRepository.setDesktopTouchpadSensitivity(value) }
                         },
                         isActive = pagerState.settledPage == pageOf(Screen.Desktop),
                         fullscreen = desktopFullscreen,

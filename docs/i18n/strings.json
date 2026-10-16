@@ -27524,6 +27524,26 @@
      }
     },
     {
+     "name": "rdp_cd_trackpad_sensitivity",
+     "en": "Trackpad sensitivity",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "حساسية لوحة التتبع",
+      "bn": "Trackpad সংবেদনশীলতা",
+      "de": "Trackpad-Empfindlichkeit",
+      "es": "Sensibilidad del trackpad",
+      "fr": "Sensibilité du pavé tactile",
+      "hi": "Trackpad संवेदनशीलता",
+      "ja": "トラックパッドの感度",
+      "ko": "트랙패드 감도",
+      "pt": "Sensibilidade do trackpad",
+      "ru": "Чувствительность трекпада",
+      "sr": "Осетљивост трекпеда",
+      "zh": "触控板灵敏度"
+     }
+    },
+    {
      "name": "rdp_cd_two_finger_viewport",
      "en": "Two-finger pans the view (tap to scroll the remote)",
      "comment": "",
@@ -46968,6 +46988,26 @@
       "ru": "Режим прямого касания (нажмите для трекпада)",
       "sr": "Режим директног додира (тап за трекпед)",
       "zh": "直接触摸模式（点击切换为触控板）"
+     }
+    },
+    {
+     "name": "vnc_cd_trackpad_sensitivity",
+     "en": "Trackpad sensitivity",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "حساسية لوحة التتبع",
+      "bn": "Trackpad সংবেদনশীলতা",
+      "de": "Trackpad-Empfindlichkeit",
+      "es": "Sensibilidad del trackpad",
+      "fr": "Sensibilité du pavé tactile",
+      "hi": "Trackpad संवेदनशीलता",
+      "ja": "トラックパッドの感度",
+      "ko": "트랙패드 감도",
+      "pt": "Sensibilidade do trackpad",
+      "ru": "Чувствительность трекпада",
+      "sr": "Осетљивост трекпеда",
+      "zh": "触控板灵敏度"
      }
     },
     {

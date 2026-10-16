@@ -145,6 +145,8 @@ class UserPreferencesRepository @Inject constructor(
     private val showDesktopsCardKey = booleanPreferencesKey("show_desktops_card")
     private val mediaExtensionsKey = stringPreferencesKey("media_extensions")
     private val desktopInputModeKey = stringPreferencesKey("desktop_input_mode")
+    // Trackpad-mode speed multiplier (#696). 1f = the 1:1 finger→cursor ratio.
+    private val desktopTouchpadSensitivityKey = floatPreferencesKey("desktop_touchpad_sensitivity")
     // Experimental GPU stack for accelerated Wayland/cage desktops. Off (default)
     // = virgl/virpipe (GL 2.1, present works on every path). On = venus
     // (Vulkan→Mali) + zink (modern GL, ~3.2 core) with the wl_shm CPU-copy WSI
@@ -721,6 +723,23 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setDesktopInputMode(mode: String) {
         dataStore.edit { prefs ->
             prefs[desktopInputModeKey] = mode
+        }
+    }
+
+    /**
+     * Relative-motion speed multiplier for desktop TOUCHPAD mode (#696).
+     * 1f (default) = the current 1:1 mapping of finger travel to remote
+     * cursor travel; above 1f the cursor travels further per finger
+     * distance, below 1f gives finer pointer control. Shared by the VNC
+     * and RDP touchpad paths so both behave the same.
+     */
+    val desktopTouchpadSensitivity: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[desktopTouchpadSensitivityKey] ?: 1f
+    }
+
+    suspend fun setDesktopTouchpadSensitivity(value: Float) {
+        dataStore.edit { prefs ->
+            prefs[desktopTouchpadSensitivityKey] = value
         }
     }
 
