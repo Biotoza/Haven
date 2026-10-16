@@ -576,6 +576,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_font_size_subtitle, fontSize),
             onClick = { showFontSizeDialog = true },
         )
+        SettingsToggleItem(
+            icon = Icons.Filled.FormatSize,
+            title = stringResource(R.string.settings_ambiwidth_title),
+            subtitle = stringResource(R.string.settings_ambiwidth_subtitle),
+            checked = viewModel.ambiwidth.collectAsState().value,
+            onCheckedChange = viewModel::setAmbiwidth,
+        )
         SettingsItem(
             icon = Icons.Filled.History,
             title = stringResource(R.string.settings_scrollback_rows_title),

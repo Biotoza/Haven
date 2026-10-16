@@ -667,6 +667,13 @@ class SettingsViewModel @Inject constructor(
     val showTerminalTabBar: StateFlow<Boolean> = preferencesRepository.showTerminalTabBar
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val ambiwidth: StateFlow<Boolean> = preferencesRepository.ambiwidth
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
+
     val terminalFontSize: StateFlow<Int> = preferencesRepository.terminalFontSize
         .stateIn(
             viewModelScope,
@@ -1071,6 +1078,12 @@ class SettingsViewModel @Inject constructor(
     fun setTerminalFontSize(sizeSp: Int) {
         viewModelScope.launch {
             preferencesRepository.setTerminalFontSize(sizeSp)
+        }
+    }
+
+    fun setAmbiwidth(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setAmbiwidth(enabled)
         }
     }
 

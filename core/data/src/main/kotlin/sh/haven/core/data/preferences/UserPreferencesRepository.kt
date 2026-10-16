@@ -1440,6 +1440,10 @@ class UserPreferencesRepository @Inject constructor(
         prefs[terminalFontSizeKey] ?: DEFAULT_FONT_SIZE
     }
 
+    val ambiwidth: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[booleanPreferencesKey("ambiwidth")] ?: false
+    }
+
     /**
      * Minimum width (dp) every terminal-toolbar key is stretched to. 0 = each
      * key hugs its content; larger values give bigger, more tappable keys at

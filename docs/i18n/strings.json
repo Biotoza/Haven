@@ -29112,6 +29112,20 @@
      }
     },
     {
+     "name": "settings_ambiwidth_title",
+     "en": "Ambiguous width as double-width",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {}
+    },
+    {
+     "name": "settings_ambiwidth_subtitle",
+     "en": "Render East Asian Ambiguous characters as 2 cells",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {}
+    },
+    {
      "name": "settings_scrollback_rows_title",
      "en": "Scrollback rows",
      "comment": "Terminal section",
