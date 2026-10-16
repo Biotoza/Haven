@@ -200,6 +200,13 @@ class RcloneSessionManager @Inject constructor(
         if (client.stopOAuth()) {
             Log.i(TAG, "Stopped a leftover OAuth flow before starting '$remoteName'")
         }
+        // The stop unwinds asynchronously — the dying flow closes its
+        // listener on its own return path, after this RPC has already
+        // returned. Binding the port is the only proof it is free, so wait
+        // for that before createRemote tries to bind it itself (#697).
+        if (!client.awaitOAuthPortFree()) {
+            Log.w(TAG, "OAuth redirect port still busy before starting '$remoteName'")
+        }
         val future: Future<*> = oauthExecutor.submit {
             client.createRemote(remoteName, provider)
         }

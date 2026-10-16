@@ -12,6 +12,9 @@ import javax.inject.Singleton
 
 private const val TAG = "RcloneClient"
 
+/** rclone's fixed OAuth loopback redirect port (Google's registered one). */
+const val OAUTH_REDIRECT_PORT = 53682
+
 /**
  * High-level Kotlin API over rclone's RC (Remote Control) JSON-RPC interface.
  * All methods are blocking and should be called from a background thread.
@@ -163,6 +166,42 @@ class RcloneClient @Inject constructor(
         } catch (e: RcloneException) {
             Log.d(TAG, "config/oauthstop: ${e.error}")
             false
+        }
+    }
+
+    /**
+     * Block until the OAuth redirect port (127.0.0.1:[port], Google's
+     * registered loopback redirect) is free to bind, or [timeoutMs] elapses.
+     *
+     * [stopOAuth] cancels the in-flight flow's context, but the auth server
+     * closes its listener on that call's own return path — asynchronously,
+     * a moment later. Starting the next flow immediately can therefore race
+     * the dying listener and hit EADDRINUSE (#697). Probing the bind is the
+     * only ground truth: rclone's own config/oauthstatus reports the flow
+     * stopped as soon as the cancel runs, before the socket is actually
+     * released. Returns true if the port bound cleanly (free), false on
+     * timeout. Does not touch the port if it is already free on the first
+     * probe, so a normal (non-retry) connect pays nothing.
+     */
+    fun awaitOAuthPortFree(timeoutMs: Long = 3_000, port: Int = OAUTH_REDIRECT_PORT): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var attempt = 0
+        while (true) {
+            try {
+                java.net.ServerSocket().use { it.bind(java.net.InetSocketAddress("127.0.0.1", port)) }
+                return true
+            } catch (e: java.io.IOException) {
+                if (System.currentTimeMillis() >= deadline) {
+                    Log.w(TAG, "OAuth port $port still bound after ${timeoutMs}ms: ${e.message}")
+                    return false
+                }
+                try {
+                    Thread.sleep(50L * (++attempt).coerceAtMost(4))
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return false
+                }
+            }
         }
     }
 

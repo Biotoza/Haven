@@ -2751,12 +2751,23 @@ class ConnectionsViewModel @Inject constructor(
             // session sits in CONNECTED with credentials that no
             // longer exist.
             rcloneSessionManager.removeAllSessionsForProfile(profile.id)
-            withContext(Dispatchers.IO) {
+            val deleted = withContext(Dispatchers.IO) {
                 try {
                     rcloneClient.deleteRemote(remoteName)
+                    true
                 } catch (e: Exception) {
                     Log.w(TAG, "deleteRemote('$remoteName') failed before re-auth: ${e.message}")
+                    false
                 }
+            }
+            if (!deleted) {
+                // The stored remote survived, so the connect path below
+                // would find it, see it still answers with the OLD token,
+                // and mark it connected without ever starting a fresh
+                // sign-in — re-authenticate silently doing nothing (#697).
+                // Fail loudly instead.
+                _error.value = "Couldn't drop the stored '$remoteName' credentials — re-authentication aborted. Try again, or delete and re-add the connection if it repeats."
+                return@launch
             }
             connectRclone(profile)
         }
