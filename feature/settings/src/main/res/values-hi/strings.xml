@@ -262,6 +262,7 @@
     <string name="settings_color_scheme_apply_palette_title">स्कीम का ANSI पैलेट लागू करें</string>
     <string name="settings_color_scheme_apply_palette_subtitle">स्कीम से मेल खाने के लिए 16 ANSI रंगों को फिर से रंगें। बंद रहने पर मानक रंग बने रहते हैं, ताकि mutt जैसे फ़ुल-स्क्रीन ऐप्स अपेक्षित रूप से दिखें।</string>
     <string name="settings_toolbar_min_key_width">न्यूनतम key चौड़ाई: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">key स्केल: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">एकसमान कुंजी ग्रिड</string>
     <string name="settings_toolbar_uniform_grid_desc">हर कुंजी Termux की तरह बराबर चौड़ाई की सेल लेती है; लंबे लेबल लिपट जाते हैं। साइड स्क्रॉल नहीं।</string>
     <string name="settings_terminal_font_title">Terminal font</string>

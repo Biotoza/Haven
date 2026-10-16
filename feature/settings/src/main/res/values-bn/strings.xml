@@ -262,6 +262,7 @@
     <string name="settings_color_scheme_apply_palette_title">স্কিমের ANSI প্যালেট প্রয়োগ করুন</string>
     <string name="settings_color_scheme_apply_palette_subtitle">স্কিমের সাথে মেলাতে ১৬টি ANSI রঙ পুনরায় রঙ করুন। বন্ধ থাকলে মানক রং বজায় থাকে, তাই mutt-এর মতো ফুল-স্ক্রিন অ্যাপ প্রত্যাশিতভাবে দেখায়।</string>
     <string name="settings_toolbar_min_key_width">ন্যূনতম কী প্রস্থ: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">কী স্কেল: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">অভিন্ন কী গ্রিড</string>
     <string name="settings_toolbar_uniform_grid_desc">প্রতিটি কী Termux-এর মতো সমান প্রস্থের ঘরে বসে; লম্বা লেবেল ভাঁজ হয়ে যায়। পাশে স্ক্রল নেই।</string>
     <string name="settings_terminal_font_title">টার্মিনাল ফন্ট</string>

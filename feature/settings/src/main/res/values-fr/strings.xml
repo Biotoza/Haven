@@ -262,6 +262,7 @@
     <string name="settings_color_scheme_apply_palette_title">Appliquer la palette ANSI du thème</string>
     <string name="settings_color_scheme_apply_palette_subtitle">Recolore les 16 couleurs ANSI selon le thème. Désactivé conserve les couleurs standard, pour que les applis plein écran comme mutt s\'affichent normalement.</string>
     <string name="settings_toolbar_min_key_width">Largeur minimale des touches : %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Échelle des touches : %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Grille de touches uniforme</string>
     <string name="settings_toolbar_uniform_grid_desc">Chaque touche occupe une cellule de largeur égale, comme Termux ; les libellés longs passent à la ligne. Pas de défilement latéral.</string>
     <string name="settings_terminal_font_title">Police du terminal</string>

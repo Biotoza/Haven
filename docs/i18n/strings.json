@@ -32253,6 +32253,28 @@
      }
     },
     {
+     "name": "settings_toolbar_key_scale",
+     "en": "Toolbar key scale: %1$d%%",
+     "comment": "Toolbar config dialog",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "مقياس حجم المفتاح: %1$d%%",
+      "bn": "কী স্কেল: %1$d%%",
+      "de": "Tastenskalierung: %1$d%%",
+      "es": "Escala de teclas: %1$d%%",
+      "fr": "Échelle des touches : %1$d%%",
+      "hi": "key स्केल: %1$d%%",
+      "ja": "キースケール: %1$d%%",
+      "ko": "키 크기 배율: %1$d%%",
+      "pt": "Escala de teclas: %1$d%%",
+      "ru": "Масштаб клавиш: %1$d%%",
+      "sr": "Размера тастера: %1$d%%",
+      "zh": "按键缩放：%1$d%%"
+     }
+    },
+    {
      "name": "settings_toolbar_uniform_grid",
      "en": "Uniform key grid",
      "comment": "Toolbar config dialog",

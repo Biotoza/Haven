@@ -206,6 +206,7 @@ fun SettingsScreen(
     val editModeControlsPlacement by viewModel.editModeControlsPlacement.collectAsState()
     val desktopKeyPlacement by viewModel.desktopKeyPlacement.collectAsState()
     val toolbarMinButtonWidth by viewModel.toolbarMinButtonWidth.collectAsState()
+    val toolbarKeyScale by viewModel.toolbarKeyScale.collectAsState()
     val showSearchButton by viewModel.showSearchButton.collectAsState()
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
@@ -2007,6 +2008,8 @@ fun SettingsScreen(
             desktopKeyPlacement = desktopKeyPlacement,
             minButtonWidth = toolbarMinButtonWidth,
             onMinButtonWidthChange = { viewModel.setToolbarMinButtonWidth(it) },
+            keyScale = toolbarKeyScale,
+            onKeyScaleChange = { viewModel.setToolbarKeyScale(it) },
             onDismiss = { showToolbarConfigDialog = false },
             onSaveLayout = { layout ->
                 viewModel.setToolbarLayout(layout)
@@ -3317,7 +3320,9 @@ private fun ToolbarConfigDialog(
     editModeControlsPlacement: EditModeControlsPlacement,
     desktopKeyPlacement: DesktopKeyPlacement,
     minButtonWidth: Int,
+    keyScale: Float,
     onMinButtonWidthChange: (Int) -> Unit,
+    onKeyScaleChange: (Float) -> Unit,
     onDismiss: () -> Unit,
     onSaveLayout: (ToolbarLayout) -> Unit,
     onSaveLibrary: (List<ToolbarItem.Custom>) -> Unit,
@@ -3345,7 +3350,9 @@ private fun ToolbarConfigDialog(
             editModeControlsPlacement = editModeControlsPlacement,
             desktopKeyPlacement = desktopKeyPlacement,
             minButtonWidth = minButtonWidth,
+            keyScale = keyScale,
             onMinButtonWidthChange = onMinButtonWidthChange,
+            onKeyScaleChange = onKeyScaleChange,
             onDismiss = onDismiss,
             onSave = { newLayout, newLibrary ->
                 onSaveLayout(newLayout)
@@ -3374,7 +3381,9 @@ private fun ToolbarSimpleEditor(
     editModeControlsPlacement: EditModeControlsPlacement,
     desktopKeyPlacement: DesktopKeyPlacement,
     minButtonWidth: Int,
+    keyScale: Float,
     onMinButtonWidthChange: (Int) -> Unit,
+    onKeyScaleChange: (Float) -> Unit,
     onDismiss: () -> Unit,
     onSave: (ToolbarLayout, List<ToolbarItem.Custom>) -> Unit,
     onAdvancedMode: () -> Unit,
@@ -3547,6 +3556,26 @@ private fun ToolbarSimpleEditor(
                     onValueChange = { minWidthSlider = it },
                     onValueChangeFinished = { onMinButtonWidthChange(minWidthSlider.roundToInt()) },
                     valueRange = 0f..64f,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+
+                // Key scale (#641): grows the whole toolbar — heights, icons,
+                // spacing, glyph text — rather than stretching keys wider.
+                var scaleSlider by remember(keyScale) {
+                    mutableStateOf(keyScale)
+                }
+                Text(
+                    stringResource(R.string.settings_toolbar_key_scale, (scaleSlider * 100f).roundToInt()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                )
+                Slider(
+                    value = scaleSlider,
+                    onValueChange = { scaleSlider = it },
+                    onValueChangeFinished = { onKeyScaleChange(scaleSlider) },
+                    valueRange = 1f..2f,
+                    steps = 19,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
 

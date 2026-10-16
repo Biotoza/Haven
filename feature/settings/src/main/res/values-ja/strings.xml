@@ -262,6 +262,7 @@
     <string name="settings_color_scheme_apply_palette_title">スキームのANSIパレットを適用</string>
     <string name="settings_color_scheme_apply_palette_subtitle">16色のANSIカラーをスキームに合わせて変更します。オフにすると標準色のままになり、muttのような全画面アプリが期待どおりに表示されます。</string>
     <string name="settings_toolbar_min_key_width">最小キー幅: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">キースケール: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">キーを均等グリッドに</string>
     <string name="settings_toolbar_uniform_grid_desc">Termux のように各キーが同じ幅のセルを占めます。長いラベルは折り返し。横スクロールなし。</string>
     <string name="settings_terminal_font_title">ターミナルフォント</string>

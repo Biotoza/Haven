@@ -63,6 +63,7 @@ class UserPreferencesRepository @Inject constructor(
     private val toolbarLayoutKey = stringPreferencesKey("toolbar_layout")
     private val snippetLibraryKey = stringPreferencesKey("snippet_library")
     private val toolbarMinButtonWidthKey = intPreferencesKey("toolbar_min_button_width")
+    private val toolbarKeyScaleKey = floatPreferencesKey("toolbar_key_scale")
     private val appWindowDefsKey = stringPreferencesKey("app_window_defs")
     private val appWindowDefaultResolutionKey = stringPreferencesKey("app_window_default_resolution")
     private val appWindowDefaultScaleKey = floatPreferencesKey("app_window_default_scale")
@@ -1492,6 +1493,16 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /**
+     * Multiplier on the terminal toolbar's size (#641). 1.0 is the un-scaled
+     * toolbar; above that the toolbar's own density is scaled, so key
+     * heights, icons, spacing and glyph text all grow together. Composes
+     * with [toolbarMinButtonWidth], which keeps operating in scaled dp.
+     */
+    val toolbarKeyScale: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[toolbarKeyScaleKey] ?: DEFAULT_TOOLBAR_KEY_SCALE
+    }
+
+    /**
      * Maximum number of lines retained in each tab's scrollback ring (#151).
      * The emulator reads this once at construction; changing it affects
      * newly created tabs, not existing ones. Larger values cost roughly
@@ -1676,6 +1687,13 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { prefs ->
             prefs[toolbarMinButtonWidthKey] =
                 dp.coerceIn(MIN_TOOLBAR_MIN_BUTTON_WIDTH, MAX_TOOLBAR_MIN_BUTTON_WIDTH)
+        }
+    }
+
+    suspend fun setToolbarKeyScale(scale: Float) {
+        dataStore.edit { prefs ->
+            prefs[toolbarKeyScaleKey] =
+                scale.coerceIn(MIN_TOOLBAR_KEY_SCALE, MAX_TOOLBAR_KEY_SCALE)
         }
     }
 
@@ -2445,6 +2463,10 @@ class UserPreferencesRepository @Inject constructor(
         const val DEFAULT_TOOLBAR_MIN_BUTTON_WIDTH = 0
         const val MIN_TOOLBAR_MIN_BUTTON_WIDTH = 0
         const val MAX_TOOLBAR_MIN_BUTTON_WIDTH = 64
+        // Terminal toolbar key scale (#641). 1.0 = the un-scaled toolbar.
+        const val DEFAULT_TOOLBAR_KEY_SCALE = 1.0f
+        const val MIN_TOOLBAR_KEY_SCALE = 1.0f
+        const val MAX_TOOLBAR_KEY_SCALE = 2.0f
         /** What Haven asked RDP servers for before it was configurable (#422). */
         const val DEFAULT_RDP_WIDTH = 1920
         const val DEFAULT_RDP_HEIGHT = 1080

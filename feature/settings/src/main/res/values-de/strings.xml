@@ -262,6 +262,7 @@
     <string name="settings_color_scheme_apply_palette_title">ANSI-Palette des Schemas anwenden</string>
     <string name="settings_color_scheme_apply_palette_subtitle">Die 16 ANSI-Farben passend zum Schema umfärben. Aus behält Standardfarben, damit Vollbild-Apps wie mutt wie erwartet aussehen.</string>
     <string name="settings_toolbar_min_key_width">Minimale Tastenbreite: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Tastenskalierung: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Einheitliches Tastenraster</string>
     <string name="settings_toolbar_uniform_grid_desc">Jede Taste belegt eine gleich breite Zelle wie in Termux; lange Beschriftungen umbrechen. Kein seitliches Scrollen.</string>
     <string name="settings_terminal_font_title">Terminal-Schriftart</string>

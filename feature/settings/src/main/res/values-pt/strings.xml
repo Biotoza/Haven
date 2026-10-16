@@ -262,6 +262,7 @@
     <string name="settings_color_scheme_apply_palette_title">Aplicar a paleta ANSI do esquema</string>
     <string name="settings_color_scheme_apply_palette_subtitle">Recolore as 16 cores ANSI para combinar com o esquema. Desativado mantém as cores padrão, para que apps de tela cheia como o mutt fiquem como esperado.</string>
     <string name="settings_toolbar_min_key_width">Largura mínima de tecla: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Escala de teclas: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Grade uniforme de teclas</string>
     <string name="settings_toolbar_uniform_grid_desc">Cada tecla ocupa uma célula de largura igual, no estilo Termux; rótulos longos quebram linha. Sem rolagem lateral.</string>
     <string name="settings_terminal_font_title">Fonte do terminal</string>

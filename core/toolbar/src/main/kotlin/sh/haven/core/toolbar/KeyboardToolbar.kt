@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -273,6 +275,7 @@ fun KeyboardToolbar(
     editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
     desktopKeyPlacement: sh.haven.core.data.preferences.DesktopKeyPlacement = sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT,
     minKeyWidth: Dp = DEFAULT_MIN_KEY_WIDTH,
+    keyScale: Float = 1f,
     onToggleCtrl: () -> Unit = {},
     onToggleAlt: () -> Unit = {},
     onVncTap: (() -> Unit)? = null,
@@ -382,6 +385,13 @@ fun KeyboardToolbar(
         LocalToolbarCallbacks provides callbacks,
         LocalToolbarMinKeyWidth provides minKeyWidth,
         LocalToolbarLockedModifiers provides LockedModifiers(ctrlLocked, altLocked),
+        // #641: the scale applies by resolving the toolbar's dp and sp against
+        // a multiplied density, so every hard-coded height, icon and spacing
+        // inside scales together with the glyph text.
+        LocalDensity provides Density(
+            LocalDensity.current.density * keyScale,
+            LocalDensity.current.fontScale * keyScale,
+        ),
     ) {
         Surface(
             tonalElevation = if (reorderMode) 4.dp else 2.dp,

@@ -541,6 +541,7 @@ fun TerminalScreen(
     val altActive by viewModel.altActive.collectAsState()
     val ctrlLocked by viewModel.ctrlLocked.collectAsState()
     val altLocked by viewModel.altLocked.collectAsState()
+    val toolbarKeyScale by viewModel.toolbarKeyScale.collectAsState()
     val swipeArrowsMode by viewModel.swipeArrowsMode.collectAsState()
     // The latch may own the horizontal pager gesture only while a tab is
     // mounted (#609). The latch persists in DataStore after the last session
@@ -2107,6 +2108,7 @@ fun TerminalScreen(
                         editModeControlsPlacement = editModeControlsPlacement,
                         desktopKeyPlacement = desktopKeyPlacement,
                         minKeyWidth = toolbarMinKeyWidth.dp,
+                        keyScale = toolbarKeyScale,
                         onToggleCtrl = viewModel::toggleCtrl,
                         onToggleAlt = viewModel::toggleAlt,
                         onVncTap = if (activeTab.transportType == "SSH") {{

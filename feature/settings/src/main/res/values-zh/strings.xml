@@ -261,6 +261,7 @@
     <string name="settings_color_scheme_apply_palette_title">应用配色方案的 ANSI 调色板</string>
     <string name="settings_color_scheme_apply_palette_subtitle">将 16 种 ANSI 颜色重新着色以匹配配色方案。关闭时保留标准颜色，这样 mutt 等全屏应用会按预期显示。</string>
     <string name="settings_toolbar_min_key_width">最小按键宽度：%1$d dp</string>
+    <string name="settings_toolbar_key_scale">按键缩放：%1$d%%</string>
     <string name="settings_toolbar_uniform_grid">统一按键网格</string>
     <string name="settings_toolbar_uniform_grid_desc">每个按键占用等宽格子（类似 Termux），过长的标签在格内换行，无需左右滑动。</string>
     <string name="settings_terminal_font_title">终端字体</string>

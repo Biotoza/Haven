@@ -604,6 +604,14 @@ class TerminalViewModel @Inject constructor(
         systemIsDark.value = isDark
     }
 
+    /** Toolbar key-scale multiplier (#641), applied by the toolbar composable. */
+    val toolbarKeyScale: StateFlow<Float> = preferencesRepository.toolbarKeyScale
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesRepository.DEFAULT_TOOLBAR_KEY_SCALE,
+        )
+
     /**
      * Live global terminal colour scheme — respects the auto-switch toggle:
      * when enabled, follows the system light/dark mode (via [systemIsDark])

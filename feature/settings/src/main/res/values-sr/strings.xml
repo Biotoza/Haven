@@ -212,6 +212,7 @@
     <string name="settings_desktop_key_right">Десно</string>
     <string name="settings_desktop_key_hidden">Скривен</string>
     <string name="settings_toolbar_min_key_width">Минимална ширина тастера: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Размера тастера: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Уједначена мрежа тастера</string>
     <string name="settings_toolbar_uniform_grid_desc">Сваки тастер заузима ћелију једнаке ширине, у Termux стилу; дугачке ознаке се обавијају. Нема скроловања у страну.</string>
     <string name="settings_toolbar_function_keys">Функцијски тастери</string>

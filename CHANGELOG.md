@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **Toolbar keys can be scaled up (#641).** The toolbar config dialog gains a key-scale slider (100%-200% in 5% steps) next to the minimum-key-width one. The factor multiplies the density the toolbar's body is resolved against, so key heights, icons, spacing and glyph text grow together instead of only stretching keys wider; the minimum-key-width setting keeps working in the scaled unit. Applies to the terminal toolbar; the wayland desktop toolbar keeps the default size for now.
+
 ## v5.89.39
 
 - **Route a profile through a Cisco AnyConnect or ocserv VPN, without the Cisco app.** Tunnels gains an AnyConnect type: Haven logs in to the gateway itself (Cisco's XML auth: username/password, auth-group selection, and a TOTP code or a fixed answer such as `push` for the second factor) and carries the tunnel (CSTP over TLS) into a private userspace network stack, the same per-app model as the WireGuard, Tailscale and NetBird tunnels. Only profiles routed through it use the VPN; the rest of the phone is unaffected and the system VPN slot stays free. After a network change the session reconnects with its cookie, or logs in again if the gateway expired it, while open SSH sessions wait it out; a rejected login is never retried, so it can't lock the account. Self-signed gateways can be pinned with `pin-sha256:` (an untrusted certificate's error shows the value to paste). Not supported yet: SAML/SSO, client certificates, HostScan/posture, DTLS.

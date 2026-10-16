@@ -262,6 +262,7 @@
     <string name="settings_color_scheme_apply_palette_title">구성표의 ANSI 팔레트 적용</string>
     <string name="settings_color_scheme_apply_palette_subtitle">16가지 ANSI 색상을 구성표에 맞게 다시 칠합니다. 끄면 표준 색상이 유지되어 mutt 같은 전체 화면 앱이 예상대로 보입니다.</string>
     <string name="settings_toolbar_min_key_width">최소 키 너비: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">키 크기 배율: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">균일한 키 그리드</string>
     <string name="settings_toolbar_uniform_grid_desc">Termux처럼 모든 키가 같은 너비의 칸을 차지하며 긴 라벨은 줄바꿈됩니다. 가로 스크롤 없음.</string>
     <string name="settings_terminal_font_title">터미널 글꼴</string>
