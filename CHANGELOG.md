@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.38
+
+- **Every terminal renders its text again after 5.89.37 (#721, thanks DragonXen).** The ambiguous-width change (#719) left `mk_wcwidth`, the function that returns a character's column width, without a return statement on its normal path; the compiler gave back whatever happened to sit in the return register (0 in practice), so every printable character was measured zero cells wide: the cursor never advanced and every terminal, SSH included, drew only a cursor on a blank screen. The width tail is restored. While fixing it, the new CJK variant was found not to consult its ambiguous-width table at all (the #719 setting changed nothing in 5.89.37); the lookup is added, and with the setting on, ambiguous characters such as `→` and box-drawing pieces are now actually 2 cells wide.
+
 ## v5.89.37
 
 - **East Asian ambiguous-width characters can be drawn double-width (#719, thanks the reporter).** Geometric and other ambiguous-width symbols overlapped neighbouring glyphs when a CJK font (e.g. Sarasa Mono) advanced them two cells while the terminal reserved one. A new terminal setting, East Asian ambiguous width, renders those characters two cells wide to match such fonts.
