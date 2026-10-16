@@ -513,4 +513,6 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_inline_images_off">बंद</string>
     <string name="settings_inline_images_ask">पूछें</string>
     <string name="settings_inline_images_always">हमेशा</string>
+    <string name="settings_ambiwidth_title">अस्पष्ट चौड़ाई को द्वि-चौड़ाई के रूप में</string>
+    <string name="settings_ambiwidth_subtitle">पूर्व एशियाई अस्पष्ट वर्णों को 2 सेल के रूप में रेंडर करें</string>
 </resources>

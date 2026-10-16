@@ -512,4 +512,6 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_inline_images_off">オフ</string>
     <string name="settings_inline_images_ask">確認</string>
     <string name="settings_inline_images_always">常に</string>
+    <string name="settings_ambiwidth_title">曖昧幅文字を倍幅で表示</string>
+    <string name="settings_ambiwidth_subtitle">東アジアの曖昧幅文字を2セルで描画</string>
 </resources>

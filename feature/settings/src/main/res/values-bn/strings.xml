@@ -513,4 +513,6 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_inline_images_off">বন্ধ</string>
     <string name="settings_inline_images_ask">জিজ্ঞাসা করুন</string>
     <string name="settings_inline_images_always">সবসময়</string>
+    <string name="settings_ambiwidth_title">অস্পষ্ট প্রস্থ দ্বি-প্রস্থ হিসেবে</string>
+    <string name="settings_ambiwidth_subtitle">পূর্ব এশীয় অস্পষ্ট অক্ষর ২টি সেল হিসেবে রেন্ডার করুন</string>
 </resources>

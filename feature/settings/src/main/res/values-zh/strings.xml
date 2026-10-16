@@ -511,4 +511,6 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_inline_images_off">关闭</string>
     <string name="settings_inline_images_ask">询问</string>
     <string name="settings_inline_images_always">总是</string>
+    <string name="settings_ambiwidth_title">模糊宽度按双宽显示</string>
+    <string name="settings_ambiwidth_subtitle">将东亚模糊宽度字符渲染为 2 个单元格</string>
 </resources>

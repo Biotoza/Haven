@@ -513,4 +513,6 @@ Cada chave privada já armazenada no Haven precisará ser importada ou gerada no
     <string name="settings_inline_images_off">Desligado</string>
     <string name="settings_inline_images_ask">Perguntar</string>
     <string name="settings_inline_images_always">Sempre</string>
+    <string name="settings_ambiwidth_title">Largura ambígua como largura dupla</string>
+    <string name="settings_ambiwidth_subtitle">Renderizar caracteres ambíguos do Leste Asiático como 2 células</string>
 </resources>

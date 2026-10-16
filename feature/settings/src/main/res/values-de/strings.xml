@@ -513,4 +513,6 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_inline_images_off">Aus</string>
     <string name="settings_inline_images_ask">Nachfragen</string>
     <string name="settings_inline_images_always">Immer</string>
+    <string name="settings_ambiwidth_title">Ambigue Breite als Doppelbreite</string>
+    <string name="settings_ambiwidth_subtitle">Ostasiatische Ambiguous-Zeichen als 2 Zellen darstellen</string>
 </resources>

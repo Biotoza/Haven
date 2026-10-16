@@ -513,4 +513,6 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_inline_images_off">Désactivé</string>
     <string name="settings_inline_images_ask">Demander</string>
     <string name="settings_inline_images_always">Toujours</string>
+    <string name="settings_ambiwidth_title">Largeur ambiguë en double largeur</string>
+    <string name="settings_ambiwidth_subtitle">Afficher les caractères asiatiques ambigus sur 2 cellules</string>
 </resources>

@@ -512,4 +512,6 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_inline_images_off">끔</string>
     <string name="settings_inline_images_ask">물어보기</string>
     <string name="settings_inline_images_always">항상</string>
+    <string name="settings_ambiwidth_title">모호 폭 문자를 배폭으로 표시</string>
+    <string name="settings_ambiwidth_subtitle">동아시아 모호 폭 문자를 2셀로 렌더링</string>
 </resources>

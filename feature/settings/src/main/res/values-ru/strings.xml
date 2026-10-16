@@ -515,4 +515,6 @@
     <string name="settings_inline_images_off">Выкл</string>
     <string name="settings_inline_images_ask">Спрашивать</string>
     <string name="settings_inline_images_always">Всегда</string>
+    <string name="settings_ambiwidth_title">Неоднозначная ширина как двойная</string>
+    <string name="settings_ambiwidth_subtitle">Отображать неоднозначные восточноазиатские символы в 2 ячейки</string>
 </resources>

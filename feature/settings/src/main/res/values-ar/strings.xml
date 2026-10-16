@@ -517,4 +517,6 @@
     <string name="settings_inline_images_off">إيقاف</string>
     <string name="settings_inline_images_ask">اسأل</string>
     <string name="settings_inline_images_always">دائمًا</string>
+    <string name="settings_ambiwidth_title">العرض الغامض كعرض مزدوج</string>
+    <string name="settings_ambiwidth_subtitle">عرض أحرف شرق آسيا الغامضة كخليتين</string>
 </resources>

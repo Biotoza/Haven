@@ -29116,14 +29116,38 @@
      "en": "Ambiguous width as double-width",
      "comment": "Terminal section",
      "args": [],
-     "t": {}
+     "t": {
+      "ar": "العرض الغامض كعرض مزدوج",
+      "bn": "অস্পষ্ট প্রস্থ দ্বি-প্রস্থ হিসেবে",
+      "de": "Ambigue Breite als Doppelbreite",
+      "es": "Ancho ambiguo como doble ancho",
+      "fr": "Largeur ambiguë en double largeur",
+      "hi": "अस्पष्ट चौड़ाई को द्वि-चौड़ाई के रूप में",
+      "ja": "曖昧幅文字を倍幅で表示",
+      "ko": "모호 폭 문자를 배폭으로 표시",
+      "pt": "Largura ambígua como largura dupla",
+      "ru": "Неоднозначная ширина как двойная",
+      "zh": "模糊宽度按双宽显示"
+     }
     },
     {
      "name": "settings_ambiwidth_subtitle",
      "en": "Render East Asian Ambiguous characters as 2 cells",
      "comment": "Terminal section",
      "args": [],
-     "t": {}
+     "t": {
+      "ar": "عرض أحرف شرق آسيا الغامضة كخليتين",
+      "bn": "পূর্ব এশীয় অস্পষ্ট অক্ষর ২টি সেল হিসেবে রেন্ডার করুন",
+      "de": "Ostasiatische Ambiguous-Zeichen als 2 Zellen darstellen",
+      "es": "Renderizar caracteres ambiguos de Asia oriental como 2 celdas",
+      "fr": "Afficher les caractères asiatiques ambigus sur 2 cellules",
+      "hi": "पूर्व एशियाई अस्पष्ट वर्णों को 2 सेल के रूप में रेंडर करें",
+      "ja": "東アジアの曖昧幅文字を2セルで描画",
+      "ko": "동아시아 모호 폭 문자를 2셀로 렌더링",
+      "pt": "Renderizar caracteres ambíguos do Leste Asiático como 2 células",
+      "ru": "Отображать неоднозначные восточноазиатские символы в 2 ячейки",
+      "zh": "将东亚模糊宽度字符渲染为 2 个单元格"
+     }
     },
     {
      "name": "settings_scrollback_rows_title",
