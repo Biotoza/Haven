@@ -906,6 +906,18 @@ fun SettingsScreen(
             onCheckedChange = viewModel::setGpsGuestExposureEnabled,
         )
 
+        // Tailscale peer discovery (#654): off stops the quad-100 LocalAPI
+        // probe reading the peer list during scans; Tailscale itself is
+        // untouched. On by default to keep the scan behaviour unchanged.
+        val tailscaleDiscovery by viewModel.tailscaleDiscoveryEnabled.collectAsState()
+        SettingsToggleItem(
+            icon = Icons.Filled.VpnLock,
+            title = stringResource(R.string.settings_tailscale_discovery_title),
+            subtitle = stringResource(R.string.settings_tailscale_discovery_subtitle),
+            checked = tailscaleDiscovery,
+            onCheckedChange = viewModel::setTailscaleDiscoveryEnabled,
+        )
+
         // Audio bridge (#257): play Linux app sound through the speaker via an
         // in-guest PulseAudio daemon. Experimental — streams continuously while
         // on, so it's off by default.

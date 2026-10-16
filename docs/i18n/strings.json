@@ -34309,6 +34309,44 @@
      }
     },
     {
+     "name": "settings_tailscale_discovery_title",
+     "en": "Tailscale peer discovery",
+     "comment": "GPS exposure",
+     "args": [],
+     "t": {
+      "ar": "اكتشاف أقران Tailscale",
+      "bn": "Tailscale পিয়ার সনাক্তকরণ",
+      "de": "Tailscale-Peer-Erkennung",
+      "es": "Detección de pares de Tailscale",
+      "fr": "Découverte des pairs Tailscale",
+      "hi": "Tailscale पीयर खोज",
+      "ja": "Tailscale ピア検出",
+      "ko": "Tailscale 피어 검색",
+      "pt": "Descoberta de pares do Tailscale",
+      "ru": "Обнаружение узлов Tailscale",
+      "zh": "Tailscale 对等节点发现"
+     }
+    },
+    {
+     "name": "settings_tailscale_discovery_subtitle",
+     "en": "Look up hosts on your Tailscale network through its local API when scanning. Turn off to stop Haven from reading the peer list; Tailscale itself is unaffected.",
+     "comment": "GPS exposure",
+     "args": [],
+     "t": {
+      "ar": "البحث عن مضيفين في شبكة Tailscale عبر واجهة API المحلية أثناء الفحص. أوقفه لمنع Haven من قراءة قائمة الأقران؛ لن يتأثر Tailscale نفسه.",
+      "bn": "স্ক্যানের সময় স্থানীয় API-এর মাধ্যমে আপনার Tailscale নেটওয়ার্কের হোস্ট খুঁজুন। বন্ধ করলে Haven পিয়ার তালিকা পড়বে না; Tailscale প্রভাবিত হবে না।",
+      "de": "Hosts im Tailscale-Netzwerk über die lokale API beim Scannen ermitteln. Deaktivieren, damit Haven die Peer-Liste nicht mehr liest; Tailscale selbst bleibt unberührt.",
+      "es": "Buscar hosts de tu red Tailscale a través de su API local al escanear. Desactívalo para evitar que Haven lea la lista de pares; Tailscale no se ve afectado.",
+      "fr": "Rechercher les hôtes de votre réseau Tailscale via son API locale lors de l’analyse. Désactivez pour empêcher Haven de lire la liste des pairs ; Tailscale n’est pas affecté.",
+      "hi": "स्कैन करते समय स्थानीय API के ज़रिए आपके Tailscale नेटवर्क के होस्ट खोजें। बंद करें ताकि Haven पीयर सूची न पढ़े; Tailscale प्रभावित नहीं होता।",
+      "ja": "スキャン時にローカル API を介して Tailscale ネットワーク上のホストを検索します。オフにすると Haven はピアリストを読まなくなります。Tailscale 自体には影響ありません。",
+      "ko": "스캔 시 로컬 API를 통해 Tailscale 네트워크의 호스트를 찾습니다. 끄면 Haven이 피어 목록을 읽지 않습니다. Tailscale 자체에는 영향이 없습니다.",
+      "pt": "Procurar hosts da sua rede Tailscale pela API local durante a varredura. Desative para impedir que o Haven leia a lista de pares; o Tailscale não é afetado.",
+      "ru": "Искать хосты вашей сети Tailscale через локальный API при сканировании. Отключите, чтобы Haven не читал список узлов; на сам Tailscale это не влияет.",
+      "zh": "扫描时通过本地 API 查找您 Tailscale 网络中的主机。关闭后 Haven 不再读取对等节点列表；Tailscale 本身不受影响。"
+     }
+    },
+    {
      "name": "settings_audio_bridge_title",
      "en": "Proot audio (experimental)",
      "comment": "GPS exposure",

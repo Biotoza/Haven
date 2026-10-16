@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100%-এর নিচে Haven স্বচ্ছপ্রায় হয়ে যায় এবং প্রতিটি স্ক্রিনের (টার্মিনাল, তালিকা, সেটিংস) পিছনে আপনার ডিভাইসের ওয়ালপেপার দেখায়। প্রতি-সংযোগ ওভাররাইড কেবল সেই টার্মিনালে প্রযোজ্য।</string>
     <string name="settings_section_mcp">AI এজেন্ট (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale পিয়ার সনাক্তকরণ</string>
+    <string name="settings_tailscale_discovery_subtitle">স্ক্যানের সময় স্থানীয় API-এর মাধ্যমে আপনার Tailscale নেটওয়ার্কের হোস্ট খুঁজুন। বন্ধ করলে Haven পিয়ার তালিকা পড়বে না; Tailscale প্রভাবিত হবে না।</string>
     <string name="settings_audio_bridge_title">Proot অডিও (পরীক্ষামূলক)</string>
     <string name="settings_audio_bridge_subtitle">গেস্টের ভিতরের PulseAudio ব্রিজের মাধ্যমে Linux অ্যাপের শব্দ ডিভাইসের স্পিকারে বাজান। শুধু আউটপুট। চালু থাকলে অবিরাম স্ট্রিম হয় — ব্যবহার না করলে বন্ধ করুন।</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s-এর মাধ্যমে চলছে — সংযুক্ত</string>

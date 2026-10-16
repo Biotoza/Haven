@@ -1502,6 +1502,17 @@ class ConnectionsViewModel @Inject constructor(
     val showDesktopsCard: StateFlow<Boolean> = preferencesRepository.showDesktopsCard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    init {
+        // Feed the Tailscale-discovery preference (#654) into the probe: the
+        // scan paths read the @Volatile flag, so flipping the setting takes
+        // effect on the next scan without recreating the VM.
+        viewModelScope.launch {
+            preferencesRepository.tailscaleDiscoveryEnabled.collect {
+                networkDiscovery.tailscaleDiscoveryEnabled = it
+            }
+        }
+    }
+
     private var periodicRefreshJob: Job? = null
 
     fun startPeriodicRefresh() {

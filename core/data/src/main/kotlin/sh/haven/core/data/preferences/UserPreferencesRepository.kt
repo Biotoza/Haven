@@ -110,6 +110,7 @@ class UserPreferencesRepository @Inject constructor(
     private val alwaysShowAllTabsKey = booleanPreferencesKey("always_show_all_tabs")
     private val usbGuestExposureEnabledKey = booleanPreferencesKey("usb_guest_exposure_enabled")
     private val gpsGuestExposureEnabledKey = booleanPreferencesKey("gps_guest_exposure_enabled")
+    private val tailscaleDiscoveryEnabledKey = booleanPreferencesKey("tailscale_discovery_enabled")
     private val remoteClipboardToLocalKey = booleanPreferencesKey("remote_clipboard_to_local")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
@@ -664,6 +665,19 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { prefs ->
             prefs[gpsGuestExposureEnabledKey] = enabled
         }
+    }
+
+    /**
+     * Gate for Tailscale peer discovery (#654). On by default; off stops the
+     * quad-100 LocalAPI probe from reading the peer list at all, independent
+     * of whether the Tailscale app is installed.
+     */
+    val tailscaleDiscoveryEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[tailscaleDiscoveryEnabledKey] ?: true
+    }
+
+    suspend fun setTailscaleDiscoveryEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[tailscaleDiscoveryEnabledKey] = enabled }
     }
 
     /**

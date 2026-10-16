@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100% 미만이면 Haven이 반투명해지고 모든 화면(터미널, 목록, 설정) 뒤로 기기 배경화면이 표시됩니다. 연결별 재정의는 해당 터미널에만 적용됩니다.</string>
     <string name="settings_section_mcp">AI 에이전트 (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale 피어 검색</string>
+    <string name="settings_tailscale_discovery_subtitle">스캔 시 로컬 API를 통해 Tailscale 네트워크의 호스트를 찾습니다. 끄면 Haven이 피어 목록을 읽지 않습니다. Tailscale 자체에는 영향이 없습니다.</string>
     <string name="settings_audio_bridge_title">Proot 오디오 (실험적)</string>
     <string name="settings_audio_bridge_subtitle">게스트 내 PulseAudio 브리지를 통해 Linux 앱의 소리를 기기 스피커로 재생합니다. 출력 전용. 켜져 있는 동안 계속 스트리밍되므로 사용하지 않을 때는 끄세요.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s 경유 — 연결됨</string>

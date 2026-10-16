@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">أقل من 100% يصبح Haven شبه شفاف ويعرض خلفية جهازك خلف كل شاشة (الطرفية، القوائم، الإعدادات). التجاوز الخاص بكل اتصال ينطبق على طرفيته فقط.</string>
     <string name="settings_section_mcp">وكيل الذكاء الاصطناعي (MCP)</string>
+    <string name="settings_tailscale_discovery_title">اكتشاف أقران Tailscale</string>
+    <string name="settings_tailscale_discovery_subtitle">البحث عن مضيفين في شبكة Tailscale عبر واجهة API المحلية أثناء الفحص. أوقفه لمنع Haven من قراءة قائمة الأقران؛ لن يتأثر Tailscale نفسه.</string>
     <string name="settings_audio_bridge_title">صوت proot (تجريبي)</string>
     <string name="settings_audio_bridge_subtitle">تشغيل الصوت من تطبيقات Linux عبر مكبّر صوت الجهاز من خلال جسر PulseAudio داخل الضيف. إخراج فقط. يبث باستمرار أثناء تفعيله — أوقفه عند عدم الاستخدام.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): عبر %1$s — متصل</string>

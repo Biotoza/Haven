@@ -443,6 +443,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">低于 100% 时，Haven 将变为半透明，在所有界面（终端、列表、设置）后面显示设备壁纸。按连接的覆盖设置仅作用于该终端。</string>
     <string name="settings_section_mcp">AI 代理（MCP）</string>
+    <string name="settings_tailscale_discovery_title">Tailscale 对等节点发现</string>
+    <string name="settings_tailscale_discovery_subtitle">扫描时通过本地 API 查找您 Tailscale 网络中的主机。关闭后 Haven 不再读取对等节点列表；Tailscale 本身不受影响。</string>
     <string name="settings_audio_bridge_title">Proot 音频（实验性）</string>
     <string name="settings_audio_bridge_subtitle">通过客机内的 PulseAudio 桥接，将 Linux 应用的声音经设备扬声器播放。仅支持输出。开启期间会持续传输——不用时请关闭。</string>
     <string name="settings_reverse_tunnel_status_active">Near（SSH）：经由 %1$s — 已连接</string>

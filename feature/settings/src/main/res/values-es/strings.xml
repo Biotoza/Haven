@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">Por debajo del 100%, Haven se vuelve translúcido y muestra tu fondo de pantalla detrás de cada pantalla (terminal, listas, ajustes). Un ajuste por conexión solo se aplica a ese terminal.</string>
     <string name="settings_section_mcp">Agente de IA (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Detección de pares de Tailscale</string>
+    <string name="settings_tailscale_discovery_subtitle">Buscar hosts de tu red Tailscale a través de su API local al escanear. Desactívalo para evitar que Haven lea la lista de pares; Tailscale no se ve afectado.</string>
     <string name="settings_audio_bridge_title">Audio de proot (experimental)</string>
     <string name="settings_audio_bridge_subtitle">Reproduce el sonido de las apps de Linux por el altavoz del dispositivo mediante un puente PulseAudio en el invitado. Solo salida. Transmite continuamente mientras está activado — desactívalo cuando no lo uses.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): a través de %1$s — conectado</string>

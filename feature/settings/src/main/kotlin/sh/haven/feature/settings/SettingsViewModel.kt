@@ -526,6 +526,9 @@ class SettingsViewModel @Inject constructor(
     val gpsGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.gpsGuestExposureEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val tailscaleDiscoveryEnabled: StateFlow<Boolean> = preferencesRepository.tailscaleDiscoveryEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val remoteClipboardToLocalEnabled: StateFlow<Boolean> = preferencesRepository.remoteClipboardToLocalEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -919,6 +922,12 @@ class SettingsViewModel @Inject constructor(
     fun setGpsGuestExposureEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setGpsGuestExposureEnabled(enabled)
+        }
+    }
+
+    fun setTailscaleDiscoveryEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setTailscaleDiscoveryEnabled(enabled)
         }
     }
 

@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">Unter 100% wird Haven durchscheinend und zeigt dein Hintergrundbild hinter jedem Bildschirm (Terminal, Listen, Einstellungen). Eine Überschreibung pro Verbindung gilt nur für dieses Terminal.</string>
     <string name="settings_section_mcp">KI-Agent (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale-Peer-Erkennung</string>
+    <string name="settings_tailscale_discovery_subtitle">Hosts im Tailscale-Netzwerk über die lokale API beim Scannen ermitteln. Deaktivieren, damit Haven die Peer-Liste nicht mehr liest; Tailscale selbst bleibt unberührt.</string>
     <string name="settings_audio_bridge_title">Proot-Audio (experimentell)</string>
     <string name="settings_audio_bridge_subtitle">Gibt Ton aus Linux-Apps über den Gerätelautsprecher aus, per PulseAudio-Brücke im Gast. Nur Ausgabe. Streamt dauerhaft, solange aktiviert — bei Nichtgebrauch ausschalten.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): läuft über %1$s — verbunden</string>

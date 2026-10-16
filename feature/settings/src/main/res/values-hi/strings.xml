@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100% से नीचे Haven पारभासी हो जाता है और हर स्क्रीन (टर्मिनल, सूचियाँ, सेटिंग्स) के पीछे आपके डिवाइस का वॉलपेपर दिखाता है। प्रति-कनेक्शन ओवरराइड केवल उसी टर्मिनल पर लागू होता है।</string>
     <string name="settings_section_mcp">AI एजेंट (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale पीयर खोज</string>
+    <string name="settings_tailscale_discovery_subtitle">स्कैन करते समय स्थानीय API के ज़रिए आपके Tailscale नेटवर्क के होस्ट खोजें। बंद करें ताकि Haven पीयर सूची न पढ़े; Tailscale प्रभावित नहीं होता।</string>
     <string name="settings_audio_bridge_title">Proot ऑडियो (प्रायोगिक)</string>
     <string name="settings_audio_bridge_subtitle">गेस्ट के अंदर PulseAudio ब्रिज के ज़रिये Linux ऐप्स की आवाज़ डिवाइस स्पीकर से चलाएँ। केवल आउटपुट। चालू रहने पर लगातार स्ट्रीम होता है — उपयोग में न हो तो बंद करें।</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s के ज़रिये चल रहा है — कनेक्टेड</string>

@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">Ниже 100% Haven становится полупрозрачным и показывает обои устройства за каждым экраном (терминал, списки, настройки). Переопределение для отдельного подключения действует только на его терминал.</string>
     <string name="settings_section_mcp">ИИ-агент (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Обнаружение узлов Tailscale</string>
+    <string name="settings_tailscale_discovery_subtitle">Искать хосты вашей сети Tailscale через локальный API при сканировании. Отключите, чтобы Haven не читал список узлов; на сам Tailscale это не влияет.</string>
     <string name="settings_audio_bridge_title">Звук proot (экспериментально)</string>
     <string name="settings_audio_bridge_subtitle">Воспроизводит звук из приложений Linux через динамик устройства с помощью моста PulseAudio в гостевой системе. Только вывод. Поток идёт непрерывно, пока включено — выключайте, когда не используется.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): через %1$s — подключено</string>

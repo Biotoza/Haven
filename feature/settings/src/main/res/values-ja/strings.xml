@@ -444,6 +444,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100% 未満にすると Haven が半透明になり、すべての画面（ターミナル、リスト、設定）の背後にデバイスの壁紙が表示されます。接続ごとの上書きはそのターミナルにのみ適用されます。</string>
     <string name="settings_section_mcp">AI エージェント (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale ピア検出</string>
+    <string name="settings_tailscale_discovery_subtitle">スキャン時にローカル API を介して Tailscale ネットワーク上のホストを検索します。オフにすると Haven はピアリストを読まなくなります。Tailscale 自体には影響ありません。</string>
     <string name="settings_audio_bridge_title">Proot オーディオ（試験的）</string>
     <string name="settings_audio_bridge_subtitle">ゲスト内の PulseAudio ブリッジ経由で、Linux アプリの音をデバイスのスピーカーから再生します。出力のみ。オンの間は常時ストリーミングされるため、使わないときはオフにしてください。</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s 経由 — 接続済み</string>
