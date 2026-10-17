@@ -5,7 +5,7 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.41
 
 - **Connection launcher shortcuts (#699).** A long-press on the launcher icon offers "Connect <name>" entries for the most-recently-used saved connections (five slots, alternating with the existing workspace shortcuts so neither category pushes the other out). A tap dials the profile straight away — the same connect an MCP `connect_profile` uses — landing on the Connections tab where the session list shows it come up. OpenAI and email profiles are skipped.
 
