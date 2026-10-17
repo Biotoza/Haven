@@ -233,6 +233,8 @@
     <string name="settings_scrollback_rows_value">%1$,d पंक्तियाँ</string>
     <string name="settings_tap_to_position_title">समर्थित प्रॉम्प्ट पर कर्सर ले जाने के लिए टैप करें</string>
     <string name="settings_tap_to_position_subtitle">उस कॉलम में कर्सर ले जाने के लिए शेल प्रॉम्प्ट के अंदर टैप करें। OSC 133 प्रॉम्प्ट मार्कर आवश्यक (starship, fish 3.6+, हाल ही के bash/zsh शेल-इंटीग्रेशन सेटअप)। जो शेल इन्हें नहीं भेजते उन पर कोई प्रभाव नहीं</string>
+    <string name="settings_swipe_arrows_title">स्वाइप से ऐरो की भेजें</string>
+    <string name="settings_swipe_arrows_subtitle">टर्मिनल में क्षैतिज स्वाइप टैब बदलने के बजाय ← → (दोहराने के लिए दबाए रखें) भेजता है। टूलबार की स्वाइप कुंजी वही मोड बदलती है</string>
 
     <string name="settings_bandwidth_suggest_subtitle">कुछ सेकंड बाद ~1 Mbps से कम थ्रूपुट का पता लगाता है और 256 रंगों पर एक-टैप पुनः कनेक्ट का सुझाव देता है। बंद करने पर संकेत नहीं दिखता।</string>
     <string name="settings_bandwidth_suggest_title">धीमे VNC लिंक पर 256 रंग सुझाएँ</string>

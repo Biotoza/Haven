@@ -233,6 +233,8 @@
     <string name="settings_scrollback_rows_value">%1$,d লাইন</string>
     <string name="settings_tap_to_position_title">সমর্থিত প্রম্পটে কার্সার সরাতে ট্যাপ করুন</string>
     <string name="settings_tap_to_position_subtitle">শেল প্রম্পটের ভিতরে ট্যাপ করে সেই কলামে কার্সার সরান। OSC 133 প্রম্পট মার্কার প্রয়োজন (starship, fish 3.6+, সাম্প্রতিক bash/zsh শেল-ইন্টিগ্রেশন সেটআপ)। যে শেলগুলি এগুলি প্রকাশ করে না তাদের উপর কোন প্রভাব নেই</string>
+    <string name="settings_swipe_arrows_title">সোয়াইপ তীর কী পাঠায়</string>
+    <string name="settings_swipe_arrows_subtitle">টার্মিনালে অনুভূমিক সোয়াইপ ট্যাব বদলানোর বদলে ← → (ধরে রাখলে পুনরাবৃত্তি) পাঠায়। টুলবারের সোয়াইপ কী একই মোড টগল করে</string>
 
     <string name="settings_bandwidth_suggest_subtitle">কয়েক সেকেন্ড পরে ~1 Mbps-এর নিচে থ্রুপুট শনাক্ত করে এবং 256 রঙে এক-ট্যাপে পুনঃসংযোগের প্রস্তাব দেয়। বন্ধ করলে প্রম্পট দেখানো হয় না।</string>
     <string name="settings_bandwidth_suggest_title">ধীর VNC সংযোগে 256 রঙ প্রস্তাব করুন</string>

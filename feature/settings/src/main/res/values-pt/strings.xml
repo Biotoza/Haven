@@ -233,6 +233,8 @@
     <string name="settings_scrollback_rows_value">%1$,d linhas</string>
     <string name="settings_tap_to_position_title">Toque para mover cursor em prompts compatíveis</string>
     <string name="settings_tap_to_position_subtitle">Toque dentro de um prompt de shell para mover o cursor para aquela coluna. Requer marcadores OSC 133 (starship, fish 3.6+, configurações recentes de bash/zsh). Sem efeito em shells que não os emitem</string>
+    <string name="settings_swipe_arrows_title">Deslizar envia setas</string>
+    <string name="settings_swipe_arrows_subtitle">Deslizamentos horizontais no terminal enviam ← → (segure para repetir) em vez de trocar de aba. A tecla Deslizar da barra alterna o mesmo modo</string>
 
     <string name="settings_bandwidth_suggest_subtitle">Detecta taxa de transferência abaixo de ~1 Mbps após alguns segundos e oferece reconexão com 256 cores com um toque. Desativado silencia o aviso.</string>
     <string name="settings_bandwidth_suggest_title">Sugerir 256 cores em conexões VNC lentas</string>

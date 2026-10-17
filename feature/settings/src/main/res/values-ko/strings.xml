@@ -251,6 +251,8 @@
     <string name="settings_scrollback_rows_value">%1$,d 행</string>
     <string name="settings_tap_to_position_title">지원되는 프롬프트에서 탭하여 커서 이동</string>
     <string name="settings_tap_to_position_subtitle">셸 프롬프트 내부를 탭하여 해당 열로 커서를 이동합니다. OSC 133 프롬프트 마커가 필요합니다(starship, fish 3.6+, 최신 bash/zsh 셸 통합). 이를 내보내지 않는 셸에는 영향 없음</string>
+    <string name="settings_swipe_arrows_title">스와이프로 화살표 전송</string>
+    <string name="settings_swipe_arrows_subtitle">터미널에서 가로 스와이프 시 탭을 전환하는 대신 ← →(길게 누르면 반복)을 전송합니다. 도구 모음의 스와이프 키도 같은 모드를 전환합니다</string>
 
     <!-- #210 i18n sweep -->
     <string name="settings_color_scheme_auto_switch_title">시스템 테마에 따라 자동 전환</string>

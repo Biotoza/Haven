@@ -29250,6 +29250,46 @@
      }
     },
     {
+     "name": "settings_swipe_arrows_title",
+     "en": "Swipe sends arrow keys",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "السحب يرسل الأسهم",
+      "bn": "সোয়াইপ তীর কী পাঠায়",
+      "de": "Wisch sendet Pfeiltasten",
+      "es": "Deslizar envía flechas",
+      "fr": "Glisser envoie les flèches",
+      "hi": "स्वाइप से ऐरो की भेजें",
+      "ja": "スワイプで矢印キー送信",
+      "ko": "스와이프로 화살표 전송",
+      "pt": "Deslizar envia setas",
+      "ru": "Свайп отправляет стрелки",
+      "sr": "Превлачење шаље стрелице",
+      "zh": "滑动发送方向键"
+     }
+    },
+    {
+     "name": "settings_swipe_arrows_subtitle",
+     "en": "Horizontal swipes in the terminal send ← → (hold to repeat) instead of switching tabs. The toolbar\\'s Swipe key toggles the same mode",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "السحب الأفقي في الطرفية يرسل ← → (اضغط مطولاً للتكرار) بدل تبديل التبويبات. زر السحب في شريط الأدوات يبدّل النمط نفسه",
+      "bn": "টার্মিনালে অনুভূমিক সোয়াইপ ট্যাব বদলানোর বদলে ← → (ধরে রাখলে পুনরাবৃত্তি) পাঠায়। টুলবারের সোয়াইপ কী একই মোড টগল করে",
+      "de": "Horizontale Wischs im Terminal senden ← → (Gedrückthalten wiederholt) statt Tabs zu wechseln. Die Wisch-Taste der Leiste schaltet denselben Modus um",
+      "es": "Los deslizamientos horizontales en la terminal envían ← → (mantén para repetir) en lugar de cambiar de pestaña. La tecla Deslizar de la barra activa el mismo modo",
+      "fr": "Les glissements horizontaux dans le terminal envoient ← → (maintenir pour répéter) au lieu de changer d\\'onglet. La touche Glisser de la barre active le même mode",
+      "hi": "टर्मिनल में क्षैतिज स्वाइप टैब बदलने के बजाय ← → (दोहराने के लिए दबाए रखें) भेजता है। टूलबार की स्वाइप कुंजी वही मोड बदलती है",
+      "ja": "ターミナルでの横スワイプで、タブを切り替えず ← →（長押しで連続）を送ります。ツールバーのスワイプキーも同じモードを切り替えます",
+      "ko": "터미널에서 가로 스와이프 시 탭을 전환하는 대신 ← →(길게 누르면 반복)을 전송합니다. 도구 모음의 스와이프 키도 같은 모드를 전환합니다",
+      "pt": "Deslizamentos horizontais no terminal enviam ← → (segure para repetir) em vez de trocar de aba. A tecla Deslizar da barra alterna o mesmo modo",
+      "ru": "Горизонтальные свайпы в терминале отправляют ← → (удерживайте для повтора) вместо переключения вкладок. Клавиша свайпа на панели переключает тот же режим",
+      "sr": "Хоризонтално превлачење у терминалу шаље ← → (држите за понављање) уместо пребацивања картица. Тастер за превлачење на траци укључује исти режим",
+      "zh": "在终端中横向滑动发送 ← →（长按重复）而不是切换标签页。工具栏的滑动键切换同一模式"
+     }
+    },
+    {
      "name": "settings_color_scheme_title",
      "en": "Terminal color scheme",
      "comment": "Terminal section",

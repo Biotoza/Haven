@@ -227,6 +227,7 @@ fun SettingsScreen(
     val gpuUseVenus by viewModel.gpuUseVenus.collectAsState()
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
+    val terminalSwipeArrows by viewModel.terminalSwipeArrows.collectAsState()
     val tapToPositionCursorOnPrompt by viewModel.terminalTapToPositionCursor.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
     val rawKeyboardMode by viewModel.rawKeyboardMode.collectAsState()
@@ -770,6 +771,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_tap_to_position_subtitle),
             checked = tapToPositionCursorOnPrompt,
             onCheckedChange = viewModel::setTerminalTapToPositionCursor,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Terminal,
+            title = stringResource(R.string.settings_swipe_arrows_title),
+            subtitle = stringResource(R.string.settings_swipe_arrows_subtitle),
+            checked = terminalSwipeArrows,
+            onCheckedChange = viewModel::setTerminalSwipeArrows,
         )
         SettingsToggleItem(
             icon = Icons.Filled.ListAlt,

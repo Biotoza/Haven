@@ -70,6 +70,8 @@
     <string name="settings_scrollback_rows_subtitle">%1$,d lines retained per tab — applies to new tabs</string>
     <string name="settings_tap_to_position_title">Tap to move cursor on supported prompts</string>
     <string name="settings_tap_to_position_subtitle">Tap inside a shell prompt to move the cursor to that column. Requires OSC 133 prompt markers (starship, fish 3.6+, recent bash/zsh shell-integration setups). No effect on shells that don\'t emit them</string>
+    <string name="settings_swipe_arrows_title">Swipe sends arrow keys</string>
+    <string name="settings_swipe_arrows_subtitle">Horizontal swipes in the terminal send ← → (hold to repeat) instead of switching tabs. The toolbar\'s Swipe key toggles the same mode</string>
     <string name="settings_color_scheme_title">Terminal color scheme</string>
     <string name="settings_color_scheme_auto_switch_title">Auto-switch with system theme</string>
     <string name="settings_color_scheme_auto_switch_subtitle">Use different terminal color schemes for light and dark mode</string>
