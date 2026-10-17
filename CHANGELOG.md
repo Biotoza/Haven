@@ -5,7 +5,7 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.43
 
 - **Fixed: with "Swipe sends arrow keys" and "Hide app tab bar in terminal" both on, nothing explained the way out (#730).** With a session open, latched swipe-arrows keeps every swipe for arrow keys and the hidden tab bar removes tab switching, so the toolbar's Swipe key — absent from the default layout — is the only exit. Settings → Terminal now shows a note under the switch when that setup exists: it names the exit path, and an *Add Swipe key* button appends the key to your toolbar layout. An explicit button rather than a silent layout rewrite — the layout is user configuration.
 
