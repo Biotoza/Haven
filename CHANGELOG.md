@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **A selection now anchors where you first touched (upstream connectbot/termlib 65dac511).** The selection handle placed on first touch could drift from the point under the finger; the anchor now uses the true coordinates. The upstream reflow regression test is also picked (a99ca6f63; the #533 heap-underflow code fix was already at the fork).
+- **libproot.so: the termux/proot master sync (46 commits).** Guest-side fixes now shipping: `sendto`/`sendmsg`/`sendmmsg` destinations are translated, so guest UDP programs reach proot-mapped hosts; System V shared memory is backed by memfd where `/dev/ashmem` is closed, so SysV-IPC programs run in guests without it; `open_tree`/`move_mount` are translated and the fd-based mount API hidden; an empty path at `AT_FDCWD` resolves against the guest cwd; `fchmodat2` is translated (glibc 2.39+ uses it for `fchmodat(..., AT_SYMLINK_NOFOLLOW)`), and `fake_id0` applies `chmod` modes to the real file, follows POSIX ACLs, keeps `-1` from resetting the chown group, and reports 32-bit IDs from getresuid/getresgid; `/proc/<PID>/exe` now reports a faked hard link's name for a program executed through one (the case the multi-call uutils coreutils hit); descriptors opened `O_NOFOLLOW` on a faked hard link are named after the link; `uid_map` reads pass to the kernel and `SO_PEERCRED` translates across proot instances; and several seccomp event / fork-registration / arm64 mmap-placement robustness fixes.
+
 ## v5.89.43
 
 - **Fixed: with "Swipe sends arrow keys" and "Hide app tab bar in terminal" both on, nothing explained the way out (#730).** With a session open, latched swipe-arrows keeps every swipe for arrow keys and the hidden tab bar removes tab switching, so the toolbar's Swipe key — absent from the default layout — is the only exit. Settings → Terminal now shows a note under the switch when that setup exists: it names the exit path, and an *Add Swipe key* button appends the key to your toolbar layout. An explicit button rather than a silent layout rewrite — the layout is user configuration.
