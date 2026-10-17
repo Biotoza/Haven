@@ -28,6 +28,7 @@ import sh.haven.core.data.preferences.DesktopKeyPlacement
 import sh.haven.core.data.preferences.EditModeControlsPlacement
 import sh.haven.core.data.preferences.NavBlockMode
 import sh.haven.core.data.preferences.ToolbarItem
+import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
@@ -654,6 +655,22 @@ class SettingsViewModel @Inject constructor(
     val terminalSwipeArrows: StateFlow<Boolean> = preferencesRepository.swipeArrowsMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    /**
+     * #730: with swipe-arrows latched and the app tab bar hidden, a session
+     * tab on screen means swipes no longer switch screens either — the
+     * toolbar's Swipe key is the only exit. Hint when that key isn't on the
+     * toolbar at all (it's absent from the default layout).
+     */
+    val swipeArrowsExitHintVisible: StateFlow<Boolean> = combine(
+        preferencesRepository.swipeArrowsMode,
+        preferencesRepository.hideNavBarInTerminal,
+        preferencesRepository.toolbarLayout,
+    ) { swipes, hidden, layout ->
+        swipes && hidden && layout.rows.flatten().none {
+            it is ToolbarItem.BuiltIn && it.key == ToolbarKey.SWIPE_ARROWS
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val allowStandardKeyboard: StateFlow<Boolean> = preferencesRepository.allowStandardKeyboard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -1178,6 +1195,21 @@ class SettingsViewModel @Inject constructor(
     fun setToolbarLayout(layout: ToolbarLayout) {
         viewModelScope.launch {
             preferencesRepository.setToolbarLayout(layout)
+        }
+    }
+
+    /** #730: append the Swipe key to the toolbar's last row, when absent. */
+    fun addSwipeKeyToToolbar() {
+        viewModelScope.launch {
+            val layout = preferencesRepository.toolbarLayout.first()
+            val hasSwipe = layout.rows.flatten().any {
+                it is ToolbarItem.BuiltIn && it.key == ToolbarKey.SWIPE_ARROWS
+            }
+            if (!hasSwipe) {
+                val rows = layout.rows.ifEmpty { listOf(emptyList()) }.toMutableList()
+                rows[rows.size - 1] = rows[rows.size - 1] + ToolbarItem.BuiltIn(ToolbarKey.SWIPE_ARROWS)
+                preferencesRepository.setToolbarLayout(ToolbarLayout(rows))
+            }
         }
     }
 

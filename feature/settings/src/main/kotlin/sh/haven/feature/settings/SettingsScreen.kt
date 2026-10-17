@@ -228,6 +228,7 @@ fun SettingsScreen(
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val terminalSwipeArrows by viewModel.terminalSwipeArrows.collectAsState()
+    val swipeArrowsExitHintVisible by viewModel.swipeArrowsExitHintVisible.collectAsState()
     val tapToPositionCursorOnPrompt by viewModel.terminalTapToPositionCursor.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
     val rawKeyboardMode by viewModel.rawKeyboardMode.collectAsState()
@@ -779,6 +780,16 @@ fun SettingsScreen(
             checked = terminalSwipeArrows,
             onCheckedChange = viewModel::setTerminalSwipeArrows,
         )
+        if (swipeArrowsExitHintVisible) {
+            // #730: with the tab bar hidden, the toolbar's Swipe key is the
+            // only way out of latched swipe-arrows — surface the exit path
+            // right under the switch that causes it, and offer to add the key.
+            SettingsHintItem(
+                text = stringResource(R.string.settings_swipe_arrows_exit_hint),
+                actionLabel = stringResource(R.string.settings_swipe_arrows_add_key),
+                onAction = { viewModel.addSwipeKeyToToolbar() },
+            )
+        }
         SettingsToggleItem(
             icon = Icons.Filled.ListAlt,
             title = stringResource(R.string.settings_show_terminal_tab_bar_title),
@@ -3256,6 +3267,31 @@ private fun SettingsItem(
         modifier = Modifier
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp),
+    )
+}
+
+/** Explanatory row with a single inline action button (#730 swipe exit hint). */
+@Composable
+private fun SettingsHintItem(
+    text: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        leadingContent = {
+            Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        },
+        trailingContent = {
+            TextButton(onClick = onAction) { Text(actionLabel) }
+        },
+        modifier = Modifier.padding(horizontal = 8.dp),
     )
 }
 

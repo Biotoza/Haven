@@ -235,6 +235,8 @@
     <string name="settings_tap_to_position_subtitle">اضغط داخل أمر shell لنقل المؤشر إلى ذلك العمود. يتطلب علامات OSC 133 (starship وfish 3.6+ وإعدادات bash/zsh حديثة). لا يؤثر على الأصداف التي لا تُصدرها</string>
     <string name="settings_swipe_arrows_title">السحب يرسل الأسهم</string>
     <string name="settings_swipe_arrows_subtitle">السحب الأفقي في الطرفية يرسل ← → (اضغط مطولاً للتكرار) بدل تبديل التبويبات. زر السحب في شريط الأدوات يبدّل النمط نفسه</string>
+    <string name="settings_swipe_arrows_exit_hint">عند إخفاء شريط تبويبات التطبيق وتوفر جلسة مفتوحة، تستمر التمريرات في إرسال الأسهم حتى يُضغط زر السحب في شريط الأدوات. أضف زر السحب إلى الشريط ليكون متاحًا دائمًا</string>
+    <string name="settings_swipe_arrows_add_key">إضافة زر السحب</string>
 
     <string name="settings_bandwidth_suggest_subtitle">يكتشف معدل نقل أقل من ~1 ميجابت/ثانية بعد بضع ثوانٍ ويعرض إعادة الاتصال بـ 256 لونًا بنقرة واحدة. إيقاف التشغيل يلغي الإشعار.</string>
     <string name="settings_bandwidth_suggest_title">اقتراح 256 لونًا على اتصالات VNC البطيئة</string>

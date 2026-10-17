@@ -235,6 +235,8 @@
     <string name="settings_tap_to_position_subtitle">Toca dentro de un aviso de shell para mover el cursor a esa columna. Requiere marcadores OSC 133 (starship, fish 3.6+, configuraciones recientes de bash/zsh). Sin efecto en shells que no los emiten</string>
     <string name="settings_swipe_arrows_title">Deslizar envía flechas</string>
     <string name="settings_swipe_arrows_subtitle">Los deslizamientos horizontales en la terminal envían ← → (mantén para repetir) en lugar de cambiar de pestaña. La tecla Deslizar de la barra activa el mismo modo</string>
+    <string name="settings_swipe_arrows_exit_hint">Con la barra de pestañas de la aplicación oculta y una sesión abierta, los deslizamientos siguen enviando flechas hasta tocar la tecla Deslizar de la barra. Añade la tecla Deslizar a la barra para tenerla siempre a mano</string>
+    <string name="settings_swipe_arrows_add_key">Añadir tecla Deslizar</string>
 
     <string name="settings_bandwidth_suggest_subtitle">Detecta un rendimiento inferior a ~1 Mbps tras unos segundos y ofrece reconectar con 256 colores con un toque. Desactivado silencia el aviso.</string>
     <string name="settings_bandwidth_suggest_title">Sugerir 256 colores en conexiones VNC lentas</string>

@@ -29290,6 +29290,46 @@
      }
     },
     {
+     "name": "settings_swipe_arrows_exit_hint",
+     "en": "With the app tab bar hidden and a session open, swipes keep sending arrows until the toolbar\\'s Swipe key is tapped. Add the Swipe key to the toolbar so it\\'s always there",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "عند إخفاء شريط تبويبات التطبيق وتوفر جلسة مفتوحة، تستمر التمريرات في إرسال الأسهم حتى يُضغط زر السحب في شريط الأدوات. أضف زر السحب إلى الشريط ليكون متاحًا دائمًا",
+      "bn": "অ্যাপের ট্যাব বার লুকানো এবং সেশন খোলা থাকলে, টুলবারের সোয়াইপ কী না চাপা পর্যন্ত সোয়াইপ তীর চিহ্নই পাঠায়। কীটি সবসময় পাওয়ার জন্য টুলবারে সোয়াইপ কীটি যোগ করুন",
+      "de": "Ist die App-Tab-Leiste ausgeblendet und eine Sitzung offen, senden Wischs weiter Pfeiltasten, bis die Wisch-Taste der Leiste angetippt wird. Füge die Wisch-Taste der Leiste hinzu, damit sie immer da ist",
+      "es": "Con la barra de pestañas de la aplicación oculta y una sesión abierta, los deslizamientos siguen enviando flechas hasta tocar la tecla Deslizar de la barra. Añade la tecla Deslizar a la barra para tenerla siempre a mano",
+      "fr": "Avec la barre d\\'onglets de l\\'application masquée et une session ouverte, les glissements continuent d\\'envoyer des flèches jusqu\\'à ce que la touche Glisser de la barre soit tapée. Ajoutez la touche Glisser à la barre pour l\\'avoir toujours à portée",
+      "hi": "ऐप का टैब बार छिपा होने और सेशन खुले होने पर, टूलबार की स्वाइप कुंजी दबाने तक स्वाइप तीर ही भेजते रहते हैं। कुंजी हमेशा उपलब्ध रहे, इसके लिए टूलबार में स्वाइप कुंजी जोड़ें",
+      "ja": "アプリのタブバーを非表示にしてセッションを開いている間は、ツールバーのスワイプキーを押すまでスワイプが矢印キーを送り続けます。いつでも使えるようスワイプキーをツールバーに追加してください",
+      "ko": "앱 탭 표시줄이 숨겨져 있고 세션이 열려 있으면, 도구 모음의 스와이프 키를 누를 때까지 스와이프가 계속 화살표를 보냅니다. 언제든 쓸 수 있도록 스와이프 키를 도구 모음에 추가하세요",
+      "pt": "Com a barra de separadores da aplicação oculta e uma sessão aberta, os deslizes continuam a enviar setas até tocar na tecla Deslizar da barra. Adicione a tecla Deslizar à barra para tê-la sempre disponível",
+      "ru": "Если панель вкладок приложения скрыта и сеанс открыт, свайпы продолжают отправлять стрелки, пока не нажата клавиша свайпа на панели. Добавьте клавишу свайпа на панель, чтобы она всегда была под рукой",
+      "sr": "Када је трака језичака апликације скривена и сесија отворена, превлачења настављају да шаљу стрелице док се не додирне тастер за превлачење на траци. Додајте тастер за превлачење у траку како би увек био при руци",
+      "zh": "应用标签栏隐藏且会话打开时，滑动会持续发送方向键，直到点按工具栏的滑动键。将该键添加到工具栏以便随时可用"
+     }
+    },
+    {
+     "name": "settings_swipe_arrows_add_key",
+     "en": "Add Swipe key",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "إضافة زر السحب",
+      "bn": "সোয়াইপ কী যোগ করুন",
+      "de": "Wisch-Taste hinzufügen",
+      "es": "Añadir tecla Deslizar",
+      "fr": "Ajouter la touche Glisser",
+      "hi": "स्वाइप कुंजी जोड़ें",
+      "ja": "スワイプキーを追加",
+      "ko": "스와이프 키 추가",
+      "pt": "Adicionar tecla Deslizar",
+      "ru": "Добавить клавишу свайпа",
+      "sr": "Додај тастер за превлачење",
+      "zh": "添加滑动键"
+     }
+    },
+    {
      "name": "settings_color_scheme_title",
      "en": "Terminal color scheme",
      "comment": "Terminal section",

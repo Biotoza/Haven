@@ -235,6 +235,8 @@
     <string name="settings_tap_to_position_subtitle">Toucher dans une invite shell pour déplacer le curseur à cette colonne. Nécessite les marqueurs OSC 133 (starship, fish 3.6+, configurations récentes bash/zsh avec intégration shell). Sans effet sur les shells qui ne les émettent pas</string>
     <string name="settings_swipe_arrows_title">Glisser envoie les flèches</string>
     <string name="settings_swipe_arrows_subtitle">Les glissements horizontaux dans le terminal envoient ← → (maintenir pour répéter) au lieu de changer d\'onglet. La touche Glisser de la barre active le même mode</string>
+    <string name="settings_swipe_arrows_exit_hint">Avec la barre d\'onglets de l\'application masquée et une session ouverte, les glissements continuent d\'envoyer des flèches jusqu\'à ce que la touche Glisser de la barre soit tapée. Ajoutez la touche Glisser à la barre pour l\'avoir toujours à portée</string>
+    <string name="settings_swipe_arrows_add_key">Ajouter la touche Glisser</string>
 
     <string name="settings_bandwidth_suggest_subtitle">Détecte un débit inférieur à ~1 Mbit/s après quelques secondes et propose une reconnexion en 256 couleurs en un geste. Désactivé masque l\'invite.</string>
     <string name="settings_bandwidth_suggest_title">Suggérer 256 couleurs sur les liens VNC lents</string>

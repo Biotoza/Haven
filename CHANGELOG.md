@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **Fixed: with "Swipe sends arrow keys" and "Hide app tab bar in terminal" both on, nothing explained the way out (#730).** With a session open, latched swipe-arrows keeps every swipe for arrow keys and the hidden tab bar removes tab switching, so the toolbar's Swipe key — absent from the default layout — is the only exit. Settings → Terminal now shows a note under the switch when that setup exists: it names the exit path, and an *Add Swipe key* button appends the key to your toolbar layout. An explicit button rather than a silent layout rewrite — the layout is user configuration.
+
 ## v5.89.42
 
 - **AnyConnect: SMS codes, and staying connected like Cisco's client (#727).** When the gateway asks for something the tunnel doesn't store — a code sent by SMS or e-mail, or the password if you left it empty — Haven shows a sign-in dialog over whatever screen is open, plus a heads-up notification (tap it after reading the SMS) so a prompt raised in the background isn't missed. With the new *Stay connected* option (on by default) the tunnel outlives your last SSH session, keeps Haven's foreground service and notification up ("VPN: <name>"), and is reused by the next connection without signing in. Turned off, the tunnel closes but the gateway session stays resumable: reconnecting within the gateway's idle timeout needs no new code, and Haven never starts a sign-in (or spends an SMS) while the gateway is unreachable. On a network change or return to the foreground the tunnel probes the gateway and reconnects within seconds instead of waiting 30–90 s for dead-peer detection. The Tunnels list shows *Connected* and a *Sign out* button for live AnyConnect tunnels; editing the account or deleting the tunnel signs its session out. Sessions are kept in memory only, so the gateway's own maximum session time and an app restart still require signing in again.

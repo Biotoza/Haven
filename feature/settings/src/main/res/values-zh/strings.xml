@@ -252,6 +252,8 @@
     <string name="settings_tap_to_position_subtitle">点击 shell 提示符内将光标移到该列。需要 OSC 133 提示符标记（starship、fish 3.6+、近期的 bash/zsh 集成设置）。不会影响不发出标记的 shell</string>
     <string name="settings_swipe_arrows_title">滑动发送方向键</string>
     <string name="settings_swipe_arrows_subtitle">在终端中横向滑动发送 ← →（长按重复）而不是切换标签页。工具栏的滑动键切换同一模式</string>
+    <string name="settings_swipe_arrows_exit_hint">应用标签栏隐藏且会话打开时，滑动会持续发送方向键，直到点按工具栏的滑动键。将该键添加到工具栏以便随时可用</string>
+    <string name="settings_swipe_arrows_add_key">添加滑动键</string>
 
     <!-- i18n sweep #210 -->
     <string name="settings_color_scheme_auto_switch_title">随系统主题自动切换</string>

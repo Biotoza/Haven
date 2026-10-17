@@ -253,6 +253,8 @@
     <string name="settings_tap_to_position_subtitle">셸 프롬프트 내부를 탭하여 해당 열로 커서를 이동합니다. OSC 133 프롬프트 마커가 필요합니다(starship, fish 3.6+, 최신 bash/zsh 셸 통합). 이를 내보내지 않는 셸에는 영향 없음</string>
     <string name="settings_swipe_arrows_title">스와이프로 화살표 전송</string>
     <string name="settings_swipe_arrows_subtitle">터미널에서 가로 스와이프 시 탭을 전환하는 대신 ← →(길게 누르면 반복)을 전송합니다. 도구 모음의 스와이프 키도 같은 모드를 전환합니다</string>
+    <string name="settings_swipe_arrows_exit_hint">앱 탭 표시줄이 숨겨져 있고 세션이 열려 있으면, 도구 모음의 스와이프 키를 누를 때까지 스와이프가 계속 화살표를 보냅니다. 언제든 쓸 수 있도록 스와이프 키를 도구 모음에 추가하세요</string>
+    <string name="settings_swipe_arrows_add_key">스와이프 키 추가</string>
 
     <!-- #210 i18n sweep -->
     <string name="settings_color_scheme_auto_switch_title">시스템 테마에 따라 자동 전환</string>
