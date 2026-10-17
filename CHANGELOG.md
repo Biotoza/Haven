@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **Connection launcher shortcuts (#699).** A long-press on the launcher icon offers "Connect <name>" entries for the most-recently-used saved connections (five slots, alternating with the existing workspace shortcuts so neither category pushes the other out). A tap dials the profile straight away — the same connect an MCP `connect_profile` uses — landing on the Connections tab where the session list shows it come up. OpenAI and email profiles are skipped.
+
 ## v5.89.40
 
 - **Toolbar keys can be scaled up (#641).** The toolbar config dialog gains a key-scale slider (100%-200% in 5% steps) next to the minimum-key-width one. The factor multiplies the density the toolbar's body is resolved against, so key heights, icons, spacing and glyph text grow together instead of only stretching keys wider; the minimum-key-width setting keeps working in the scaled unit. Applies to the terminal toolbar and to the wayland desktop toolbar, which follows the same setting.
