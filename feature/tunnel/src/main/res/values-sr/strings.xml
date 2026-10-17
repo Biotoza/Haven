@@ -58,4 +58,10 @@
     <string name="tunnel_anyconnect_secondary_help">Фиксни одговор на други захтев, нпр. push за Duo. Користи се само ако OTP тајна није постављена.</string>
     <string name="tunnel_anyconnect_cert_label">Сертификат сервера (опционо)</string>
     <string name="tunnel_anyconnect_cert_help">Само за самопотписане гејтвеје: вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.</string>
+    <string name="tunnel_status_connected">Повезано</string>
+    <string name="tunnel_sign_out">Одјави се</string>
+    <string name="tunnel_anyconnect_password_help">Оставите празно да бисте били питани при пријави.</string>
+    <string name="tunnel_anyconnect_prompt_help">Кодови послати SMS-ом или е-поштом: оставите OTP тајну и одговор за други фактор празне, и Haven ће тражити код при пријави.</string>
+    <string name="tunnel_anyconnect_stay_connected_label">Остани повезан</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Држи VPN укљученим после затварања последње везе, као Cisco апликација. Искључено: веза се прекида, а поновно повезивање убрзо затим наставља сесију без новог кода.</string>
 </resources>

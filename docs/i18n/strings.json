@@ -46686,6 +46686,126 @@
       "sr": "Само за самопотписане гејтвеје: вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.",
       "zh": "仅用于自签名网关：pin-sha256:… 值。如果证书不受信任，连接错误会显示应粘贴到此处的值。"
      }
+    },
+    {
+     "name": "tunnel_status_connected",
+     "en": "Connected",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "متصل",
+      "bn": "সংযুক্ত",
+      "de": "Verbunden",
+      "es": "Conectado",
+      "fr": "Connecté",
+      "hi": "कनेक्टेड",
+      "ja": "接続中",
+      "ko": "연결됨",
+      "pt": "Conectado",
+      "ru": "Подключено",
+      "sr": "Повезано",
+      "zh": "已连接"
+     }
+    },
+    {
+     "name": "tunnel_sign_out",
+     "en": "Sign out",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "تسجيل الخروج",
+      "bn": "সাইন আউট",
+      "de": "Abmelden",
+      "es": "Cerrar sesión",
+      "fr": "Se déconnecter",
+      "hi": "साइन आउट",
+      "ja": "サインアウト",
+      "ko": "로그아웃",
+      "pt": "Sair",
+      "ru": "Выйти",
+      "sr": "Одјави се",
+      "zh": "退出登录"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_password_help",
+     "en": "Leave empty to be asked when signing in.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "اتركه فارغًا ليُطلب عند تسجيل الدخول.",
+      "bn": "সাইন ইনের সময় জিজ্ঞেস করার জন্য খালি রাখুন।",
+      "de": "Leer lassen, um bei der Anmeldung gefragt zu werden.",
+      "es": "Déjalo vacío para que se te pida al iniciar sesión.",
+      "fr": "Laissez vide pour qu\\'il soit demandé à la connexion.",
+      "hi": "साइन इन के समय पूछे जाने के लिए खाली छोड़ें।",
+      "ja": "空欄にするとサインイン時に入力を求めます。",
+      "ko": "비워 두면 로그인할 때 묻습니다.",
+      "pt": "Deixe vazio para ser perguntado ao entrar.",
+      "ru": "Оставьте пустым, чтобы ввести при входе.",
+      "sr": "Оставите празно да бисте били питани при пријави.",
+      "zh": "留空则在登录时询问。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_prompt_help",
+     "en": "Codes sent by SMS or e-mail: leave the OTP secret and second-factor answer empty, and Haven asks for the code when you sign in.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "الرموز المرسلة عبر الرسائل القصيرة أو البريد: اترك سر OTP وإجابة العامل الثاني فارغين، وسيطلب Haven الرمز عند تسجيل الدخول.",
+      "bn": "SMS বা ইমেলে পাঠানো কোড: OTP সিক্রেট ও দ্বিতীয় ফ্যাক্টরের উত্তর খালি রাখুন, সাইন ইনের সময় Haven কোড জিজ্ঞেস করবে।",
+      "de": "Per SMS oder E-Mail gesendete Codes: OTP-Geheimnis und Antwort für den zweiten Faktor leer lassen, Haven fragt bei der Anmeldung nach dem Code.",
+      "es": "Códigos enviados por SMS o correo: deja vacíos el secreto OTP y la respuesta del segundo factor, y Haven te pedirá el código al iniciar sesión.",
+      "fr": "Codes envoyés par SMS ou e-mail : laissez vides le secret OTP et la réponse du second facteur, Haven demandera le code à la connexion.",
+      "hi": "SMS या ईमेल से भेजे गए कोड: OTP सीक्रेट और दूसरे फ़ैक्टर का उत्तर खाली छोड़ें, साइन इन के समय Haven कोड पूछेगा।",
+      "ja": "SMS やメールで届くコード: OTP シークレットと二要素の応答を空欄にすると、サインイン時に Haven がコードを尋ねます。",
+      "ko": "SMS나 이메일로 받는 코드: OTP 비밀 키와 2단계 응답을 비워 두면 로그인할 때 Haven이 코드를 묻습니다.",
+      "pt": "Códigos enviados por SMS ou e-mail: deixe vazios o segredo OTP e a resposta do segundo fator, e o Haven pede o código ao entrar.",
+      "ru": "Коды по SMS или e-mail: оставьте секрет OTP и ответ второго фактора пустыми, и Haven запросит код при входе.",
+      "sr": "Кодови послати SMS-ом или е-поштом: оставите OTP тајну и одговор за други фактор празне, и Haven ће тражити код при пријави.",
+      "zh": "通过短信或电子邮件发送的验证码：将 OTP 密钥和二次验证应答留空，Haven 会在登录时询问验证码。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_stay_connected_label",
+     "en": "Stay connected",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "البقاء متصلاً",
+      "bn": "সংযুক্ত থাকুন",
+      "de": "Verbunden bleiben",
+      "es": "Mantener conectado",
+      "fr": "Rester connecté",
+      "hi": "कनेक्टेड रहें",
+      "ja": "接続を維持",
+      "ko": "연결 유지",
+      "pt": "Manter conectado",
+      "ru": "Оставаться подключённым",
+      "sr": "Остани повезан",
+      "zh": "保持连接"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_stay_connected_help",
+     "en": "Keep the VPN up after your last connection closes, like Cisco\\'s app. Off: it disconnects, and reconnecting soon after resumes the session without a new code.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إبقاء الـ VPN متصلاً بعد إغلاق آخر اتصال، مثل تطبيق Cisco. عند الإيقاف: يُقطع الاتصال، وإعادة الاتصال بعد وقت قصير تستأنف الجلسة دون رمز جديد.",
+      "bn": "Cisco অ্যাপের মতো শেষ সংযোগ বন্ধ হওয়ার পরও VPN চালু রাখুন। বন্ধ থাকলে: VPN বিচ্ছিন্ন হয়, এবং শীঘ্রই আবার সংযোগ করলে নতুন কোড ছাড়াই সেশন আবার শুরু হয়।",
+      "de": "VPN nach dem Schließen der letzten Verbindung aktiv halten, wie die Cisco-App. Aus: Es wird getrennt, und eine baldige Neuverbindung setzt die Sitzung ohne neuen Code fort.",
+      "es": "Mantén la VPN activa tras cerrar tu última conexión, como la app de Cisco. Desactivado: se desconecta, y si vuelves a conectar pronto la sesión se reanuda sin un código nuevo.",
+      "fr": "Garder le VPN actif après la fermeture de votre dernière connexion, comme l\\'app Cisco. Désactivé : il se déconnecte, et une reconnexion peu après reprend la session sans nouveau code.",
+      "hi": "Cisco ऐप की तरह, आख़िरी कनेक्शन बंद होने के बाद भी VPN चालू रखें। बंद होने पर: VPN डिस्कनेक्ट हो जाता है, और जल्द दोबारा कनेक्ट करने पर सत्र बिना नए कोड के फिर शुरू होता है।",
+      "ja": "Cisco アプリと同様に、最後の接続を閉じた後も VPN を維持します。オフの場合は切断されますが、すぐに再接続すれば新しいコードなしでセッションを再開できます。",
+      "ko": "Cisco 앱처럼 마지막 연결을 닫은 뒤에도 VPN을 유지합니다. 끄면 연결이 끊기지만, 곧 다시 연결하면 새 코드 없이 세션이 재개됩니다.",
+      "pt": "Mantém a VPN ativa após fechar sua última conexão, como o app da Cisco. Desligado: ela desconecta, e reconectar logo depois retoma a sessão sem um novo código.",
+      "ru": "Не отключать VPN после закрытия последнего подключения, как приложение Cisco. Если выключено: VPN отключится, а повторное подключение вскоре после этого продолжит сессию без нового кода.",
+      "sr": "Држи VPN укљученим после затварања последње везе, као Cisco апликација. Искључено: веза се прекида, а поновно повезивање убрзо затим наставља сесију без новог кода.",
+      "zh": "像 Cisco 应用一样，在最后一个连接关闭后仍保持 VPN 连接。关闭时：VPN 会断开，但不久后重新连接可恢复会话而无需新验证码。"
+     }
     }
    ]
   },

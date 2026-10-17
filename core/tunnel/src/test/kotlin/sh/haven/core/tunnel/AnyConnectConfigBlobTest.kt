@@ -67,6 +67,14 @@ class AnyConnectConfigBlobTest {
     }
 
     @Test
+    fun `stayConnected defaults to true, round-trips false, and stays out of the native JSON`() {
+        assertEquals(true, AnyConnectConfigBlob.parse("""{"server":"s","username":"u"}""".toByteArray())!!.stayConnected)
+        val off = AnyConnectConfigBlob("s", "u", "p", stayConnected = false)
+        assertEquals(false, AnyConnectConfigBlob.parse(off.encode())!!.stayConnected)
+        assertEquals(false, JSONObject(off.toNativeConfig()).has("stayConnected"))
+    }
+
+    @Test
     fun `password with whitespace is preserved verbatim`() {
         // Unlike the other fields, passwords are never trimmed.
         val parsed = AnyConnectConfigBlob.parse(AnyConnectConfigBlob("s", "u", " pw ").encode())

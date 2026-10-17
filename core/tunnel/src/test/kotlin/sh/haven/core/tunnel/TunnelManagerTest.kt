@@ -177,7 +177,7 @@ class TunnelManagerTest {
         // start, so a config saved without a usable setup key fails fast
         // with an actionable message rather than a 60 s native failure.
         // The guard fires before Context use, so a mock Context is enough.
-        val factory = DefaultTunnelFactory(mockk(), OkHttpClient())
+        val factory = DefaultTunnelFactory(mockk(), OkHttpClient(), TunnelAuthBroker(mockk()))
         val ex = assertThrows(IOException::class.java) {
             factory.create(
                 TunnelConfig(
@@ -212,7 +212,7 @@ class TunnelManagerTest {
     @Test
     fun defaultFactoryRejectsAnyConnectConfigWithoutServer() {
         // Parse guard runs before the native start (and before Context use).
-        val factory = DefaultTunnelFactory(mockk(), OkHttpClient())
+        val factory = DefaultTunnelFactory(mockk(), OkHttpClient(), TunnelAuthBroker(mockk()))
         val ex = assertThrows(IOException::class.java) {
             factory.create(
                 TunnelConfig(
@@ -224,6 +224,56 @@ class TunnelManagerTest {
             )
         }
         assertTrue(ex.message!!.contains("server or username"))
+    }
+
+    @Test
+    fun lingeringTunnelSurvivesLastReleaseAndIsReused() = runTest {
+        // "Stay connected": the AnyConnect-style tunnel outlives its last
+        // connection, and the next acquire gets the same (still signed-in) one.
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-A") } returns wgConfig("cfg-A")
+        val factory = CountingFactory(linger = true)
+        val manager = TunnelManager(repo, factory)
+
+        val first = manager.acquire("cfg-A", "p1") as FakeTunnel
+        manager.release("p1")
+        assertFalse("lingering tunnel must stay open", first.closed)
+        assertEquals(setOf("cfg-A"), manager.live.value.keys)
+        assertEquals(0, manager.dependentCount("cfg-A"))
+
+        assertSame(first, manager.acquire("cfg-A", "p2"))
+        assertEquals(1, factory.createCount)
+    }
+
+    @Test
+    fun disconnectClosesEvenWithDependentsAndPublishes() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-A") } returns wgConfig("cfg-A")
+        val factory = CountingFactory(linger = true)
+        val manager = TunnelManager(repo, factory)
+
+        val t = manager.acquire("cfg-A", "p1") as FakeTunnel
+        assertTrue(manager.disconnect("cfg-A"))
+        assertTrue(t.closed)
+        assertTrue(manager.live.value.isEmpty())
+        assertEquals(0, manager.dependentCount("cfg-A"))
+        assertFalse("nothing left to disconnect", manager.disconnect("cfg-A"))
+
+        // The profile's next acquire builds a fresh tunnel.
+        manager.acquire("cfg-A", "p1")
+        assertEquals(2, factory.createCount)
+    }
+
+    @Test
+    fun nonLingeringTunnelStillClosesOnLastRelease() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-A") } returns wgConfig("cfg-A")
+        val manager = TunnelManager(repo, CountingFactory(linger = false))
+        val t = manager.acquire("cfg-A", "p1") as FakeTunnel
+        assertEquals(setOf("cfg-A"), manager.live.value.keys)
+        manager.release("p1")
+        assertTrue(t.closed)
+        assertTrue(manager.live.value.isEmpty())
     }
 
     private fun wgConfig(id: String) = TunnelConfig(
@@ -240,7 +290,7 @@ class TunnelManagerTest {
         configText = """{"setupKey":"NBSETUPKEY-123"}""".toByteArray(),
     )
 
-    private class FakeTunnel : Tunnel {
+    private class FakeTunnel(override val lingerAfterRelease: Boolean = false) : Tunnel {
         var closed = false
         override fun dial(host: String, port: Int, timeoutMs: Int): TunneledConnection =
             throw UnsupportedOperationException("fake")
@@ -248,13 +298,13 @@ class TunnelManagerTest {
         override fun close() { closed = true }
     }
 
-    private class CountingFactory : TunnelFactory {
+    private class CountingFactory(private val linger: Boolean = false) : TunnelFactory {
         var createCount = 0
         var lastConfig: TunnelConfig? = null
         override fun create(config: TunnelConfig): Tunnel {
             createCount++
             lastConfig = config
-            return FakeTunnel()
+            return FakeTunnel(lingerAfterRelease = linger)
         }
     }
 }

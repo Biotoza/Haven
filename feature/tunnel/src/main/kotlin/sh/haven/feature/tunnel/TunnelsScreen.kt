@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -37,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -94,6 +96,7 @@ fun TunnelsScreen(
     initialAddType: TunnelConfigType? = null,
 ) {
     val tunnels by viewModel.tunnels.collectAsState()
+    val connectedIds by viewModel.connectedIds.collectAsState()
     val error by viewModel.error.collectAsState()
     val message by viewModel.message.collectAsState()
 
@@ -155,8 +158,19 @@ fun TunnelsScreen(
                     ),
                 ) {
                     items(tunnels, key = { it.id }) { tunnel ->
+                        val connected = tunnel.id in connectedIds
                         TunnelRow(
                             tunnel = tunnel,
+                            connected = connected,
+                            // AnyConnect sessions persist (Stay connected, or
+                            // resumable on the gateway); give the user a way
+                            // to end one. Other backends close with their
+                            // last connection, so they need no button.
+                            onSignOut = if (connected && tunnel.typeEnum == TunnelConfigType.ANYCONNECT) {
+                                { viewModel.disconnect(tunnel.id, signOut = true) }
+                            } else {
+                                null
+                            },
                             // Legacy standalone Cloudflare rows (pre-#154) have
                             // no editor for their payload — delete/recreate is
                             // the only path for those; the chip row can't even
@@ -276,6 +290,8 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 @Composable
 private fun TunnelRow(
     tunnel: TunnelConfig,
+    connected: Boolean = false,
+    onSignOut: (() -> Unit)? = null,
     onEdit: (() -> Unit)?,
     onDelete: () -> Unit,
 ) {
@@ -302,6 +318,19 @@ private fun TunnelRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
+                if (connected) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            stringResource(R.string.tunnel_status_connected),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
                 if (cfExpired) {
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
@@ -331,6 +360,14 @@ private fun TunnelRow(
         },
         trailingContent = {
             Row {
+                if (onSignOut != null) {
+                    IconButton(onClick = onSignOut) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = stringResource(R.string.tunnel_sign_out),
+                        )
+                    }
+                }
                 if (onEdit != null) {
                     IconButton(onClick = onEdit) {
                         Icon(
@@ -718,6 +755,7 @@ private fun AnyConnectFields(
             value = form.password,
             onValueChange = { onChange(form.copy(password = it)) },
             label = { Text(stringResource(R.string.tunnel_anyconnect_password_label)) },
+            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_password_help)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -751,6 +789,32 @@ private fun AnyConnectFields(
             enabled = form.otpSecret.isBlank(),
             modifier = Modifier.fillMaxWidth(),
         )
+        Text(
+            stringResource(R.string.tunnel_anyconnect_prompt_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.tunnel_anyconnect_stay_connected_label),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    stringResource(R.string.tunnel_anyconnect_stay_connected_help),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = form.stayConnected,
+                onCheckedChange = { onChange(form.copy(stayConnected = it)) },
+            )
+        }
         OutlinedTextField(
             value = form.serverCert,
             onValueChange = { onChange(form.copy(serverCert = it)) },

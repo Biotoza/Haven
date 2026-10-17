@@ -644,6 +644,10 @@ class MainActivity : AppCompatActivity() {
                     // BiometricPrompt; the result resumes the
                     // suspending fetch caller.
                     sh.haven.app.agent.BiometricGateHost()
+                    // VPN sign-in questions (AnyConnect SMS code / unstored
+                    // password) — published by TunnelAuthBroker, possibly
+                    // from a background re-login, answered here.
+                    TunnelAuthHost()
                 }
             }
         }

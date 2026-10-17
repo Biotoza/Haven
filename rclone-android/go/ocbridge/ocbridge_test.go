@@ -150,6 +150,8 @@ type fakeGateway struct {
 	logouts     atomic.Int32
 	authRounds  []string
 	rejectNext  atomic.Bool // force the next CONNECT to 401 (expired cookie)
+	revoked     sync.Map    // cookies ended by a logout request
+	silenced    atomic.Value // net.Conn the gateway stops answering on (dead NAT)
 	wmu         sync.Mutex  // guards cur and serialises frame writes
 	cur         net.Conn    // tunnel connection packets are forwarded to
 	issued      atomic.Int32
@@ -196,6 +198,9 @@ func (g *fakeGateway) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	case r.URL.Path == "/+webvpn+/webvpn_logout.html":
 		g.logouts.Add(1)
+		if c, err := r.Cookie("webvpn"); err == nil {
+			g.revoked.Store(c.Value, true)
+		}
 		return
 	}
 	body, _ := io.ReadAll(r.Body)
@@ -271,7 +276,8 @@ func (g *fakeGateway) handleConnect(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if g.rejectNext.Swap(false) || !strings.HasPrefix(cookie, "COOKIE") {
+	_, revoked := g.revoked.Load(cookie)
+	if g.rejectNext.Swap(false) || revoked || !strings.HasPrefix(cookie, "COOKIE") {
 		fmt.Fprint(conn, "HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\n\r\n")
 		conn.Close()
 		return
@@ -303,6 +309,9 @@ func (g *fakeGateway) handleConnect(w http.ResponseWriter, r *http.Request) {
 		p := make([]byte, n)
 		if _, err := io.ReadFull(br, p); err != nil {
 			break
+		}
+		if g.silenced.Load() == conn {
+			continue // a dead path: nothing gets through, nothing comes back
 		}
 		switch hdr[6] {
 		case pktData:
@@ -338,11 +347,28 @@ func (g *fakeGateway) pumpDown() {
 		}
 		frameHeader(buf, pktData, sizes[0])
 		g.wmu.Lock()
-		if g.cur != nil {
+		if g.cur != nil && g.silenced.Load() != g.cur {
 			g.cur.Write(buf[:hdrLen+sizes[0]])
 		}
 		g.wmu.Unlock()
 	}
+}
+
+// silenceCurrent makes the live tunnel connection a black hole without
+// closing it: what a phone sees after leaving Wi-Fi with a socket that
+// will never error on its own.
+func (g *fakeGateway) silenceCurrent() {
+	g.wmu.Lock()
+	defer g.wmu.Unlock()
+	if g.cur != nil {
+		g.silenced.Store(g.cur)
+	}
+}
+
+func (g *fakeGateway) rounds() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return len(g.authRounds)
 }
 
 func (g *fakeGateway) dropTunnels() {
@@ -422,8 +448,9 @@ func TestEndToEnd_AuthTunnelEchoAndLogout(t *testing.T) {
 		t.Fatalf("socks: %d %v", port, err)
 	}
 
-	h.Close()
-	h.Close() // idempotent
+	h.Logout()
+	h.Logout() // idempotent
+	h.Close()  // and harmless after Logout
 	if _, err := h.Dial(gwAddr, 7, 1000); err == nil {
 		t.Error("dial after close should fail")
 	}
@@ -432,7 +459,7 @@ func TestEndToEnd_AuthTunnelEchoAndLogout(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	if g.logouts.Load() == 0 {
-		t.Error("expected a logout request on close")
+		t.Error("expected a logout request on Logout")
 	}
 }
 
@@ -496,6 +523,214 @@ func TestStartTunnelRejectsBadConfig(t *testing.T) {
 		if _, err := StartTunnel(s); err == nil {
 			t.Errorf("%q: expected error", s)
 		}
+	}
+}
+
+// --- session resume, prompts, revive -----------------------------------------
+
+func TestCloseKeepsSessionResumable(t *testing.T) {
+	g := newFakeGateway(t)
+	h, err := StartTunnel(g.config(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := g.rounds()
+	h.Close()
+	if g.logouts.Load() != 0 {
+		t.Fatal("Close must not log out")
+	}
+	if !HasResumableSession(g.config(nil)) {
+		t.Fatal("expected a resumable session after Close")
+	}
+
+	h2, err := StartTunnel(g.config(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h2.Close()
+	if g.rounds() != before {
+		t.Fatalf("resume must not sign in again (auth rounds %d -> %d)", before, g.rounds())
+	}
+	c, err := h2.Dial(gwAddr, 7, 10_000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	echo(t, c, "resumed without a new code")
+	c.Close()
+}
+
+func TestResumeFallsBackToSignInWhenExpired(t *testing.T) {
+	g := newFakeGateway(t)
+	h, err := StartTunnel(g.config(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Close()
+	issued := g.issued.Load()
+	g.rejectNext.Store(true) // gateway idle timeout passed
+	h2, err := StartTunnel(g.config(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h2.Close()
+	if g.issued.Load() != issued+1 {
+		t.Fatal("expected a fresh sign-in after the cached session was rejected")
+	}
+}
+
+func TestResumeWhileOfflineDoesNotSignIn(t *testing.T) {
+	g := newFakeGateway(t)
+	cfg := g.config(nil)
+	h, err := StartTunnel(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Close()
+	g.srv.Close() // gateway unreachable
+	before := g.rounds()
+	asked := false
+	_, err = StartTunnelWithPrompter(cfg, promptFunc(func(_, _, _ string, _ bool) string {
+		asked = true
+		return ""
+	}))
+	if err == nil || !strings.Contains(err.Error(), "open tunnel") {
+		t.Fatalf("want an open-tunnel error, got %v", err)
+	}
+	if asked || g.rounds() != before {
+		t.Fatal("must not start a sign-in (and burn an SMS code) while the gateway is unreachable")
+	}
+	if !HasResumableSession(cfg) {
+		t.Fatal("an unreachable gateway must not discard the resumable session")
+	}
+}
+
+func TestLogoutAndEndSessionForgetTheSession(t *testing.T) {
+	g := newFakeGateway(t)
+	cfg := g.config(nil)
+	h, err := StartTunnel(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Logout()
+	if HasResumableSession(cfg) {
+		t.Fatal("Logout must forget the session")
+	}
+
+	h, err = StartTunnel(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Close()
+	logouts := g.logouts.Load()
+	EndSession(cfg) // e.g. "Sign out" on an idle tunnel
+	if HasResumableSession(cfg) || g.logouts.Load() != logouts+1 {
+		t.Fatal("EndSession must log the cached session out and forget it")
+	}
+}
+
+type promptFunc func(title, message, label string, secret bool) string
+
+func (f promptFunc) Prompt(title, message, label string, secret bool) string {
+	return f(title, message, label, secret)
+}
+
+func TestPrompterAnswersSMSCode(t *testing.T) {
+	g := newFakeGateway(t)
+	var gotLabel string
+	var gotSecret bool
+	h, err := StartTunnelWithPrompter(
+		g.config(func(c *Config) { c.OTPSecret = "" }),
+		promptFunc(func(title, message, label string, secret bool) string {
+			gotLabel, gotSecret = label, secret
+			tt, _ := newTOTP(otpSecret) // stands in for the code the user read off the SMS
+			return " " + tt.codeAt(time.Now()) + " "
+		}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Logout()
+	if gotLabel != "Passcode" || gotSecret {
+		t.Errorf("prompt label=%q secret=%v", gotLabel, gotSecret)
+	}
+}
+
+func TestPrompterAsksForUnstoredPassword(t *testing.T) {
+	g := newFakeGateway(t)
+	var asked []string
+	h, err := StartTunnelWithPrompter(
+		g.config(func(c *Config) { c.Password = "" }),
+		promptFunc(func(_, _, label string, secret bool) string {
+			asked = append(asked, label)
+			if secret {
+				return "s3cret"
+			}
+			return ""
+		}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Logout()
+	if len(asked) != 1 || asked[0] != "Password" {
+		t.Errorf("asked %v, want only the password (OTP comes from the secret)", asked)
+	}
+}
+
+func TestPrompterCancelStopsSignIn(t *testing.T) {
+	g := newFakeGateway(t)
+	_, err := StartTunnelWithPrompter(
+		g.config(func(c *Config) { c.OTPSecret = "" }),
+		promptFunc(func(_, _, _ string, _ bool) string { return "" }),
+	)
+	if err == nil || !strings.Contains(err.Error(), "cancelled") {
+		t.Fatalf("want cancellation, got %v", err)
+	}
+}
+
+func TestReviveReplacesSilentlyDeadConnection(t *testing.T) {
+	g := newFakeGateway(t)
+	h, err := StartTunnel(g.config(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	c, err := h.Dial(gwAddr, 7, 10_000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	echo(t, c, "before network change")
+
+	g.silenceCurrent() // left Wi-Fi: the socket neither errors nor delivers
+	connects := g.connects.Load()
+	start := time.Now()
+	h.Revive() // Android reported a network change
+	deadline := time.Now().Add(10 * time.Second)
+	for g.connects.Load() == connects && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if g.connects.Load() == connects {
+		t.Fatal("Revive did not replace the dead connection")
+	}
+	if took := time.Since(start); took > 6*time.Second {
+		t.Errorf("reconnect took %s; DPD alone would take 30 s or more", took)
+	}
+	echo(t, c, "same stream after the network change")
+	c.Close()
+}
+
+func TestReviveLeavesHealthyConnectionAlone(t *testing.T) {
+	g := newFakeGateway(t)
+	h, err := StartTunnel(g.config(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	connects := g.connects.Load()
+	h.Revive() // e.g. Haven returning to the foreground
+	time.Sleep(probeWait + time.Second)
+	if g.connects.Load() != connects {
+		t.Fatal("Revive must not reconnect a connection that answers the probe")
 	}
 }
 

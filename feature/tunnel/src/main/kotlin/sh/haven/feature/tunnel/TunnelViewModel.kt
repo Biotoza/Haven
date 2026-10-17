@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -15,9 +16,13 @@ import okhttp3.OkHttpClient
 import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
+import sh.haven.core.data.db.entities.typeEnum
 import sh.haven.core.data.repository.ConnectionLogRepository
 import sh.haven.core.data.repository.TunnelConfigRepository
+import sh.haven.core.tunnel.AnyConnectConfigBlob
+import sh.haven.core.tunnel.AnyConnectSessionController
 import sh.haven.core.tunnel.CloudflareAccessTunnel
+import sh.haven.core.tunnel.TunnelManager
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -31,7 +36,29 @@ class TunnelViewModel @Inject constructor(
     private val repository: TunnelConfigRepository,
     private val connectionLogRepository: ConnectionLogRepository,
     private val httpClient: OkHttpClient,
+    tunnelManager: TunnelManager,
+    private val anyConnectSessions: AnyConnectSessionController,
 ) : ViewModel() {
+
+    /** Ids of tunnels that are up right now, for the list's "Connected" badge. */
+    val connectedIds: StateFlow<Set<String>> = tunnelManager.live
+        .map { it.keys }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    /**
+     * Disconnect a live tunnel. For AnyConnect, [signOut] also ends the
+     * gateway session (next connect signs in, e.g. with a new SMS code);
+     * without it the session stays resumable for the gateway's idle timeout.
+     */
+    fun disconnect(id: String, signOut: Boolean) {
+        viewModelScope.launch {
+            try {
+                anyConnectSessions.disconnect(id, signOut)
+            } catch (e: Exception) {
+                _error.value = "Disconnect failed: ${e.message}"
+            }
+        }
+    }
 
     /**
      * Result of a [testCloudflareAccess] call, surfaced inline next to
@@ -300,10 +327,28 @@ class TunnelViewModel @Inject constructor(
         save(label, TunnelConfigType.ANYCONNECT, blob.encode())
     }
 
-    /** Overwrite an existing AnyConnect tunnel in place (same contract as #666 edits). */
+    /**
+     * Overwrite an existing AnyConnect tunnel in place (same contract as #666
+     * edits). A live or resumable session made with the old settings is
+     * ended first, so the next connect uses the new ones: signed out on the
+     * gateway when the account changed (server / user / group), merely
+     * disconnected — still resumable — when only e.g. the password or pin
+     * did. Label and "Stay connected" edits leave a live tunnel alone.
+     */
     fun updateAnyConnectConfig(id: String, label: String, form: AnyConnectForm) {
         val blob = validateAnyConnect(label, form) ?: return
-        update(id, label, blob.encode())
+        viewModelScope.launch {
+            val old = repository.getById(id)
+                ?.takeIf { it.typeEnum == TunnelConfigType.ANYCONNECT }
+                ?.let { AnyConnectConfigBlob.parse(it.configText) }
+            if (old != null && old.toNativeConfig() != blob.toNativeConfig()) {
+                val accountChanged = old.server != blob.server ||
+                    !old.username.equals(blob.username, ignoreCase = true) ||
+                    !old.authGroup.equals(blob.authGroup, ignoreCase = true)
+                runCatching { anyConnectSessions.disconnect(id, signOut = accountChanged) }
+            }
+            update(id, label, blob.encode())
+        }
     }
 
     private fun validateAnyConnect(label: String, form: AnyConnectForm): sh.haven.core.tunnel.AnyConnectConfigBlob? {
@@ -338,6 +383,7 @@ class TunnelViewModel @Inject constructor(
             otpSecret = form.otpSecret.trim(),
             secondaryPassword = form.secondaryPassword,
             serverCert = cert,
+            stayConnected = form.stayConnected,
         )
     }
 
@@ -473,6 +519,11 @@ class TunnelViewModel @Inject constructor(
     fun delete(id: String) {
         viewModelScope.launch {
             try {
+                // Don't leave a VPN session behind on the gateway for a
+                // tunnel that no longer exists.
+                if (repository.getById(id)?.typeEnum == TunnelConfigType.ANYCONNECT) {
+                    runCatching { anyConnectSessions.disconnect(id, signOut = true) }
+                }
                 repository.delete(id)
             } catch (e: Exception) {
                 _error.value = "Delete failed: ${e.message}"
@@ -494,6 +545,7 @@ data class AnyConnectForm(
     val otpSecret: String = "",
     val secondaryPassword: String = "",
     val serverCert: String = "",
+    val stayConnected: Boolean = true,
 ) {
     companion object {
         fun from(blob: sh.haven.core.tunnel.AnyConnectConfigBlob?) = AnyConnectForm(
@@ -504,6 +556,7 @@ data class AnyConnectForm(
             otpSecret = blob?.otpSecret.orEmpty(),
             secondaryPassword = blob?.secondaryPassword.orEmpty(),
             serverCert = blob?.serverCert.orEmpty(),
+            stayConnected = blob?.stayConnected ?: true,
         )
     }
 }

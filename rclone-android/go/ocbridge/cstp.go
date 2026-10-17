@@ -219,10 +219,12 @@ type session struct {
 	br     *bufio.Reader
 	closed bool
 
-	writeMu sync.Mutex
-	lastRx  atomic.Int64
-	lastTx  atomic.Int64
-	done    chan struct{}
+	writeMu  sync.Mutex
+	lastRx   atomic.Int64
+	lastTx   atomic.Int64
+	done     chan struct{}
+	kick     chan struct{} // wakes a reconnect backoff early (network came back)
+	prompter Prompter      // for re-login when the gateway expired the session
 
 	// onFatal is called once if the session ends for a reason other than
 	// Close (credentials no longer accepted, server terminated the session,
@@ -236,7 +238,7 @@ func newSession(cfg *Config, base *url.URL, tlsConf *tls.Config, cookie string,
 	s := &session{
 		cfg: cfg, base: base, tlsConf: tlsConf, params: p, dev: dev,
 		cookie: cookie, conn: conn, br: br,
-		done: make(chan struct{}), onFatal: onFatal,
+		done: make(chan struct{}), kick: make(chan struct{}, 1), onFatal: onFatal,
 	}
 	now := time.Now().UnixNano()
 	s.lastRx.Store(now)
@@ -424,6 +426,8 @@ func (s *session) reconnect() error {
 		select {
 		case <-s.done:
 			return errors.New("closed")
+		case <-s.kick:
+			backoff = time.Second // network changed: retry promptly from now on
 		case <-time.After(backoff):
 		}
 		if backoff < 30*time.Second {
@@ -438,14 +442,16 @@ func (s *session) reconnect() error {
 		cookie := s.cookie
 		s.mu.Unlock()
 		conn, br, p, err := connectCSTP(ctx, s.cfg, s.base, s.tlsConf, cookie)
+		cancel()
 		if errors.Is(err, errCookieRejected) {
 			log.Printf("haven-oc: session expired on gateway, re-authenticating")
-			cookie, err = newAuthClient(s.cfg, s.base, s.tlsConf).authenticate(ctx)
+			cookie, err = authenticate(s.cfg, s.base, s.tlsConf, s.prompter)
 			if err == nil {
+				ctx, cancel = context.WithTimeout(context.Background(), 45*time.Second)
 				conn, br, p, err = connectCSTP(ctx, s.cfg, s.base, s.tlsConf, cookie)
+				cancel()
 			}
 		}
-		cancel()
 		var rej *errAuthRejected
 		if errors.As(err, &rej) {
 			return err
@@ -483,13 +489,18 @@ func (s *session) fail(err error) {
 	}
 }
 
-// close sends a CSTP disconnect, drops the connection and logs the session
-// out on the gateway. Safe to call more than once.
-func (s *session) close() {
+// close ends this connection. With logout it also ends the session on the
+// gateway (CSTP disconnect + logout request), so the cookie dies and the next
+// start needs a full sign-in. Without, it just drops the TLS connection — no
+// disconnect frame, the way openconnect pauses — so the gateway keeps the
+// session for its idle timeout and the cookie can resume it without asking
+// for a password or SMS code again. Returns the cookie. Idempotent.
+func (s *session) close(logoutToo bool) string {
 	s.mu.Lock()
 	if s.closed {
+		cookie := s.cookie
 		s.mu.Unlock()
-		return
+		return cookie
 	}
 	s.closed = true
 	conn := s.conn
@@ -498,11 +509,59 @@ func (s *session) close() {
 	close(s.done)
 
 	if conn != nil {
-		s.writeMu.Lock()
-		conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
-		_, _ = conn.Write(control(pktDisconnect, []byte{0xb0}))
-		s.writeMu.Unlock()
+		if logoutToo {
+			s.writeMu.Lock()
+			conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
+			_, _ = conn.Write(control(pktDisconnect, []byte{0xb0}))
+			s.writeMu.Unlock()
+		}
 		conn.Close()
 	}
-	go logout(s.cfg, s.base, s.tlsConf, cookie)
+	if logoutToo {
+		go logout(s.cfg, s.base, s.tlsConf, cookie)
+	}
+	return cookie
+}
+
+// currentCookie is the session's cookie as of now (it changes on re-login).
+func (s *session) currentCookie() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.cookie
+}
+
+// revive is called when Android reports a network change or Haven returns to
+// the foreground. The Cisco client reacts to network changes at once; waiting
+// for DPD to notice a dead socket instead takes 30-90 s. A DPD probe costs
+// one small frame: if the gateway answers within probeWait the connection is
+// fine and nothing happens; otherwise it is dropped and reconnected now. A
+// pending reconnect backoff is cut short either way.
+const probeWait = 3 * time.Second
+
+func (s *session) revive() {
+	select {
+	case s.kick <- struct{}{}:
+	default:
+	}
+	conn, _ := s.current()
+	if conn == nil {
+		return // reconnecting; the kick above wakes it
+	}
+	sent := time.Now()
+	if err := s.writeFrame(control(pktDPDReq, nil)); err != nil {
+		return // write failure already closed it; rxLoop reconnects
+	}
+	go func() {
+		select {
+		case <-s.done:
+			return
+		case <-time.After(probeWait):
+		}
+		if time.Unix(0, s.lastRx.Load()).Before(sent) {
+			if cur, _ := s.current(); cur == conn {
+				log.Printf("haven-oc: no answer to probe after network change, reconnecting")
+				conn.Close()
+			}
+		}
+	}()
 }

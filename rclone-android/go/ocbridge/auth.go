@@ -103,9 +103,10 @@ const groupListField = "group_list"
 // --- request plumbing -------------------------------------------------------
 
 type authClient struct {
-	cfg    *Config
-	base   *url.URL
-	client *http.Client
+	cfg      *Config
+	base     *url.URL
+	client   *http.Client
+	prompter Prompter // nil: no interactive answers (unit tests, MCP-created tunnels)
 }
 
 func newAuthClient(cfg *Config, base *url.URL, tlsConf *tls.Config) *authClient {
@@ -194,7 +195,8 @@ type authState struct {
 	groupChosen     bool
 	secondFactorRnd int
 	totp            *totp
-	serverMessage   string // <message> of the current round, for error context
+	serverMessage   string // <message> of the current round, for prompts and errors
+	serverTitle     string // <title> of the current round, for prompts
 }
 
 // authenticate runs Cisco's aggregate XML authentication and returns the
@@ -243,6 +245,7 @@ func (a *authClient) authenticate(ctx context.Context) (string, error) {
 			return "", rejected("login failed: %s", strings.Join(strings.Fields(msg), " "))
 		}
 		st.serverMessage = strings.TrimSpace(ca.Auth.Message)
+		st.serverTitle = strings.TrimSpace(ca.Auth.Title)
 		if ca.ClientCertRequest != nil {
 			return "", rejected("gateway requires a client certificate, which Haven's AnyConnect tunnel does not support yet")
 		}
@@ -281,6 +284,21 @@ func (a *authClient) cookie(name string) string {
 		}
 	}
 	return ""
+}
+
+// authOverallTimeout bounds a whole sign-in. Generous because a person may
+// be typing an SMS code; each HTTP request has its own 30 s timeout and the
+// gateway its own auth timeout (ocserv 240 s, ASA similar).
+const authOverallTimeout = 10 * time.Minute
+
+// authenticate runs a full sign-in with an optional prompter.
+func authenticate(cfg *Config, base *url.URL, tlsConf *tls.Config, p Prompter) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), authOverallTimeout)
+	defer cancel()
+	ac := newAuthClient(cfg, base, tlsConf)
+	ac.prompter = p
+	defer ac.client.CloseIdleConnections()
+	return ac.authenticate(ctx)
 }
 
 func initRequest(base *url.URL) string {
@@ -357,7 +375,18 @@ func (a *authClient) buildReply(form *xmlForm, opaque string, st *authState) (st
 			fields = append(fields, field{in.Name, in.Value})
 		case "password":
 			if !st.passwordSent && !looksLikeSecondFactor(name) {
-				fields = append(fields, field{in.Name, a.cfg.Password})
+				pw := a.cfg.Password
+				if pw == "" {
+					// No stored password: ask, so users who'd rather not keep
+					// it on the phone can still use the tunnel.
+					if v, ok := a.ask(in, st, true); ok {
+						if v == "" {
+							return "", rejected("sign-in cancelled")
+						}
+						pw = v
+					}
+				}
+				fields = append(fields, field{in.Name, pw})
 				st.passwordSent = true
 				continue
 			}
@@ -416,6 +445,14 @@ func (a *authClient) secondFactor(in xmlInput, st *authState) (string, error) {
 	}
 	if a.cfg.SecondaryPassword != "" {
 		return a.cfg.SecondaryPassword, nil
+	}
+	// An SMS / e-mail / hardware-token code: only the user has it.
+	// Not masked — it's single-use, and easier to type when visible.
+	if v, ok := a.ask(in, st, false); ok {
+		if strings.TrimSpace(v) == "" {
+			return "", rejected("sign-in cancelled")
+		}
+		return strings.TrimSpace(v), nil
 	}
 	ctx := ""
 	if st.serverMessage != "" {

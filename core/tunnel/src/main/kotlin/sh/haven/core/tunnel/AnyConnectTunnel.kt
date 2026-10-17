@@ -3,6 +3,7 @@ package sh.haven.core.tunnel
 import sh.haven.rclone.binding.ocbridge.Conn as NativeConn
 import sh.haven.rclone.binding.ocbridge.Listener as NativeListener
 import sh.haven.rclone.binding.ocbridge.Ocbridge
+import sh.haven.rclone.binding.ocbridge.Prompter
 import sh.haven.rclone.binding.ocbridge.TunnelHandle as NativeHandle
 import sh.haven.rclone.binding.ocbridge.UDPConn as NativeUDPConn
 import java.io.IOException
@@ -25,14 +26,37 @@ import java.net.InetSocketAddress
  * a network change a reconnect with the session cookie (or a fresh login if
  * the gateway expired it) while open TCP streams in the netstack wait it out.
  *
- * Supported: username/password, auth group, TOTP or fixed second factor,
- * certificate pinning. Not supported (fails fast with a clear message):
+ * Supported: username/password, auth group, TOTP, fixed or interactive
+ * (SMS) second factor, certificate pinning. Not supported (fails fast with a clear message):
  * SAML/SSO, client certificates, HostScan/posture. TLS only, no DTLS.
  */
-class AnyConnectTunnel internal constructor(config: AnyConnectConfigBlob) : Tunnel {
+class AnyConnectTunnel internal constructor(
+    config: AnyConnectConfigBlob,
+    /** The tunnel's user-facing name, for prompts and the notification. */
+    val label: String = "",
+    authBroker: TunnelAuthBroker? = null,
+) : Tunnel {
+
+    override val lingerAfterRelease: Boolean = config.stayConnected
+
+    // Questions the stored config can't answer (an SMS code, an unstored
+    // password) go to the broker, which shows a dialog and a heads-up
+    // notification. Called on a Go thread; blocks until answered.
+    private val prompter: Prompter? = authBroker?.let { broker ->
+        object : Prompter {
+            override fun prompt(title: String?, message: String?, label: String?, secret: Boolean): String =
+                broker.promptBlocking(
+                    tunnelLabel = this@AnyConnectTunnel.label,
+                    title = title.orEmpty(),
+                    message = message.orEmpty(),
+                    fieldLabel = label.orEmpty(),
+                    secret = secret,
+                ) ?: ""
+        }
+    }
 
     private val native: NativeHandle = try {
-        Ocbridge.startTunnel(config.toNativeConfig())
+        Ocbridge.startTunnelWithPrompter(config.toNativeConfig(), prompter)
     } catch (e: Exception) {
         throw IOException("AnyConnect: ${e.message}", e)
     }
@@ -83,6 +107,9 @@ class AnyConnectTunnel internal constructor(config: AnyConnectConfigBlob) : Tunn
     override fun localAddress(): String? =
         runCatching { native.bindAddr() }.getOrNull()?.takeIf { it.isNotBlank() }
 
+    /** True once the session has ended on its own; see [lastError]. */
+    val isDead: Boolean get() = lastError() != null
+
     /**
      * Why the session ended on its own (credentials no longer accepted,
      * gateway terminated it, address changed on reconnect), or null while
@@ -91,12 +118,49 @@ class AnyConnectTunnel internal constructor(config: AnyConnectConfigBlob) : Tunn
     fun lastError(): String? =
         runCatching { native.lastError() }.getOrNull()?.takeIf { it.isNotBlank() }
 
+    /**
+     * Drop the connection but leave the gateway session resumable: the next
+     * start for this config reuses it without a password or second factor,
+     * for as long as the gateway keeps it (its idle timeout).
+     */
     override fun close() {
         try {
             native.close()
         } catch (_: Throwable) {
             // Best-effort teardown.
         }
+    }
+
+    /** Close and end the session on the gateway; the next start signs in. */
+    fun signOut() {
+        try {
+            native.logout()
+        } catch (_: Throwable) {
+            // Best-effort teardown.
+        }
+    }
+
+    /**
+     * After a network change or return to the foreground: probe the gateway
+     * and reconnect at once if the connection died silently. Non-blocking.
+     */
+    fun revive() {
+        runCatching { native.revive() }
+    }
+
+    companion object {
+        /**
+         * Sign out a session kept resumable for [config] when no tunnel is
+         * using it (idle "Sign out", or the config was edited / deleted).
+         * Makes one HTTPS request — call off the main thread.
+         */
+        fun endSession(config: AnyConnectConfigBlob) {
+            runCatching { Ocbridge.endSession(config.toNativeConfig()) }
+        }
+
+        /** True if starting [config] would resume rather than sign in. */
+        fun hasResumableSession(config: AnyConnectConfigBlob): Boolean =
+            runCatching { Ocbridge.hasResumableSession(config.toNativeConfig()) }.getOrDefault(false)
     }
 }
 

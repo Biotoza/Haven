@@ -58,4 +58,10 @@
     <string name="tunnel_anyconnect_secondary_help">দ্বিতীয় প্রম্পটের একটি নির্দিষ্ট উত্তর, যেমন Duo-র জন্য push। শুধু OTP সিক্রেট না থাকলে ব্যবহৃত হয়।</string>
     <string name="tunnel_anyconnect_cert_label">সার্ভার সার্টিফিকেট (ঐচ্ছিক)</string>
     <string name="tunnel_anyconnect_cert_help">শুধু সেলফ-সাইনড গেটওয়ের জন্য: একটি pin-sha256:… মান। সার্টিফিকেট বিশ্বস্ত না হলে সংযোগের ত্রুটিতে এখানে পেস্ট করার মানটি দেখানো হয়।</string>
+    <string name="tunnel_status_connected">সংযুক্ত</string>
+    <string name="tunnel_sign_out">সাইন আউট</string>
+    <string name="tunnel_anyconnect_password_help">সাইন ইনের সময় জিজ্ঞেস করার জন্য খালি রাখুন।</string>
+    <string name="tunnel_anyconnect_prompt_help">SMS বা ইমেলে পাঠানো কোড: OTP সিক্রেট ও দ্বিতীয় ফ্যাক্টরের উত্তর খালি রাখুন, সাইন ইনের সময় Haven কোড জিজ্ঞেস করবে।</string>
+    <string name="tunnel_anyconnect_stay_connected_label">সংযুক্ত থাকুন</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Cisco অ্যাপের মতো শেষ সংযোগ বন্ধ হওয়ার পরও VPN চালু রাখুন। বন্ধ থাকলে: VPN বিচ্ছিন্ন হয়, এবং শীঘ্রই আবার সংযোগ করলে নতুন কোড ছাড়াই সেশন আবার শুরু হয়।</string>
 </resources>

@@ -15,10 +15,13 @@ import org.json.JSONObject
  *   "otpSecret": "JBSW… or otpauth://…",   // optional, TOTP second factor
  *   "secondaryPassword": "push",           // optional, fixed second factor
  *   "serverCert": "pin-sha256:…",          // optional, self-signed gateways
- *   "userAgent": "AnyConnect Linux_64 …"   // optional
+ *   "userAgent": "AnyConnect Linux_64 …",  // optional
+ *   "stayConnected": true                  // Haven-only, not sent to ocbridge
  * }
  * ```
- * Optional keys are omitted when blank. Unknown keys are ignored in both
+ * An empty password or missing second factor is asked for at sign-in
+ * (dialog + notification) — that is how SMS codes work. Optional keys are
+ * omitted when blank. Unknown keys are ignored in both
  * directions, so fields can be added later without breaking older builds.
  */
 data class AnyConnectConfigBlob(
@@ -30,10 +33,18 @@ data class AnyConnectConfigBlob(
     val secondaryPassword: String = "",
     val serverCert: String = "",
     val userAgent: String = "",
+    /**
+     * Keep the tunnel up after the last connection using it closes, like
+     * Cisco's own client, instead of dropping it (and resuming the gateway
+     * session on next use). Shown in Haven's ongoing notification.
+     */
+    val stayConnected: Boolean = true,
 ) {
-    fun encode(): ByteArray = toJson().toString().toByteArray(Charsets.UTF_8)
+    fun encode(): ByteArray =
+        toJson().apply { if (!stayConnected) put("stayConnected", false) }
+            .toString().toByteArray(Charsets.UTF_8)
 
-    /** The JSON string `Ocbridge.startTunnel` takes. */
+    /** The JSON string `Ocbridge.startTunnel` takes (Haven-only keys left out). */
     fun toNativeConfig(): String = toJson().toString()
 
     private fun toJson() = JSONObject().apply {
@@ -71,6 +82,7 @@ data class AnyConnectConfigBlob(
                     secondaryPassword = json.optString("secondaryPassword", ""),
                     serverCert = json.optString("serverCert", "").trim(),
                     userAgent = json.optString("userAgent", "").trim(),
+                    stayConnected = json.optBoolean("stayConnected", true),
                 )
             } catch (_: Throwable) {
                 null

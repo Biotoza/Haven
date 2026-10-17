@@ -58,4 +58,10 @@
     <string name="tunnel_anyconnect_secondary_help">Une réponse fixe à la seconde demande, par ex. push pour Duo. Utilisée uniquement sans secret OTP.</string>
     <string name="tunnel_anyconnect_cert_label">Certificat du serveur (facultatif)</string>
     <string name="tunnel_anyconnect_cert_help">Uniquement pour les passerelles auto-signées : une valeur pin-sha256:…. Si le certificat n\'est pas approuvé, l\'erreur de connexion affiche la valeur à coller ici.</string>
+    <string name="tunnel_status_connected">Connecté</string>
+    <string name="tunnel_sign_out">Se déconnecter</string>
+    <string name="tunnel_anyconnect_password_help">Laissez vide pour qu\'il soit demandé à la connexion.</string>
+    <string name="tunnel_anyconnect_prompt_help">Codes envoyés par SMS ou e-mail : laissez vides le secret OTP et la réponse du second facteur, Haven demandera le code à la connexion.</string>
+    <string name="tunnel_anyconnect_stay_connected_label">Rester connecté</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Garder le VPN actif après la fermeture de votre dernière connexion, comme l\'app Cisco. Désactivé : il se déconnecte, et une reconnexion peu après reprend la session sans nouveau code.</string>
 </resources>

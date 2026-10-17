@@ -67,4 +67,10 @@
     <string name="tunnel_anyconnect_secondary_help">दूसरे प्रॉम्प्ट का एक निश्चित उत्तर, जैसे Duo के लिए push। केवल तब उपयोग होता है जब OTP सीक्रेट सेट न हो।</string>
     <string name="tunnel_anyconnect_cert_label">सर्वर प्रमाणपत्र (वैकल्पिक)</string>
     <string name="tunnel_anyconnect_cert_help">केवल सेल्फ़-साइन्ड गेटवे के लिए: pin-sha256:… मान। प्रमाणपत्र भरोसेमंद न होने पर कनेक्शन त्रुटि यहाँ चिपकाने वाला मान दिखाती है।</string>
+    <string name="tunnel_status_connected">कनेक्टेड</string>
+    <string name="tunnel_sign_out">साइन आउट</string>
+    <string name="tunnel_anyconnect_password_help">साइन इन के समय पूछे जाने के लिए खाली छोड़ें।</string>
+    <string name="tunnel_anyconnect_prompt_help">SMS या ईमेल से भेजे गए कोड: OTP सीक्रेट और दूसरे फ़ैक्टर का उत्तर खाली छोड़ें, साइन इन के समय Haven कोड पूछेगा।</string>
+    <string name="tunnel_anyconnect_stay_connected_label">कनेक्टेड रहें</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Cisco ऐप की तरह, आख़िरी कनेक्शन बंद होने के बाद भी VPN चालू रखें। बंद होने पर: VPN डिस्कनेक्ट हो जाता है, और जल्द दोबारा कनेक्ट करने पर सत्र बिना नए कोड के फिर शुरू होता है।</string>
 </resources>

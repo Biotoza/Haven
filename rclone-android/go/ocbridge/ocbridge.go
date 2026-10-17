@@ -21,12 +21,16 @@
 package ocbridge
 
 import (
+	"bufio"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"net/netip"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,6 +45,7 @@ type TunnelHandle struct {
 	sess     *session
 	tnet     *netstack.Net
 	bindAddr netip.Addr
+	key      string // session-cache key
 
 	mu      sync.Mutex
 	closed  bool
@@ -71,11 +76,20 @@ type Listener struct {
 	ln net.Listener
 }
 
-// StartTunnel authenticates against the gateway described by configJSON
-// (see [Config]) and brings the tunnel up. Blocks for up to 60 seconds;
-// call from a background thread. The handle must be closed with
-// [TunnelHandle.Close], which also logs the session out on the gateway.
+// StartTunnel is [StartTunnelWithPrompter] without a prompter: questions
+// the config can't answer fail the sign-in.
 func StartTunnel(configJSON string) (*TunnelHandle, error) {
+	return StartTunnelWithPrompter(configJSON, nil)
+}
+
+// StartTunnelWithPrompter brings the tunnel up. If this process still holds
+// the cookie of an earlier session for the same gateway, user and group
+// (see [TunnelHandle.Close]), it resumes that session first — no password,
+// no SMS — and only signs in afresh when the gateway no longer accepts it.
+// Questions the config can't answer (an SMS code, a password that isn't
+// stored) go to p. Blocks while the user answers; call from a background
+// thread. Close the handle with [TunnelHandle.Close] or [TunnelHandle.Logout].
+func StartTunnelWithPrompter(configJSON string, p Prompter) (*TunnelHandle, error) {
 	cfg, err := parseConfig(configJSON)
 	if err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
@@ -85,38 +99,131 @@ func StartTunnel(configJSON string) (*TunnelHandle, error) {
 		return nil, err
 	}
 	tlsConf := tlsConfigFor(cfg, base)
+	key := sessionKey(cfg, base)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	cookie, err := newAuthClient(cfg, base, tlsConf).authenticate(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("authenticate: %w", err)
+	var (
+		cookie string
+		conn   *tls.Conn
+		br     *bufio.Reader
+		params *tunnelParams
+	)
+	if cached := sessions.get(key); cached != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+		conn, br, params, err = connectCSTP(ctx, cfg, base, tlsConf, cached)
+		cancel()
+		switch {
+		case err == nil:
+			cookie = cached
+		case errors.Is(err, errCookieRejected):
+			sessions.forget(key) // expired on the gateway: sign in below
+		default:
+			// Gateway unreachable (offline, roaming). Signing in would fail
+			// the same way, and for SMS users would only waste a code.
+			return nil, fmt.Errorf("open tunnel: %w", err)
+		}
 	}
-	conn, br, params, err := connectCSTP(ctx, cfg, base, tlsConf, cookie)
-	if err != nil {
-		go logout(cfg, base, tlsConf, cookie)
-		return nil, fmt.Errorf("open tunnel: %w", err)
+	if cookie == "" {
+		cookie, err = authenticate(cfg, base, tlsConf, p)
+		if err != nil {
+			return nil, fmt.Errorf("authenticate: %w", err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+		conn, br, params, err = connectCSTP(ctx, cfg, base, tlsConf, cookie)
+		cancel()
+		if err != nil {
+			go logout(cfg, base, tlsConf, cookie)
+			return nil, fmt.Errorf("open tunnel: %w", err)
+		}
 	}
+	sessions.put(key, cookie)
 
 	dev, tnet, err := netstack.CreateNetTUN(params.addresses(), params.dns, params.mtu)
 	if err != nil {
 		conn.Close()
-		go logout(cfg, base, tlsConf, cookie)
 		return nil, fmt.Errorf("create netstack: %w", err)
 	}
 
-	h := &TunnelHandle{tnet: tnet}
+	h := &TunnelHandle{tnet: tnet, key: key}
 	if params.addr4.IsValid() {
 		h.bindAddr = params.addr4
 	} else {
 		h.bindAddr = params.addr6
 	}
 	h.sess = newSession(cfg, base, tlsConf, cookie, conn, br, params, dev, func(err error) {
-		h.closeWith(err)
+		// The session can't continue (credentials no longer accepted,
+		// gateway terminated it): its cookie is worthless now.
+		sessions.forget(key)
+		h.closeWith(err, false)
 	})
+	h.sess.prompter = p
 	h.sess.start()
 	return h, nil
+}
+
+// EndSession signs out a session this process kept resumable for the given
+// config but which no handle is using (the user tapped "Sign out" on an idle
+// tunnel, or edited / deleted it). Best-effort and quick: one HTTPS request.
+func EndSession(configJSON string) {
+	cfg, err := parseConfig(configJSON)
+	if err != nil {
+		return
+	}
+	base, err := normalizeServer(cfg.Server)
+	if err != nil {
+		return
+	}
+	key := sessionKey(cfg, base)
+	if cookie := sessions.get(key); cookie != "" {
+		sessions.forget(key)
+		logout(cfg, base, tlsConfigFor(cfg, base), cookie)
+	}
+}
+
+// HasResumableSession reports whether a later start for this config would
+// try to resume instead of signing in. For the UI.
+func HasResumableSession(configJSON string) bool {
+	cfg, err := parseConfig(configJSON)
+	if err != nil {
+		return false
+	}
+	base, err := normalizeServer(cfg.Server)
+	if err != nil {
+		return false
+	}
+	return sessions.get(sessionKey(cfg, base)) != ""
+}
+
+// sessions caches session cookies in memory only: they are bearer tokens,
+// and the process staying alive is what "stay connected" relies on anyway
+// (Haven's foreground service). Keyed by gateway, user and group so editing
+// any of those starts a fresh session.
+var sessions = &sessionCache{m: map[string]string{}}
+
+type sessionCache struct {
+	mu sync.Mutex
+	m  map[string]string
+}
+
+func (c *sessionCache) get(k string) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.m[k]
+}
+
+func (c *sessionCache) put(k, v string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m[k] = v
+}
+
+func (c *sessionCache) forget(k string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.m, k)
+}
+
+func sessionKey(cfg *Config, base *url.URL) string {
+	return base.String() + "\x00" + strings.ToLower(cfg.Username) + "\x00" + strings.ToLower(cfg.AuthGroup)
 }
 
 func (t *TunnelHandle) net() (*netstack.Net, error) {
@@ -223,13 +330,34 @@ func (t *TunnelHandle) LastError() string {
 	return ""
 }
 
-// Close disconnects, logs out of the gateway and tears down the netstack.
-// Idempotent.
+// Close tears down the netstack and drops the connection but leaves the
+// gateway session alive, so the next start for the same config resumes it
+// without a password or second factor — as long as the gateway still holds
+// it (its idle timeout). This is what spares SMS users a new code every
+// time they reconnect. Use [TunnelHandle.Logout] to end it. Idempotent.
 func (t *TunnelHandle) Close() {
-	t.closeWith(nil)
+	t.closeWith(nil, false)
 }
 
-func (t *TunnelHandle) closeWith(cause error) {
+// Logout is Close plus ending the session on the gateway; the next start
+// signs in afresh. For an explicit "Sign out". Idempotent.
+func (t *TunnelHandle) Logout() {
+	t.closeWith(nil, true)
+}
+
+// Revive checks the connection after a network change or a return to the
+// foreground and reconnects at once if it's dead (see session.revive).
+// Cheap and non-blocking.
+func (t *TunnelHandle) Revive() {
+	t.mu.Lock()
+	closed := t.closed
+	t.mu.Unlock()
+	if !closed {
+		t.sess.revive()
+	}
+}
+
+func (t *TunnelHandle) closeWith(cause error, logoutToo bool) {
 	t.mu.Lock()
 	if t.closed {
 		t.mu.Unlock()
@@ -244,7 +372,13 @@ func (t *TunnelHandle) closeWith(cause error) {
 	if ln != nil {
 		ln.Close()
 	}
-	t.sess.close()
+	cookie := t.sess.close(logoutToo)
+	switch {
+	case logoutToo || cause != nil:
+		sessions.forget(t.key)
+	default:
+		sessions.put(t.key, cookie) // latest cookie (re-login may have changed it)
+	}
 	t.sess.dev.Close()
 }
 
