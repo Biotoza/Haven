@@ -897,6 +897,19 @@ class ConnectionsViewModel @Inject constructor(
     private val _pendingTunnelDependent = MutableStateFlow<ConnectionProfile?>(null)
     val pendingTunnelDependent: StateFlow<ConnectionProfile?> = _pendingTunnelDependent.asStateFlow()
 
+    // #729: when the jump leg of an SSH-terminal connect fails auth, the
+    // replay has to re-drive the TARGET connect with the password the user
+    // already typed for it (and the remember tick from that dialog), or the
+    // target comes up password-less and fails its own auth a second time.
+    // Tunnel-mode dependents (VNC/RDP/SMB) authenticate later in their own
+    // dialogs, so they thread null and keep today's behaviour.
+    private val _pendingDependentPassword = MutableStateFlow<String?>(null)
+    private val _pendingDependentRememberPassword = MutableStateFlow<Boolean?>(null)
+    // internal for unit tests (#729): the replay's queued dependent credentials
+    // are not otherwise observable.
+    internal val pendingDependentPassword: StateFlow<String?> = _pendingDependentPassword.asStateFlow()
+    internal val pendingDependentRememberPassword: StateFlow<Boolean?> = _pendingDependentRememberPassword.asStateFlow()
+
     sealed class HostKeyPrompt {
         data class NewHost(
             val entry: KnownHostEntry,
@@ -2164,6 +2177,8 @@ class ConnectionsViewModel @Inject constructor(
         // dependent so the next password dialog (e.g. an explicit SSH
         // login) doesn't accidentally trigger a tunnel retry.
         _pendingTunnelDependent.value = null
+        _pendingDependentPassword.value = null
+        _pendingDependentRememberPassword.value = null
     }
 
     /**
@@ -2189,6 +2204,8 @@ class ConnectionsViewModel @Inject constructor(
                 dependentProfile = pending,
                 password = password,
                 rememberPassword = rememberPassword,
+                dependentPassword = _pendingDependentPassword.value ?: "",
+                dependentRememberPassword = _pendingDependentRememberPassword.value,
             )
         } else {
             connect(
@@ -2270,6 +2287,11 @@ class ConnectionsViewModel @Inject constructor(
         dependentProfile: ConnectionProfile,
         password: String,
         rememberPassword: Boolean?,
+        // #729: a terminal-SSH dependent re-drives with the password (and
+        // remember tick) its own dialog already collected; the jump failure
+        // happened before the dependent's auth ever ran.
+        dependentPassword: String = "",
+        dependentRememberPassword: Boolean? = null,
     ) {
         viewModelScope.launch {
             try {
@@ -2281,24 +2303,39 @@ class ConnectionsViewModel @Inject constructor(
                     password,
                     tunnelOwnerProfileId = dependentProfile.id,
                 )
-                connect(dependentProfile, password = "")
+                connect(
+                    dependentProfile,
+                    password = dependentPassword,
+                    rememberPassword = dependentRememberPassword,
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Tunnel-auth retry failed: ${e.message}", e)
                 // A mistyped password lands here — re-open the prompt (user-driven,
                 // cancellable) instead of dead-ending on a raw JSch message.
-                handleTunnelJumpFailure(e, dependentProfile, jumpProfile.id)
+                // #729: keep the dependent's already-typed password queued
+                // across retries — a repeated jump-leg failure must not lose
+                // what the target's dialog collected the first time.
+                handleTunnelJumpFailure(
+                    e,
+                    dependentProfile,
+                    jumpProfile.id,
+                    dependentPassword = dependentPassword,
+                    dependentRememberPassword = dependentRememberPassword,
+                )
             }
         }
     }
 
     /**
-     * Surface a jump-host (VNC/RDP/SMB-over-SSH) connect failure. On an
-     * authentication failure with a recoverable credential path, re-open the
-     * password prompt wired to [connectTunnelDependentAfterAuth] so the user can
-     * enter or retry a password — mirroring the direct SSH tap's key→password
-     * fallback — instead of dead-ending on a raw "Auth cancel for methods
-     * 'password'" message (#121). Network and other failures fall through to a
-     * clean [_error] string. Classification matches [connectSsh]'s catch block.
+     * Surface a jump-host connect failure — the VNC/RDP/SMB-over-SSH tunnel
+     * paths (#121a) and, since #729, a terminal-SSH dependent whose jump leg
+     * failed. On an authentication failure with a recoverable credential path,
+     * re-open the password prompt wired to [connectTunnelDependentAfterAuth] so
+     * the user can enter or retry a password — mirroring the direct SSH tap's
+     * key→password fallback — instead of dead-ending on a raw "Auth cancel for
+     * methods 'password'" message (#121). Network and other failures fall
+     * through to a clean [_error] string. Classification matches
+     * [connectSsh]'s catch block.
      */
     // internal for unit test (#559: a declined key unlock must not surface
     // as an auth failure and re-open the password prompt).
@@ -2306,6 +2343,11 @@ class ConnectionsViewModel @Inject constructor(
         e: Exception,
         dependentProfile: ConnectionProfile,
         sshProfileId: String,
+        // #729: a terminal-SSH dependent routes its jump failure through the
+        // same replay path as the tunnel flows; its [_error] label differs.
+        errorPrefix: String = "SSH tunnel",
+        dependentPassword: String = "",
+        dependentRememberPassword: Boolean? = null,
     ) {
         if (e is KeyUnlockDeclinedException) {
             // Same rule as connectSsh (#559): the user declined to unlock a
@@ -2328,9 +2370,11 @@ class ConnectionsViewModel @Inject constructor(
         if (jumpProfile != null) {
             Log.d(TAG, "Jump-host auth failed; prompting for password (${LogRedact.of(jumpProfile.label)})")
             _pendingTunnelDependent.value = dependentProfile
+            _pendingDependentPassword.value = dependentPassword
+            _pendingDependentRememberPassword.value = dependentRememberPassword
             _passwordFallback.value = jumpProfile
         } else {
-            _error.value = "SSH tunnel: ${msg.ifBlank { "connection failed" }}"
+            _error.value = "${errorPrefix}: ${msg.ifBlank { "connection failed" }}"
         }
     }
 
@@ -3915,9 +3959,38 @@ class ConnectionsViewModel @Inject constructor(
                 // Skipped when reusing — the live client already rode its jump.
                 val jumpProfileId = if (reuseClient == null) profile.jumpProfileId else null
                 val jumpSessionId = if (jumpProfileId != null) {
-                    val (jid, reused) = connectJumpHost(jumpProfileId, password)
-                    if (!reused) autoCreatedJumpSessionId = jid
-                    jid
+                    try {
+                        val (jid, reused) = connectJumpHost(jumpProfileId, password)
+                        if (!reused) autoCreatedJumpSessionId = jid
+                        jid
+                    } catch (e: Exception) {
+                        // #729: the jump leg failed auth. It used to fall
+                        // through to this catch block's generic handling, which
+                        // opened the password dialog against the TARGET profile
+                        // — remembering there saved the jump's password onto the
+                        // target, so the jump hop kept prompting on every
+                        // connect ("the prompt appears even when Remember
+                        // password is enabled"). Route it through the #121a
+                        // replay instead: prompt for the jump profile's OWN
+                        // credentials (remembered there), then re-drive this
+                        // dependent connect with the password already typed for
+                        // it.
+                        if (!e.isSshNetworkError()) {
+                            handleTunnelJumpFailure(
+                                e,
+                                dependentProfile = profile,
+                                sshProfileId = jumpProfileId,
+                                errorPrefix = "Jump host",
+                                dependentPassword = password,
+                                dependentRememberPassword = rememberPassword,
+                            )
+                        } else {
+                            sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.ERROR)
+                            sshSessionManager.removeSession(sessionId)
+                            _error.value = "Jump host: ${e.message?.ifBlank { "connection failed" }}"
+                        }
+                        return@launch
+                    }
                 } else null
 
                 if (jumpSessionId != null) {
