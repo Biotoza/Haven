@@ -5,9 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.42
 
 - **AnyConnect: SMS codes, and staying connected like Cisco's client (#727).** When the gateway asks for something the tunnel doesn't store — a code sent by SMS or e-mail, or the password if you left it empty — Haven shows a sign-in dialog over whatever screen is open, plus a heads-up notification (tap it after reading the SMS) so a prompt raised in the background isn't missed. With the new *Stay connected* option (on by default) the tunnel outlives your last SSH session, keeps Haven's foreground service and notification up ("VPN: <name>"), and is reused by the next connection without signing in. Turned off, the tunnel closes but the gateway session stays resumable: reconnecting within the gateway's idle timeout needs no new code, and Haven never starts a sign-in (or spends an SMS) while the gateway is unreachable. On a network change or return to the foreground the tunnel probes the gateway and reconnects within seconds instead of waiting 30–90 s for dead-peer detection. The Tunnels list shows *Connected* and a *Sign out* button for live AnyConnect tunnels; editing the account or deleting the tunnel signs its session out. Sessions are kept in memory only, so the gateway's own maximum session time and an app restart still require signing in again.
+- **Fixed: a jump-host connect's password prompt labelled itself for the forwarded host (#729).** "Remember password" then filed the jump's password on the wrong profile, so the jump leg kept asking. The prompt is labelled for the jump now, its "Remember password" entry lands on the jump, and the forwarded host's connect carries on as before.
+- **Toolbar swipe mode is a Terminal setting (#730).** The toolbar's Swipe key can latch and send arrow keys with hold-to-repeat while another key is held; whether it does that is now a switch in Settings → Terminal, next to tap-to-position.
 
 ## v5.89.41
 
