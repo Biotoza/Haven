@@ -4295,6 +4295,10 @@ class ConnectionsViewModel @Inject constructor(
     ): SshClient = withContext(Dispatchers.IO) {
         val sshClient = SshClient().apply {
             this.verboseLogger = verboseLogger
+            // FIDO2 SK keys pinned to a Mosh/ET profile hit the same auth
+            // path as SSH; without the authenticator the connect throws
+            // ("no FidoAuthenticator configured") — #732.
+            this.fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
         }
 
         // Jump host takes priority, then SOCKS/HTTP proxy
@@ -4969,7 +4973,11 @@ class ConnectionsViewModel @Inject constructor(
      * Seam for tests to observe the jump leg's dial (#690). Production keeps
      * the plain JSch client, matching the pre-existing construction.
      */
-    internal var jumpClientFactory: () -> SshConnection = { SshClient() }
+    internal var jumpClientFactory: () -> SshConnection = {
+        // The jump leg runs the jump profile's own auth (an FIDO2 SK key on
+        // the jump host must work here too) — #732.
+        SshClient().apply { fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator }
+    }
 
     internal suspend fun connectJumpHost(
         jumpProfileId: String,
