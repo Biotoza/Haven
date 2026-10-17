@@ -1178,6 +1178,13 @@ fun TerminalScreen(
                 // state shows the wallpaper too, instead of a solid block.
                 backgroundColor = terminalBg.copy(alpha = effectiveBgOpacity),
                 foregroundColor = terminalFg,
+                // #728: keep the explicit-close auto-return as-is (VM fires it
+                // when closing empties the tab list), but a session that dies
+                // while you're on the Terminal page (#208: only explicit close
+                // bounces) leaves this empty state up - its prompt told the
+                // user to connect without offering a way to get there. Tapping
+                // the prompt now goes to the Connect page.
+                onConnectPrompt = onNavigateToConnections,
                 // Carry the page-swipe override so the empty Terminal page can
                 // still be swiped to an adjacent tab. The pager's built-in
                 // scroll is disabled on the Terminal page (see HavenNavHost
@@ -2293,13 +2300,17 @@ private fun EmptyTerminalState(
     backgroundColor: Color,
     foregroundColor: Color,
     swipeModifier: Modifier = Modifier,
+    onConnectPrompt: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .then(swipeModifier)
             .background(backgroundColor)
-            .padding(16.dp),
+            .padding(16.dp)
+            .clickable(onClickLabel = stringResource(R.string.terminal_connect_prompt)) {
+                onConnectPrompt()
+            },
         contentAlignment = Alignment.Center,
     ) {
         Text(
