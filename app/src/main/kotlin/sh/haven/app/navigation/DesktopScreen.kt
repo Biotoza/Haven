@@ -80,6 +80,8 @@ fun DesktopScreen(
     onRdpChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
     navBlockMode: NavBlockMode = NavBlockMode.ALIGNED,
     toolbarUniformGrid: Boolean = false,
+    /** Same toolbar_key_scale pref the terminal toolbar reads; wires the wayland desktop toolbar to #641's key scale. */
+    toolbarKeyScale: Float = 1f,
     inputMode: String = "DIRECT",
     onSetInputMode: ((String) -> Unit)? = null,
     /** TOUCHPAD-mode speed multiplier; viewer-side gesture math scales by it (#696). */
@@ -363,6 +365,7 @@ fun DesktopScreen(
                             toolbarLayout = toolbarLayout,
                             navBlockMode = navBlockMode,
                             uniformGrid = toolbarUniformGrid,
+                            keyScale = toolbarKeyScale,
                             onFullscreenChanged = onFullscreenChanged,
                         )
                     }

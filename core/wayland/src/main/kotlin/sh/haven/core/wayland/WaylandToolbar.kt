@@ -52,6 +52,8 @@ fun WaylandToolbar(
     layout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: NavBlockMode = NavBlockMode.ALIGNED,
     uniformGrid: Boolean = false,
+    /** Key scale from the shared toolbar_key_scale pref (#641). */
+    keyScale: Float = 1f,
     modifier: Modifier = Modifier,
 ) {
     var ctrlActive by remember { mutableStateOf(false) }
@@ -81,6 +83,7 @@ fun WaylandToolbar(
         layout = layout,
         navBlockMode = navBlockMode,
         uniformGrid = uniformGrid,
+        keyScale = keyScale,
         onToggleCtrl = {
             ctrlActive = !ctrlActive
             WaylandBridge.nativeSendKey(29, if (ctrlActive) 1 else 0)

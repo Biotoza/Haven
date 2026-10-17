@@ -419,6 +419,8 @@ fun HavenNavHost(
         .collectAsState(initial = sh.haven.core.data.preferences.NavBlockMode.ALIGNED)
     val toolbarUniformGrid by preferencesRepository.toolbarUniformGrid
         .collectAsState(initial = false)
+    val toolbarKeyScale by preferencesRepository.toolbarKeyScale
+        .collectAsState(initial = 1f)
     val editModeControlsPlacement by preferencesRepository.editModeControlsPlacement
         .collectAsState(initial = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT)
     val desktopKeyPlacement by preferencesRepository.desktopKeyPlacement
@@ -799,6 +801,7 @@ fun HavenNavHost(
                         toolbarLayout = toolbarLayout,
                         navBlockMode = navBlockMode,
                         toolbarUniformGrid = toolbarUniformGrid,
+                        toolbarKeyScale = toolbarKeyScale,
                         rdpChipAnchor = rdpChipAnchor,
                         onRdpChipAnchorChange = {
                             coroutineScope.launch { preferencesRepository.setRdpChipAnchor(it) }
