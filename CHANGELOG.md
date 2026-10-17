@@ -5,7 +5,7 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.44
 
 - **Fixed: a profile pinned to a FIDO2 security key (YubiKey) failed to connect with "no FidoAuthenticator configured" — #732.** The interactive SSH path wires the authenticator up, but the Mosh/Emergency Terminal bootstrap, the jump-host leg, and the headless connect paths (MCP `run_command`, the MCP tunnel carrier) build their own `SshClient` and missed it, so a SK-pinned profile could not connect there at all.
 - **Fixed: the #518 logging-guard test broke full unit-test builds ("Property has implicit dependency").** Declaring the guard's whole-tree inputs overlapped the native build tasks' outputs, which live under `src/` (`core/local/src/main/jniLibs`, `core/prns/src/main/jniLibs`, the haven-usb/wayvnc asset dirs); Gradle's validation failed any build that scheduled both. The guard's inputs are now scoped to the `.kt` files it actually reads — the stale-green protection (a scanned source change re-runs the guard) is unchanged.
