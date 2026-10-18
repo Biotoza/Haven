@@ -5,7 +5,7 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.45
 
 - **Per-connection session command for hosts the built-in tmux/screen command can't run on (#731).** The connection editor has a new *Session command (advanced)* field: it replaces the session-manager start command for that connection only, with `{name}` standing for the session name — e.g. `wsl -e sh -c "tmux new-session -A -s {name}"` for a Windows OpenSSH host, where the built-in POSIX command fails and the session silently drops to a plain shell. Blank keeps the global setting (Settings → Session persistence).
 - **The terminal now says why a session-manager attach dropped you into a plain shell (#731).** When tmux/screen (or zellij/byobu/herdr) is configured for a connection but its start command fails on the host — not installed, or a POSIX command on a Windows OpenSSH server — you used to land in a bare prompt with no explanation. After connecting, Haven checks the host for the named session and shows a banner naming the cause: the manager didn't start, or the session didn't attach. A slow-but-working attach is never flagged.
