@@ -268,6 +268,11 @@ fun KeyboardToolbar(
     altActive: Boolean = false,
     ctrlLocked: Boolean = false,
     altLocked: Boolean = false,
+    // Shift is hoisted like Ctrl/Alt so the swipe path can read it too
+    // (#736 lnav: Shift+swipe must modulate the step like Shift+arrow).
+    shiftActive: Boolean = false,
+    onToggleShift: () -> Unit = {},
+    onShiftUsed: () -> Unit = {},
     bracketPasteMode: Boolean = false,
     layout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
@@ -304,7 +309,6 @@ fun KeyboardToolbar(
     onDictateTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var shiftActive by remember { mutableStateOf(false) }
     val view = LocalView.current
     val imeVisible = WindowInsets.isImeVisible
 
@@ -323,8 +327,8 @@ fun KeyboardToolbar(
         onDispatchKey = onDispatchKey,
         onToggleCtrl = onToggleCtrl,
         onToggleAlt = onToggleAlt,
-        onToggleShift = { shiftActive = !shiftActive },
-        onShiftUsed = { shiftActive = false },
+        onToggleShift = onToggleShift,
+        onShiftUsed = onShiftUsed,
         bracketPasteMode = bracketPasteMode,
         clipboardManager = clipboardManager,
         onPaste = onPaste,

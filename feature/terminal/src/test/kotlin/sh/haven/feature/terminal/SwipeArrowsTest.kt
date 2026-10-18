@@ -62,4 +62,43 @@ class SwipeArrowsTest {
         assertFalse(pagerSwipeOwnedByArrows(latchedSwipeArrows = false, hasTab = true))
         assertFalse(pagerSwipeOwnedByArrows(latchedSwipeArrows = false, hasTab = false))
     }
+
+    /**
+     * #736 lnav: Shift+arrow reduces the scroll step, Shift+swipe did nothing
+     * because the swipe path never carried the toolbar's Shift. The bytes must
+     * match what the toolbar's arrow buttons send — libvterm encodes a
+     * modified cursor key as CSI 1;<mods+1><letter> in BOTH cursor modes
+     * (keyboard.c: mod != 0 falls through to case_CSI), so Shift+Up is
+     * ESC[1;2A whether or not DECCKM is set.
+     */
+    @Test
+    fun `shift swipe sends the modified-arrow form the arrow buttons send`() {
+        fun tail(bytes: ByteArray) = String(bytes.copyOfRange(1, bytes.size))
+        // Plain arrows keep their shipped forms.
+        assertEquals("[A", tail(arrowKeyBytes(up = true, appMode = false, shift = false)))
+        assertEquals("OA", tail(arrowKeyBytes(up = true, appMode = true, shift = false)))
+        // Shift folds into the CSI parameter, mods+1 = 2, in both modes.
+        assertEquals("[1;2A", tail(arrowKeyBytes(up = true, appMode = false, shift = true)))
+        assertEquals("[1;2B", tail(arrowKeyBytes(up = false, appMode = false, shift = true)))
+        assertEquals("[1;2A", tail(arrowKeyBytes(up = true, appMode = true, shift = true)))
+        assertEquals("[1;2C", tail(arrowKeyBytesFor(org.connectbot.terminal.SwipeHoldDirection.Right, appMode = false, shift = true)))
+        assertEquals("[1;2D", tail(arrowKeyBytesFor(org.connectbot.terminal.SwipeHoldDirection.Left, appMode = true, shift = true)))
+    }
+
+    /**
+     * #736 vim/htop: the per-swipe step ignored font size. The quantum is a
+     * multiple of one text line's height, so a bigger font needs proportionally
+     * more travel per arrow instead of flashing through history. At the
+     * default font size the shipped feel is unchanged.
+     */
+    @Test
+    fun `swipe quantum scales with font size and keeps the default feel`() {
+        assertEquals(SWIPE_ARROWS_SCROLL_QUANTUM, swipeArrowsQuantumMultiplier(14), 0.001f)
+        assertEquals(SWIPE_ARROWS_SCROLL_QUANTUM * 2f, swipeArrowsQuantumMultiplier(28), 0.001f)
+        // Half the default font halves the travel, but never below the
+        // content-scroll default — a sub-1 multiplier would make scrolling
+        // twitchier than plain content scroll (termlib clamps it anyway).
+        assertEquals(SWIPE_ARROWS_SCROLL_QUANTUM / 2f, swipeArrowsQuantumMultiplier(7), 0.001f)
+        assertTrue(swipeArrowsQuantumMultiplier(4) >= 1f)
+    }
 }

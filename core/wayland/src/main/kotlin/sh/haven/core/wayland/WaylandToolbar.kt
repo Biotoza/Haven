@@ -58,6 +58,7 @@ fun WaylandToolbar(
 ) {
     var ctrlActive by remember { mutableStateOf(false) }
     var altActive by remember { mutableStateOf(false) }
+    var shiftActive by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
     KeyboardToolbar(
@@ -92,6 +93,12 @@ fun WaylandToolbar(
             altActive = !altActive
             WaylandBridge.nativeSendKey(56, if (altActive) 1 else 0)
         },
+        // State-only latch, same as before the hoist: the Wayland dispatch
+        // path ignores mods, so Shift here only drives the button highlight
+        // and the Tab key's Shift+Tab byte (#184).
+        shiftActive = shiftActive,
+        onToggleShift = { shiftActive = !shiftActive },
+        onShiftUsed = { shiftActive = false },
         onPaste = { text ->
             // Type each character as evdev key events into the compositor
             text.forEach { ch -> sendCharAsEvdev(ch) }

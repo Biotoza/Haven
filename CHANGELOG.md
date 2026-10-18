@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **Shift+swipe now sends the modified arrow, like Shift+arrow (#736).** The swipe-to-arrows path never saw the toolbar's Shift latch, so apps that change behaviour on Shift+arrow (lnav's smaller horizontal step) ignored Shift+swipe. A swipe with Shift lit now sends exactly what the Shift+arrow button sends (`ESC[1;2A` and friends), including during hold-to-repeat.
+- **The swipe step scales with font size (#736).** The per-arrow travel was a fixed distance, so a large font flashed through history far faster per swipe than a small one. The travel now grows with the font, keeping one arrow a constant fraction of a screenful; at the default font size the feel is unchanged.
+
 ## v5.89.45
 
 - **Per-connection session command for hosts the built-in tmux/screen command can't run on (#731).** The connection editor has a new *Session command (advanced)* field: it replaces the session-manager start command for that connection only, with `{name}` standing for the session name — e.g. `wsl -e sh -c "tmux new-session -A -s {name}"` for a Windows OpenSSH host, where the built-in POSIX command fails and the session silently drops to a plain shell. Blank keeps the global setting (Settings → Session persistence).
