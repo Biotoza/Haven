@@ -277,6 +277,13 @@ data class TerminalTab(
      *  tab strip uses it to let the user's multiplexer labelling win over
      *  program-set OSC titles when that preference is on. */
     val multiplexerName: String? = null,
+    /** Wall-clock ms when this tab was first created. Reconcile passes carry
+     *  existing tabs across by copy(), so this records the original open
+     *  time, not the last sync's. #728: a session's natural death (exit /
+     *  transport drop) bounces back to Connect only if it had been open
+     *  longer than [TerminalViewModel.naturalEmptyBounceMinMs] — a connect
+     *  that fails right away stays put (the #208 flicker). */
+    val openedAtMs: Long = System.currentTimeMillis(),
 )
 
 /** VNC connection info for the active terminal's host. */
@@ -805,6 +812,12 @@ class TerminalViewModel @Inject constructor(
             }
         }
     }
+
+    /** #728: how long a session must have been open before its natural death
+     *  (exit / transport drop) bounces the user back to Connect when it was
+     *  the last tab. Explicit closes bounce unconditionally at their own
+     *  call sites. Internal so tests can pin it deterministically. */
+    internal var naturalEmptyBounceMinMs = 5_000L
 
     /** Emitted once when a session closes and no tabs remain. */
     private val _navigateToConnections = MutableStateFlow(false)
@@ -2227,9 +2240,23 @@ class TerminalViewModel @Inject constructor(
             old.transportType != "SSH" && currentTabs.none { it.sessionId == old.sessionId }
         }
 
+        // #728: the last tab emptied on its own (session exited / transport
+        // dropped — explicit closes bounce at their own call sites, and this
+        // path deliberately excludes them). Return to Connect only when the
+        // dying tab had actually been up for a moment: a connect that fails
+        // right away stays on Terminal so the error is visible, matching the
+        // #208 flicker fix that removed the unconditional death-bounce. The
+        // dying tab is the most recently opened of the ones being removed.
+        val dyingTab = _tabs.value.maxByOrNull { it.openedAtMs }
+        val bouncedOnNaturalEmpty = currentTabs.isEmpty() &&
+            _tabs.value.isNotEmpty() &&
+            dyingTab != null &&
+            System.currentTimeMillis() - dyingTab.openedAtMs >= naturalEmptyBounceMinMs
+
         _tabs.value = currentTabs
 
         if (currentTabs.isEmpty()) resetModifiers()
+        if (bouncedOnNaturalEmpty) _navigateToConnections.value = true
 
         droppedTabs.forEach { tab ->
             runCatching { tab.emulator.close() }

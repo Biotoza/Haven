@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **Closing the last tab's session on its own now returns you to Connect (#728).** When the last terminal session ended by itself — you typed `exit`, or the transport dropped — the app stayed on an empty Terminal screen. It now returns to the Connections list, like closing the last tab by hand does. A connection that fails right after starting still stays put so you can read the error, which is the flicker the earlier fix removed: the bounce only fires once the session had actually been up for a moment.
+
 ## v5.89.44
 
 - **Fixed: a profile pinned to a FIDO2 security key (YubiKey) failed to connect with "no FidoAuthenticator configured" — #732.** The interactive SSH path wires the authenticator up, but the Mosh/Emergency Terminal bootstrap, the jump-host leg, and the headless connect paths (MCP `run_command`, the MCP tunnel carrier) build their own `SshClient` and missed it, so a SK-pinned profile could not connect there at all.
