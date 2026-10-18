@@ -4006,7 +4006,8 @@ class ConnectionsViewModel @Inject constructor(
                     } else {
                         SessionManager.NONE
                     }
-                    val cmdOverride = preferencesRepository.sessionCommandOverride.first()
+                    val cmdOverride = profile.sessionCommandOverride?.takeIf { it.isNotBlank() }
+                    ?: preferencesRepository.sessionCommandOverride.first()
                     if (reuseClient != null) {
                         // Reuse path: the SSH connection is already up, so no
                         // dial, auth, host-key check or reconnect provider — the
@@ -5922,7 +5923,8 @@ class ConnectionsViewModel @Inject constructor(
                 } else {
                     SessionManager.NONE
                 }
-                val cmdOverride = preferencesRepository.sessionCommandOverride.first()
+                val cmdOverride = profile?.sessionCommandOverride?.takeIf { it.isNotBlank() }
+                    ?: preferencesRepository.sessionCommandOverride.first()
                 val config = session.connectionConfig
                 if (config != null) {
                     sshSessionManager.storeConnectionConfig(session.sessionId, config, sshSessionMgr, cmdOverride, profile?.postLoginCommand, profile?.postLoginBeforeSessionManager ?: false)
@@ -6496,7 +6498,8 @@ class ConnectionsViewModel @Inject constructor(
                 } else {
                     SessionManager.NONE
                 }
-                val cmdOverride = preferencesRepository.sessionCommandOverride.first()
+                val cmdOverride = profile.sessionCommandOverride?.takeIf { it.isNotBlank() }
+                    ?: preferencesRepository.sessionCommandOverride.first()
                 sshSessionManager.storeConnectionConfig(sessionId, config, sshSessionMgr, cmdOverride, profile.postLoginCommand, profile.postLoginBeforeSessionManager)
             }
 

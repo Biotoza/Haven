@@ -388,6 +388,7 @@ fun ConnectionEditDialog(
     var postLoginBeforeSessionManager by rememberSaveable { mutableStateOf(existing?.postLoginBeforeSessionManager ?: true) }
     var remoteCommand by rememberSaveable { mutableStateOf(existing?.remoteCommand ?: "") }
     var requestPty by rememberSaveable { mutableStateOf(existing?.requestPty ?: true) }
+    var sessionCommandOverride by rememberSaveable { mutableStateOf(existing?.sessionCommandOverride ?: "") }
     // USB/IP auto-forward: VID:PID of a phone device to export on connect (null = off).
     var usbForwardVidPid by rememberSaveable { mutableStateOf(existing?.usbForwardVidPid) }
     var disableAltScreen by rememberSaveable { mutableStateOf(existing?.disableAltScreen ?: false) }
@@ -2817,6 +2818,22 @@ fun ConnectionEditDialog(
                                 onCheckedChange = { requestPty = it },
                             )
                         }
+
+                        // Per-connection session-manager command (#731): the
+                        // built-in tmux/zellij/screen templates are POSIX
+                        // shell, which a Windows OpenSSH server cannot parse.
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = sessionCommandOverride,
+                            onValueChange = { sessionCommandOverride = it },
+                            label = { Text(stringResource(R.string.connections_field_session_command)) },
+                            placeholder = { Text("wsl -e sh -c \"tmux new-session -A -s {name}\"") },
+                            supportingText = { Text(stringResource(R.string.connections_helper_session_command)) },
+                            singleLine = false,
+                            minLines = 1,
+                            maxLines = 3,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
 
                     // USB/IP device forwarding (SSH) — export a phone-attached USB
@@ -4028,6 +4045,7 @@ fun ConnectionEditDialog(
                             postLoginBeforeSessionManager = postLoginBeforeSessionManager,
                             remoteCommand = remoteCommand.ifBlank { null },
                             requestPty = requestPty,
+                            sessionCommandOverride = sessionCommandOverride.ifBlank { null },
                             usbForwardVidPid = usbForwardVidPid,
                             disableAltScreen = disableAltScreen,
                             terminalColorScheme = terminalColorScheme,

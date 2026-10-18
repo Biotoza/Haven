@@ -11418,6 +11418,46 @@
      }
     },
     {
+     "name": "connections_field_session_command",
+     "en": "Session command (advanced)",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "أمر الجلسة (متقدم)",
+      "bn": "সেশন কমান্ড (উন্নত)",
+      "de": "Sitzungsbefehl (erweitert)",
+      "es": "Comando de sesión (avanzado)",
+      "fr": "Commande de session (avancé)",
+      "hi": "सत्र कमांड (उन्नत)",
+      "ja": "セッションコマンド（詳細）",
+      "ko": "세션 명령(고급)",
+      "pt": "Comando de sessão (avançado)",
+      "ru": "Команда сессии (расширенно)",
+      "sr": "Команда сесије (напредно)",
+      "zh": "会话命令（高级）"
+     }
+    },
+    {
+     "name": "connections_helper_session_command",
+     "en": "Replaces the session-manager start command for this connection only. {name} becomes the session name. Use it when the built-in tmux/screen command cannot run, e.g. a Windows host: wsl -e sh -c \"tmux new-session -A -s {name}\". Blank uses the global setting.",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "يستبدل أمر بدء مدير الجلسات لهذا الاتصال فقط. يصبح {name} اسم الجلسة. استخدمه عندما لا يمكن تنفيذ أمر tmux/screen المدمج، مثل مضيف Windows: wsl -e sh -c \"tmux new-session -A -s {name}\". تركه فارغًا يستخدم الإعداد العام.",
+      "bn": "শুধু এই সংযোগের জন্য সেশন ম্যানেজারের শুরুর কমান্ড প্রতিস্থাপন করে। {name} সেশনের নাম হয়ে যায়। বিল্ট-ইন tmux/screen কমান্ড চলতে না পারলে ব্যবহার করুন, যেমন Windows হোস্ট: wsl -e sh -c \"tmux new-session -A -s {name}\"। খালি রাখলে গ্লোবাল সেটিং ব্যবহৃত হয়।",
+      "de": "Ersetzt den Startbefehl des Sitzungsmanagers nur für diese Verbindung. {name} wird durch den Sitzungsnamen ersetzt. Nutzen, wenn der integrierte tmux/screen-Befehl nicht laufen kann, z. B. Windows-Host: wsl -e sh -c \"tmux new-session -A -s {name}\". Leer nutzt die globale Einstellung.",
+      "es": "Reemplaza el comando de inicio del gestor de sesiones solo para esta conexión. {name} pasa a ser el nombre de la sesión. Úsalo cuando el comando tmux/screen integrado no pueda ejecutarse, p. ej. un host Windows: wsl -e sh -c \"tmux new-session -A -s {name}\". En blanco usa la configuración global.",
+      "fr": "Remplace la commande de démarrage du gestionnaire de sessions pour cette connexion uniquement. {name} devient le nom de session. À utiliser quand la commande tmux/screen intégrée échoue, par ex. hôte Windows : wsl -e sh -c \"tmux new-session -A -s {name}\". Laisser vide utilise le réglage global.",
+      "hi": "केवल इस कनेक्शन के लिए सत्र प्रबंधक का प्रारंभ कमांड बदल देता है। {name} सत्र का नाम बन जाता है। जब अंतर्निहित tmux/screen कमांड नहीं चल सकता तब इसका उपयोग करें, जैसे Windows होस्ट: wsl -e sh -c \"tmux new-session -A -s {name}\"। खाली रखने पर वैश्विक सेटिंग लागू होती है।",
+      "ja": "この接続に限りセッションマネージャーの起動コマンドを置き換えます。{name} はセッション名になります。組み込みの tmux/screen コマンドが実行できない場合（Windows ホストなど）に使用: wsl -e sh -c \"tmux new-session -A -s {name}\"。空欄ならグローバル設定を使用します。",
+      "ko": "이 연결에 대해서만 세션 관리자 시작 명령을 대체합니다. {name}은 세션 이름이 됩니다. 내장 tmux/screen 명령을 실행할 수 없을 때 사용하세요(예: Windows 호스트): wsl -e sh -c \"tmux new-session -A -s {name}\". 비워 두면 전역 설정을 사용합니다.",
+      "pt": "Substitui o comando de início do gerenciador de sessões apenas para esta conexão. {name} vira o nome da sessão. Use quando o comando tmux/screen embutido não puder executar, por exemplo um host Windows: wsl -e sh -c \"tmux new-session -A -s {name}\". Em branco usa a configuração global.",
+      "ru": "Заменяет команду запуска менеджера сессий только для этого подключения. {name} становится именем сессии. Используйте, когда встроенная команда tmux/screen не может выполниться, например на Windows-хосте: wsl -e sh -c \"tmux new-session -A -s {name}\". Пусто — используется глобальная настройка.",
+      "sr": "Замењује команду за покретање менаџера сесија само за ову везу. {name} постаје име сесије. Користите када уграђена tmux/screen команда не може да се изврши, нпр. Windows домаћин: wsl -e sh -c \\\"tmux new-session -A -s {name}\\\". Ако је празно, користи се глобално подешавање.",
+      "zh": "仅对此连接替换会话管理器的启动命令。{name} 会替换为会话名。当内置的 tmux/screen 命令无法运行时使用，例如 Windows 主机：wsl -e sh -c \"tmux new-session -A -s {name}\"。留空则使用全局设置。"
+     }
+    },
+    {
      "name": "connections_toggle_request_pty",
      "en": "Request terminal (PTY)",
      "comment": "Group header",

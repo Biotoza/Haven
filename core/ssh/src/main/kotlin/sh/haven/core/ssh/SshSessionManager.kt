@@ -1659,8 +1659,11 @@ class SshSessionManager @Inject constructor(
         val rawName = session?.chosenSessionName
             ?: session?.label ?: sessionId.take(8)
         val sessionName = SessionManager.sanitizeSessionName(rawName)
-        // User override replaces the built-in command template
-        val override = session?.sessionCommandOverride
+        // User override replaces the built-in command template. A blank
+        // override is treated as absent: the field is cleared from the profile
+        // editor by emptying the text box, and a stray blank must not swallow
+        // the manager command entirely.
+        val override = session?.sessionCommandOverride?.takeIf { it.isNotBlank() }
         if (!override.isNullOrBlank()) {
             return override.replace("{name}", sessionName)
         }
