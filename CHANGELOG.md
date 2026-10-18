@@ -7,6 +7,7 @@ compare link is appended automatically — don't add it here.
 
 ## Unreleased
 
+- **A missing security key no longer hangs an agent-forwarded SSH session (#732).** With agent forwarding on, a remote host asking Haven to sign with a FIDO2 key you weren't carrying blocked the whole connection until the server gave up, which read as a hang. A forwarded sign request for a key that isn't connected (and can't be tapped) now fails that one request immediately, so the connection carries on with your other keys; any key wait is also now capped at 60 seconds instead of waiting forever.
 - **Closing the last tab's session on its own now returns you to Connect (#728).** When the last terminal session ended by itself — you typed `exit`, or the transport dropped — the app stayed on an empty Terminal screen. It now returns to the Connections list, like closing the last tab by hand does. A connection that fails right after starting still stays put so you can read the error, which is the flicker the earlier fix removed: the bounce only fires once the session had actually been up for a moment.
 
 ## v5.89.44
