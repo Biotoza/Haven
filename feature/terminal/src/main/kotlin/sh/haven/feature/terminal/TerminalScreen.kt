@@ -129,6 +129,7 @@ import sh.haven.core.terminal.defaultKeyboardModeForDevice
 import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.ssh.SessionAttachNotice
 import sh.haven.core.ssh.SessionManager
 
 /** Horizontal padding on the tab strip. */
@@ -2042,10 +2043,17 @@ fun TerminalScreen(
                             )
                         }
 
-                        StallBanner(
-                            stallFlow = activeTab.stallSeconds,
+                        // Top-center banner stack: the stall countdown (Mosh)
+                        // and the session-manager attach notice (#731, SSH).
+                        // Mutually exclusive in practice (different transports)
+                        // but stacked in a Column so they never overlap.
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.align(Alignment.TopCenter),
-                        )
+                        ) {
+                            StallBanner(stallFlow = activeTab.stallSeconds)
+                            AttachNoticeBanner(noticeFlow = activeTab.attachNotice)
+                        }
 
                         // Fullscreen toggle (#138). Small low-opacity overlay in
                         // a corner (default top-right; the TopCenter slot is the
@@ -2718,6 +2726,60 @@ private fun StallBanner(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.terminal_no_contact, s),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Top-aligned banner shown over an SSH terminal when the shell came up but
+ * the configured session manager didn't (#731): the start command we typed
+ * into the PTY failed silently (tmux/screen not installed, or a POSIX
+ * one-liner through cmd.exe on a Windows host) and the user landed in a
+ * plain login shell. Names the cause instead of leaving it unexplained.
+ * Hidden when the flow is null (healthy attach or non-SSH tab).
+ */
+@Composable
+private fun AttachNoticeBanner(
+    noticeFlow: kotlinx.coroutines.flow.StateFlow<SessionAttachNotice?>,
+    modifier: Modifier = Modifier,
+) {
+    val notice by noticeFlow.collectAsState()
+    AnimatedVisibility(
+        visible = notice != null,
+        enter = fadeIn() + slideInVertically { -it },
+        exit = fadeOut() + slideOutVertically { -it },
+        modifier = modifier,
+    ) {
+        val n = notice ?: return@AnimatedVisibility
+        val text = when (n) {
+            is SessionAttachNotice.ManagerUnavailable ->
+                stringResource(R.string.terminal_attach_notice_unavailable, n.manager.label)
+            is SessionAttachNotice.SessionMissing ->
+                stringResource(R.string.terminal_attach_notice_missing, n.manager.label, n.sessionName)
+        }
+        Surface(
+            color = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            shape = MaterialTheme.shapes.small,
+            tonalElevation = 4.dp,
+            shadowElevation = 4.dp,
+            modifier = Modifier.padding(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = text,
                     style = MaterialTheme.typography.labelMedium,
                 )
             }

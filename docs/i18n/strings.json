@@ -43179,6 +43179,51 @@
      }
     },
     {
+     "name": "terminal_attach_notice_unavailable",
+     "en": "Session manager %1$s did not start — you are in a plain shell. Check it is installed on the host, or set a Session command in the connection editor (advanced).",
+     "comment": "Tab bar",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "لم يبدأ مدير الجلسات %1$s — أنت في صدفة عادية. تحقق من أنه مثبّت على المضيف، أو اضبط أمر الجلسة في محرر الاتصال (متقدم).",
+      "bn": "সেশন ম্যানেজার %1$s শুরু হয়নি — আপনি একটি সাধারণ শেলে আছেন। হোস্টে ইনস্টল আছে কিনা দেখুন, অথবা সংযোগ এডিটরে (উন্নত) সেশন কমান্ড সেট করুন।",
+      "de": "Sitzungsmanager %1$s wurde nicht gestartet — du befindest dich in einer normalen Shell. Prüfe, ob er auf dem Host installiert ist, oder setze einen Sitzungsbefehl im Verbindungseditor (erweitert).",
+      "es": "El gestor de sesiones %1$s no se inició — estás en un shell normal. Comprueba que está instalado en el host, o define un Comando de sesión en el editor de conexiones (avanzado).",
+      "fr": "Le gestionnaire de sessions %1$s n’a pas démarré — vous êtes dans un shell simple. Vérifiez qu’il est installé sur l’hôte, ou définissez une Commande de session dans l’éditeur de connexion (avancé).",
+      "hi": "सत्र प्रबंधक %1$s शुरू नहीं हुआ — आप एक साधारण शेल में हैं। जाँचें कि होस्ट पर यह इंस्टॉल है, या कनेक्शन संपादक (उन्नत) में सत्र कमांड सेट करें।",
+      "ja": "セッションマネージャー %1$s が起動しませんでした — 通常のシェルに表示されています。ホストにインストールされているか確認するか、接続エディタ（詳細）でセッションコマンドを設定してください。",
+      "ko": "세션 관리자 %1$s(이)가 시작되지 않았습니다 — 일반 셸에 있습니다. 호스트에 설치되어 있는지 확인하거나 연결 편집기(고급)에서 세션 명령을 설정하세요.",
+      "pt": "O gerenciador de sessões %1$s não iniciou — você está em um shell simples. Verifique se está instalado no host, ou defina um Comando de sessão no editor de conexões (avançado).",
+      "ru": "Менеджер сессий %1$s не запущен — вы в обычной оболочке. Проверьте, что он установлен на хосте, или задайте Команду сессии в редакторе подключения (расширенно).",
+      "sr": "Менаџер сесија %1$s није покренут — налазите се у обичној шкољци. Проверите да ли је инсталиран на домаћину, или поставите Команду сесије у уређивачу везе (напредно).",
+      "zh": "会话管理器 %1$s 未启动 — 当前位于普通 shell。请确认主机上已安装它，或在连接编辑器（高级）中设置会话命令。"
+     }
+    },
+    {
+     "name": "terminal_attach_notice_missing",
+     "en": "%1$s session \"%2$s\" did not attach — you are in a plain shell. Check the start command, or set a Session command in the connection editor (advanced).",
+     "comment": "Tab bar",
+     "args": [
+      "%1$s",
+      "%2$s"
+     ],
+     "t": {
+      "ar": "لم تُرفق جلسة %1$s \"%2$s\" — أنت في صدفة عادية. تحقق من أمر البدء، أو اضبط أمر الجلسة في محرر الاتصال (متقدم).",
+      "bn": "%1$s সেশন \"%2$s\" সংযুক্ত হয়নি — আপনি একটি সাধারণ শেলে আছেন। শুরুর কমান্ড দেখুন, অথবা সংযোগ এডিটরে (উন্নত) সেশন কমান্ড সেট করুন।",
+      "de": "Sitzung \"%2$s\" von %1$s wurde nicht angefügt — du befindest dich in einer normalen Shell. Prüfe den Startbefehl oder setze einen Sitzungsbefehl im Verbindungseditor (erweitert).",
+      "es": "La sesión \"%2$s\" de %1$s no se adjuntó — estás en un shell normal. Comprueba el comando de inicio, o define un Comando de sesión en el editor de conexiones (avanzado).",
+      "fr": "La session \"%2$s\" de %1$s ne s’est pas attachée — vous êtes dans un shell simple. Vérifiez la commande de démarrage, ou définissez une Commande de session dans l’éditeur de connexion (avancé).",
+      "hi": "%1$s सत्र \"%2$s\" attach नहीं हुआ — आप एक साधारण शेल में हैं। प्रारंभ कमांड जाँचें, या कनेक्शन संपादक (उन्नत) में सत्र कमांड सेट करें।",
+      "ja": "%1$s セッション \"%2$s\" にアタッチできませんでした — 通常のシェルに表示されています。起動コマンドを確認するか、接続エディタ（詳細）でセッションコマンドを設定してください。",
+      "ko": "%1$s 세션 \"%2$s\"에 연결되지 않았습니다 — 일반 셸에 있습니다. 시작 명령을 확인하거나 연결 편집기(고급)에서 세션 명령을 설정하세요.",
+      "pt": "A sessão \"%2$s\" de %1$s não anexou — você está em um shell simples. Verifique o comando de início, ou defina um Comando de sessão no editor de conexões (avançado).",
+      "ru": "Сессия \"%2$s\" менеджера %1$s не подключилась — вы в обычной оболочке. Проверьте команду запуска или задайте Команду сессии в редакторе подключения (расширенно).",
+      "sr": "Сесија \"%2$s\" менаџера %1$s није придружена — налазите се у обичној шкољци. Проверите команду покретања или поставите Команду сесије у уређивачу везе (напредно).",
+      "zh": "%1$s 会话 \"%2$s\" 未附加 — 当前位于普通 shell。请检查启动命令，或在连接编辑器（高级）中设置会话命令。"
+     }
+    },
+    {
      "name": "terminal_sessions",
      "en": "Sessions",
      "comment": "Tab bar",

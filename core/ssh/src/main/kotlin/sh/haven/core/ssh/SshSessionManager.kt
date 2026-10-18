@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -61,6 +62,29 @@ sealed interface ShellOutcome {
     /** Opening the shell threw, or the channel dropped during connect. */
     data class Failed(override val sessionId: String, val reason: String) : ShellOutcome
 }
+
+/**
+ * Why a session-manager attach came up as a plain shell instead of the
+ * named tmux/screen/etc. session. The shell itself is healthy ([ShellOutcome.Ready])
+ * — the manager command we typed into it silently failed, so the user lands
+ * in a bare prompt with no explanation. The post-attach probe (#731) names
+ * the cause so the terminal can say so instead.
+ */
+sealed interface SessionAttachNotice {
+    val sessionId: String
+    /** The manager's list command exited non-zero — most often the binary
+     *  isn't installed (or can't run under the host's default shell, e.g.
+     *  tmux on a Windows OpenSSH server). */
+    data class ManagerUnavailable(override val sessionId: String, val manager: SessionManager) : SessionAttachNotice
+    /** The manager answered but the session we asked to attach/create is
+     *  not in its list — the start command failed after login. */
+    data class SessionMissing(override val sessionId: String, val manager: SessionManager, val sessionName: String) : SessionAttachNotice
+}
+
+/** Grace before the first post-attach probe. The manager command is typed
+ *  into the PTY asynchronously, so the named session may not be listed yet
+ *  even though the attach will succeed. */
+private const val ATTACH_PROBE_GRACE_MS = 1200L
 
 /**
  * A terminal emulator wired to a freshly-created [TerminalSession] at connect
@@ -229,6 +253,27 @@ class SshSessionManager @Inject constructor(
      * stays unchanged for unrelated consumers.
      */
     private val agentScrollback = ConcurrentHashMap<String, ScrollbackRing>()
+
+    /**
+     * Post-attach session-manager verification notices (#731), keyed by
+     * sessionId. Non-null means the shell came up but the session manager
+     * didn't (not installed / start command failed) — the terminal shows a
+     * banner naming the cause instead of dropping the user into a bare
+     * prompt. Same separate-map rationale as [agentScrollback]: keeps
+     * [SessionState]'s shape stable for unrelated consumers. Dropped in
+     * [removeSession].
+     */
+    private val sessionNotices = ConcurrentHashMap<String, MutableStateFlow<SessionAttachNotice?>>()
+
+    /** Flow of the attach notice for [sessionId] (null = attach looked
+     *  healthy). Created on first access so tabs opened before the probe
+     *  finished still observe the result. */
+    fun attachNoticeFlow(sessionId: String): StateFlow<SessionAttachNotice?> =
+        sessionNotices.getOrPut(sessionId) { MutableStateFlow(null) }
+
+    private fun publishAttachNotice(sessionId: String, notice: SessionAttachNotice?) {
+        sessionNotices.getOrPut(sessionId) { MutableStateFlow(null) }.value = notice
+    }
 
     /**
      * Live tunnel leases, keyed by leaseId. A lease ties a tunnel-dependent
@@ -532,10 +577,71 @@ class SshSessionManager @Inject constructor(
                 updateStatus(sessionId, SessionState.Status.ERROR)
                 signalled
             }
-            channel.isConnected -> ShellOutcome.Ready(sessionId)
+            channel.isConnected -> {
+                verifySessionManagerAttached(sessionId)
+                ShellOutcome.Ready(sessionId)
+            }
             else -> {
                 updateStatus(sessionId, SessionState.Status.ERROR)
                 ShellOutcome.ShellClosed(sessionId, channel.exitStatus)
+            }
+        }
+    }
+
+    /**
+     * After a Ready shell, check that the session manager actually came up.
+     * The manager start command is typed into the PTY asynchronously, so a
+     * silent failure (tmux not installed, POSIX one-liner through cmd.exe on
+     * a Windows host) leaves the user in a plain login shell with no error
+     * (#731). Exec the manager's list command over the same channel the
+     * picker uses and publish a [SessionAttachNotice] when the named session
+     * isn't there. Runs off the connect path (the banner appears a beat
+     * later); retries once after a grace so a slow-but-working attach is
+     * never reported as failed.
+     */
+    internal fun verifySessionManagerAttached(sessionId: String, graceMs: Long = ATTACH_PROBE_GRACE_MS) {
+        val session = _sessions.value[sessionId] ?: return
+        val manager = session.sessionManager
+        if (manager == SessionManager.NONE || session.bypassSessionManager) return
+        val listCommand = manager.listCommand ?: return
+        val rawName = session.chosenSessionName ?: session.label ?: sessionId.take(8)
+        val expected = SessionManager.sanitizeSessionName(rawName)
+        // A fresh attach attempt clears any notice from a previous one (e.g.
+        // a reconnect after the host got tmux installed) so a stale banner
+        // can't outlive the attach it described.
+        publishAttachNotice(sessionId, null)
+        logScope.launch {
+            delay(graceMs)
+            var listed: List<String>?
+            var unavailable = false
+            try {
+                val r = session.client.execCommand(listCommand)
+                unavailable = r.exitStatus != 0
+                listed = if (!unavailable) SessionManager.parseSessionList(manager, r.stdout) else null
+            } catch (e: Exception) {
+                Log.d(TAG, "attach probe failed for $sessionId: ${e.message}")
+                return@launch
+            }
+            if (unavailable) {
+                if (_sessions.value.containsKey(sessionId))
+                    publishAttachNotice(sessionId, SessionAttachNotice.ManagerUnavailable(sessionId, manager))
+                return@launch
+            }
+            if (listed?.contains(expected) == true) return@launch
+            // Absent on the first pass — give the start command one more
+            // grace window before declaring the attach failed.
+            delay(graceMs)
+            try {
+                val r = session.client.execCommand(listCommand)
+                if (r.exitStatus != 0) {
+                    if (_sessions.value.containsKey(sessionId))
+                        publishAttachNotice(sessionId, SessionAttachNotice.ManagerUnavailable(sessionId, manager))
+                } else if (!SessionManager.parseSessionList(manager, r.stdout).contains(expected)) {
+                    if (_sessions.value.containsKey(sessionId))
+                        publishAttachNotice(sessionId, SessionAttachNotice.SessionMissing(sessionId, manager, expected))
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "attach-probe retry failed for $sessionId: ${e.message}")
             }
         }
     }
@@ -1078,6 +1184,7 @@ class SshSessionManager @Inject constructor(
         agentScrollback.remove(sessionId)
         reconnectProxyProviders.remove(sessionId)
         reconnectHooks.remove(sessionId)
+        sessionNotices.remove(sessionId)
         // Fire any tunnel leases riding on this session so their dependents
         // (VNC/RDP tabs) tear themselves down. Single-shot per lease; runs on
         // the caller thread (the consumer re-dispatches to its own scope).

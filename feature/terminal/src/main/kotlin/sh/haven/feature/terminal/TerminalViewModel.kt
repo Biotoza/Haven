@@ -27,6 +27,7 @@ import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.SessionManager
 import sh.haven.core.ssh.SshClient
 import sh.haven.core.ssh.OpenKeychainClientFactory
+import sh.haven.core.ssh.SessionAttachNotice
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshSessionManager.SessionState
 import sh.haven.core.et.EtSessionManager
@@ -49,6 +50,9 @@ private const val SESSION_MANAGER_DETACH_DELAY_MS = 300L
 
 /** Sentinel for transports that don't report a stall countdown. */
 private val NEVER_STALLS: StateFlow<Int?> = MutableStateFlow(null)
+
+/** Sentinel for tabs with no session-manager attach to verify (#731). */
+private val NO_ATTACH_NOTICE: StateFlow<SessionAttachNotice?> = MutableStateFlow(null)
 
 /** Main-thread handler for posting emulator writes. */
 private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -277,6 +281,11 @@ data class TerminalTab(
      *  tab strip uses it to let the user's multiplexer labelling win over
      *  program-set OSC titles when that preference is on. */
     val multiplexerName: String? = null,
+    /** Post-attach session-manager verification result (#731). Non-null when
+     *  the shell came up but the session manager didn't (not installed / the
+     *  start command failed), so the terminal can say why the user landed in
+     *  a plain prompt. Null for healthy attaches and non-SSH tabs. */
+    val attachNotice: StateFlow<SessionAttachNotice?> = NO_ATTACH_NOTICE,
     /** Wall-clock ms when this tab was first created. Reconcile passes carry
      *  existing tabs across by copy(), so this records the original open
      *  time, not the last sync's. #728: a session's natural death (exit /
@@ -1665,6 +1674,7 @@ class TerminalViewModel @Inject constructor(
                     colorScheme = effectiveColorScheme(sshProfile),
                     backgroundOpacity = effectiveOpacity(sshProfile),
                     multiplexerName = session.chosenSessionName,
+                    attachNotice = sessionManager.attachNoticeFlow(sessionId),
                 )
             )
             trackedSessionIds.add(sessionId)
