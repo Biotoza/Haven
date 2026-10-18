@@ -5,7 +5,7 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.46
 
 - **Shift+swipe now sends the modified arrow, like Shift+arrow (#736).** The swipe-to-arrows path never saw the toolbar's Shift latch, so apps that change behaviour on Shift+arrow (lnav's smaller horizontal step) ignored Shift+swipe. A swipe with Shift lit now sends exactly what the Shift+arrow button sends (`ESC[1;2A` and friends), including during hold-to-repeat.
 - **The swipe step scales with font size (#736).** The per-arrow travel was a fixed distance, so a large font flashed through history far faster per swipe than a small one. The travel now grows with the font, keeping one arrow a constant fraction of a screenful; at the default font size the feel is unchanged.
