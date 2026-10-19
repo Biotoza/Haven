@@ -2073,7 +2073,10 @@ fun TerminalScreen(
                             modifier = Modifier.align(Alignment.TopCenter),
                         ) {
                             StallBanner(stallFlow = activeTab.stallSeconds)
-                            AttachNoticeBanner(noticeFlow = activeTab.attachNotice)
+                            AttachNoticeBanner(
+                                noticeFlow = activeTab.attachNotice,
+                                onDismiss = { viewModel.dismissAttachNotice(activeTab.sessionId) },
+                            )
                         }
 
                         // Fullscreen toggle (#138). Small low-opacity overlay in
@@ -2827,6 +2830,7 @@ private fun StallBanner(
 @Composable
 private fun AttachNoticeBanner(
     noticeFlow: kotlinx.coroutines.flow.StateFlow<SessionAttachNotice?>,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val notice by noticeFlow.collectAsState()
@@ -2865,6 +2869,19 @@ private fun AttachNoticeBanner(
                     text = text,
                     style = MaterialTheme.typography.labelMedium,
                 )
+                // The banner has no auto-dismiss; without this the notice only
+                // cleared on re-attach or session removal, so it could not be
+                // gotten rid of (#731 follow-up).
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.terminal_attach_notice_dismiss),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
     }

@@ -113,6 +113,40 @@ class SshSessionManagerAttachProbeTest {
     }
 
     @Test
+    fun `no probe when a custom session command replaces the start template`() = runBlocking {
+        // #731 follow-up: the reporter's custom `tmux new-session -A -s {name}`
+        // attached fine on a Windows OpenSSH host, but the POSIX list probe
+        // fails through cmd/PowerShell and false-positived the banner. With an
+        // override the built-in list command can't verify the attach, so the
+        // probe must not run at all.
+        val mgr = newManager()
+        val client = mockk<SshClient>(relaxed = true)
+        coEvery { client.execCommand(any()) } returns ExecResult(exitStatus = 1, stdout = "", stderr = "tmux: command not found")
+        val sessionId = mgr.registerSession("p1", "work", client)
+        mgr.storeConnectionConfig(sessionId, config(), SessionManager.TMUX, sessionCommandOverride = "tmux new-session -A -s {name}")
+
+        mgr.verifySessionManagerAttached(sessionId, graceMs = 0)
+
+        Thread.sleep(200)
+        assertNull("custom command must suppress the unverifiable probe", mgr.attachNoticeFlow(sessionId).value)
+        coVerify(exactly = 0) { client.execCommand(any()) }
+    }
+
+    @Test
+    fun `dismissAttachNotice clears a raised notice`() = runBlocking {
+        val mgr = newManager()
+        val client = mockk<SshClient>(relaxed = true)
+        coEvery { client.execCommand(any()) } returns ExecResult(exitStatus = 1, stdout = "", stderr = "")
+        val sessionId = tmuxSession(mgr, client)
+
+        mgr.verifySessionManagerAttached(sessionId, graceMs = 0)
+        awaitNotice(mgr, sessionId) ?: return@runBlocking fail("no notice published")
+
+        mgr.dismissAttachNotice(sessionId)
+        assertNull(mgr.attachNoticeFlow(sessionId).value)
+    }
+
+    @Test
     fun `notice is cleared when the session is removed`() = runBlocking {
         val mgr = newManager()
         val client = mockk<SshClient>(relaxed = true)

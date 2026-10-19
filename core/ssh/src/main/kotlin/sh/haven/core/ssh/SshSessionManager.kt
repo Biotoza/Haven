@@ -275,6 +275,16 @@ class SshSessionManager @Inject constructor(
         sessionNotices.getOrPut(sessionId) { MutableStateFlow(null) }.value = notice
     }
 
+    /** Clear the attach notice for [sessionId] — the banner's dismiss button
+     *  (#731 follow-up). The banner has no auto-dismiss and the notice only
+     *  cleared on re-attach/removal, so once raised it could not be gotten rid
+     *  of. A dismiss while a probe is still in flight can be re-raised when
+     *  that probe finishes; in practice the banner only appears after the
+     *  probe's passes complete, so the tap lands on a settled notice. */
+    fun dismissAttachNotice(sessionId: String) {
+        publishAttachNotice(sessionId, null)
+    }
+
     /**
      * Live tunnel leases, keyed by leaseId. A lease ties a tunnel-dependent
      * resource (a VNC/RDP Desktop tab and its protocol client) to the SSH
@@ -603,6 +613,16 @@ class SshSessionManager @Inject constructor(
         val session = _sessions.value[sessionId] ?: return
         val manager = session.sessionManager
         if (manager == SessionManager.NONE || session.bypassSessionManager) return
+        // A custom Session command replaces the built-in start template, so the
+        // manager's built-in list command can't verify it: on a Windows OpenSSH
+        // host the POSIX list probe (`sh -c 'tmux ls …'`) fails through
+        // cmd/PowerShell even when the custom command attached tmux fine
+        // (#731 follow-up — reporter's custom `tmux new-session -A -s {name}`
+        // worked but the banner false-positived). The global preference is
+        // folded into this field by the connect path before storeConnectionConfig,
+        // so any non-blank value — per-profile or global — means "we can't
+        // verify this attach".
+        if (!session.sessionCommandOverride.isNullOrBlank()) return
         val listCommand = manager.listCommand ?: return
         val rawName = session.chosenSessionName ?: session.label ?: sessionId.take(8)
         val expected = SessionManager.sanitizeSessionName(rawName)

@@ -2707,6 +2707,12 @@ class TerminalViewModel @Inject constructor(
         addSshTabForProfile(profileId, plain = true)
     }
 
+    /** Clear a session-manager attach banner (#731 follow-up) — the notice has
+     *  no auto-dismiss and previously only cleared on re-attach or removal. */
+    fun dismissAttachNotice(sessionId: String) {
+        sessionManager.dismissAttachNotice(sessionId)
+    }
+
     fun addLocalTabForProfile(
         profileId: String,
         label: String? = null,

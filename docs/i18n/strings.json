@@ -43224,6 +43224,26 @@
      }
     },
     {
+     "name": "terminal_attach_notice_dismiss",
+     "en": "Dismiss",
+     "comment": "Tab bar",
+     "args": [],
+     "t": {
+      "ar": "تجاهل",
+      "bn": "বাতিল করুন",
+      "de": "Schließen",
+      "es": "Descartar",
+      "fr": "Ignorer",
+      "hi": "खारिज करें",
+      "ja": "閉じる",
+      "ko": "닫기",
+      "pt": "Ignorar",
+      "ru": "Закрыть",
+      "sr": "Отбаци",
+      "zh": "忽略"
+     }
+    },
+    {
      "name": "terminal_sessions",
      "en": "Sessions",
      "comment": "Tab bar",
