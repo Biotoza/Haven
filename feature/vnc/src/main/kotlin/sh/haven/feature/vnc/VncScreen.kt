@@ -132,6 +132,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.ui.CursorOverlay
+import sh.haven.core.ui.clampPanToCover
 import sh.haven.feature.vnc.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.offset
@@ -695,8 +696,19 @@ private fun VncViewer(
                 panX = panX,
                 panY = panY,
             )
-            if (newPanX != panX) panX = newPanX
-            if (newPanY != panY) panY = newPanY
+            // #738: the dead-zone snap can overshoot the cover bound near a
+            // content edge — clamp so the camera never exposes black.
+            val fit = if (coverFill) maxOf(
+                viewSize.width.toFloat() / frame.width,
+                viewSize.height.toFloat() / frame.height,
+            ) else minOf(
+                viewSize.width.toFloat() / frame.width,
+                viewSize.height.toFloat() / frame.height,
+            )
+            val clampedX = clampPanToCover(newPanX, frame.width * fit, viewSize.width.toFloat(), zoom)
+            val clampedY = clampPanToCover(newPanY, frame.height * fit, viewSize.height.toFloat(), zoom)
+            if (clampedX != panX) panX = clampedX
+            if (clampedY != panY) panY = clampedY
         }
     }
 
@@ -1109,6 +1121,20 @@ private fun VncViewer(
                                             panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
                                             panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
                                             zoom = newZoom
+                                            // #738: clamp the residual off-centre pan
+                                            // so the scaled content keeps covering the
+                                            // viewport (fit honours coverFill here).
+                                            if (viewSize.width > 0 && viewSize.height > 0) {
+                                                val fit = if (coverFill) maxOf(
+                                                    viewSize.width.toFloat() / frame.width,
+                                                    viewSize.height.toFloat() / frame.height,
+                                                ) else minOf(
+                                                    viewSize.width.toFloat() / frame.width,
+                                                    viewSize.height.toFloat() / frame.height,
+                                                )
+                                                panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), newZoom)
+                                                panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), newZoom)
+                                            }
                                         } else if (twoFingerScroll || (twoFingerZoom && zoom <= 1.01f)) {
                                             // Remote wheel-scroll: desktop scroll-mode
                                             // toggle, or an app window not yet zoomed.
@@ -1125,7 +1151,10 @@ private fun VncViewer(
                                             // inside the viewport leaving empty space.
                                             panX += dx
                                             panY += dy
-                                            if (twoFingerZoom && viewSize.width > 0 && viewSize.height > 0) {
+                                            // #738: clamp on every pan, not only the
+                                            // app-window (twoFingerZoom) case — the
+                                            // same cover rule as the pinch path.
+                                            if (viewSize.width > 0 && viewSize.height > 0) {
                                                 val fit = if (coverFill) maxOf(
                                                     viewSize.width.toFloat() / frame.width,
                                                     viewSize.height.toFloat() / frame.height,
@@ -1133,10 +1162,8 @@ private fun VncViewer(
                                                     viewSize.width.toFloat() / frame.width,
                                                     viewSize.height.toFloat() / frame.height,
                                                 )
-                                                val maxPanX = maxOf(0f, (frame.width * fit * zoom - viewSize.width) / 2f)
-                                                val maxPanY = maxOf(0f, (frame.height * fit * zoom - viewSize.height) / 2f)
-                                                panX = panX.coerceIn(-maxPanX, maxPanX)
-                                                panY = panY.coerceIn(-maxPanY, maxPanY)
+                                                panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), zoom)
+                                                panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), zoom)
                                             }
                                         }
                                     }

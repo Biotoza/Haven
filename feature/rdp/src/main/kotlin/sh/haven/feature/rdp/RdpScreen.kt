@@ -130,6 +130,7 @@ import kotlinx.coroutines.flow.StateFlow
 import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.ui.CursorOverlay
+import sh.haven.core.ui.clampPanToCover
 import sh.haven.feature.rdp.R
 import androidx.compose.ui.res.stringResource
 import kotlin.math.abs
@@ -531,8 +532,17 @@ private fun RdpViewer(
                 panX = panX,
                 panY = panY,
             )
-            if (newPanX != panX) panX = newPanX
-            if (newPanY != panY) panY = newPanY
+            // #738: the dead-zone snap can overshoot the cover bound near a
+            // content edge (it centres the cursor, not the content) — clamp
+            // the result so the camera never exposes black.
+            val fit = minOf(
+                viewSize.width.toFloat() / frame.width,
+                viewSize.height.toFloat() / frame.height,
+            )
+            val clampedX = clampPanToCover(newPanX, frame.width * fit, viewSize.width.toFloat(), zoom)
+            val clampedY = clampPanToCover(newPanY, frame.height * fit, viewSize.height.toFloat(), zoom)
+            if (clampedX != panX) panX = clampedX
+            if (clampedY != panY) panY = clampedY
         }
     }
 
@@ -797,6 +807,17 @@ private fun RdpViewer(
                                         panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
                                         panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
                                         zoom = newZoom
+                                        // #738: an off-centre pinch leaves a residual
+                                        // pan; without the cover clamp zooming back to
+                                        // 1× keeps the content shifted inside its
+                                        // letterbox — one edge black. Clamp so the
+                                        // scaled content always covers the viewport.
+                                        val fit = minOf(
+                                            viewSize.width.toFloat() / frame.width,
+                                            viewSize.height.toFloat() / frame.height,
+                                        )
+                                        panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), newZoom)
+                                        panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), newZoom)
                                     } else if (twoFingerScroll) {
                                         // Windows-scroll mode: drag = remote wheel.
                                         // Finger-down (dy>0) → wheel-up so the page
@@ -810,6 +831,15 @@ private fun RdpViewer(
                                         // Viewport mode: drag = pan (only when zoomed in).
                                         panX += dx
                                         panY += dy
+                                        // #738: same cover clamp as the pinch path —
+                                        // a drag must not pull the content edge past
+                                        // the viewport.
+                                        val fit = minOf(
+                                            viewSize.width.toFloat() / frame.width,
+                                            viewSize.height.toFloat() / frame.height,
+                                        )
+                                        panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), zoom)
+                                        panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), zoom)
                                     }
                                 }
 
