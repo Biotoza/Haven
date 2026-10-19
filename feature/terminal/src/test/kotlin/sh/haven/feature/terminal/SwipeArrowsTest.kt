@@ -16,21 +16,48 @@ class SwipeArrowsTest {
     @Test
     fun `latched mode - finger up sends arrow up`() {
         // Finger dragged UP arrives as scrollUp=false (content-scroll terms).
-        assertTrue(swipeArrowIsUp(scrollUp = false, latchedSwipeArrows = true))
-        assertFalse(swipeArrowIsUp(scrollUp = true, latchedSwipeArrows = true))
+        assertTrue(swipeArrowIsUp(scrollUp = false, latchedSwipeArrows = true, altScreen = false))
+        assertFalse(swipeArrowIsUp(scrollUp = true, latchedSwipeArrows = true, altScreen = false))
     }
 
     @Test
     fun `automatic alt-screen path keeps natural-scroll mapping`() {
         // Dragging content down in a pager keeps sending ↑ — unchanged (#255).
-        assertTrue(swipeArrowIsUp(scrollUp = true, latchedSwipeArrows = false))
-        assertFalse(swipeArrowIsUp(scrollUp = false, latchedSwipeArrows = false))
+        assertTrue(swipeArrowIsUp(scrollUp = true, latchedSwipeArrows = false, altScreen = false))
+        assertFalse(swipeArrowIsUp(scrollUp = false, latchedSwipeArrows = false, altScreen = false))
+    }
+
+    /**
+     * #736 auto-detection: inside an alternate-screen app (vim/htop/lnav) the
+     * latched mode follows the page-slide direction — the reporter's page feel:
+     * swipe up = next page = ↓ — which is the natural-scroll mapping. At a bare
+     * prompt the literal #524 mapping stands.
+     */
+    @Test
+    fun `latched mode inside an alt-screen app follows page-slide direction`() {
+        assertTrue(swipeArrowIsUp(scrollUp = true, latchedSwipeArrows = true, altScreen = true))
+        assertFalse(swipeArrowIsUp(scrollUp = false, latchedSwipeArrows = true, altScreen = true))
+    }
+
+    /** #736: held vertical swipes flip with the same auto-detection rule. */
+    @Test
+    fun `held swipe direction flips inside alt screen only when latched`() {
+        val up = org.connectbot.terminal.SwipeHoldDirection.Up
+        val down = org.connectbot.terminal.SwipeHoldDirection.Down
+        val left = org.connectbot.terminal.SwipeHoldDirection.Left
+        assertEquals(down, swipeHoldArrowDirection(up, latchedSwipeArrows = true, altScreen = true))
+        assertEquals(up, swipeHoldArrowDirection(down, latchedSwipeArrows = true, altScreen = true))
+        // At a prompt, and in the automatic path, holds stay literal.
+        assertEquals(up, swipeHoldArrowDirection(up, latchedSwipeArrows = true, altScreen = false))
+        assertEquals(up, swipeHoldArrowDirection(up, latchedSwipeArrows = false, altScreen = true))
+        // Horizontal holds are never remapped (pager question is separate).
+        assertEquals(left, swipeHoldArrowDirection(left, latchedSwipeArrows = true, altScreen = true))
     }
 
     /** The wire bytes for the latched round trip: swipe up at a prompt = CSI A. */
     @Test
     fun `latched swipe up at a normal prompt walks history back`() {
-        val up = swipeArrowIsUp(scrollUp = false, latchedSwipeArrows = true)
+        val up = swipeArrowIsUp(scrollUp = false, latchedSwipeArrows = true, altScreen = false)
         val bytes = arrowKeyBytes(up, appMode = false)
         assertEquals(0x1b, bytes[0].toInt())
         assertEquals("[A", String(bytes.copyOfRange(1, bytes.size)))

@@ -1774,10 +1774,13 @@ fun TerminalScreen(
                                 if (!swipeArrowsMode && !activeTab.emulator.isAltScreenActive()) return false
                                 activeTab.sendInput(
                                     arrowKeyBytes(
-                                        // Latched mode maps the finger literally (swipe up
-                                        // = ↑); the automatic path keeps natural-scroll
-                                        // direction — see swipeArrowIsUp. (#524)
-                                        swipeArrowIsUp(scrollUp, swipeArrowsMode),
+                                        // Latched mode maps the finger literally at a
+                                        // shell prompt (swipe up = ↑); inside an
+                                        // alternate-screen app it follows the
+                                        // page-slide direction instead (#736
+                                        // auto-detect), and the automatic path keeps
+                                        // natural-scroll direction — see swipeArrowIsUp. (#524)
+                                        swipeArrowIsUp(scrollUp, swipeArrowsMode, isAltScreen),
                                         activeTab.cursorKeyAppMode.value,
                                         // #736 lnav: carry the toolbar Shift latch so
                                         // Shift+swipe sends the same ESC[1;2A the
@@ -1802,8 +1805,16 @@ fun TerminalScreen(
 
                             // #736: reads the Shift latch live, so holding a
                             // direction with Shift repeats the modified arrow.
+                            // Auto-detect: inside an alternate-screen app the
+                            // vertical hold follows the page-slide direction
+                            // (hold up = next page = ↓) — see
+                            // swipeHoldArrowDirection.
                             private fun holdArrowBytes(dir: org.connectbot.terminal.SwipeHoldDirection) =
-                                arrowKeyBytesFor(dir, activeTab.cursorKeyAppMode.value, shift = shiftActive)
+                                arrowKeyBytesFor(
+                                    swipeHoldArrowDirection(dir, swipeArrowsMode, isAltScreen),
+                                    activeTab.cursorKeyAppMode.value,
+                                    shift = shiftActive,
+                                )
 
                             override fun onSwipeHoldStart(
                                 col: Int,
@@ -2566,11 +2577,42 @@ internal const val SWIPE_HOLD_REPEAT_MS = 90L
  * arrives as scrollUp=true. The automatic alt-screen path (#255) keeps that
  * mapping: dragging content down in a pager sends ↑, exactly like touch
  * scrolling. The latched swipe-arrows mode (#524) is a different mental
- * model — the swipe IS the key press — so the finger direction maps
- * literally: swipe up = ↑ walks shell history back, swipe down = ↓.
+ * model — the swipe IS the key press — so at a bare shell prompt the finger
+ * direction maps literally: swipe up = ↑ walks shell history back, swipe
+ * down = ↓.
+ *
+ * #736 auto-detection: inside a full-screen app the key-press model flips
+ * back to the page-slide model — vim/htop/lnav switch to the alternate
+ * screen buffer, where the reporter's page-slide feel (swipe up = next page
+ * = ↓) matches the automatic mapping. So the latched mode maps literally
+ * only while [altScreen] is false; the Swipe key stays the manual override
+ * that forces arrows at the prompt, and #524's history-walking is unchanged.
  */
-internal fun swipeArrowIsUp(scrollUp: Boolean, latchedSwipeArrows: Boolean): Boolean =
-    if (latchedSwipeArrows) !scrollUp else scrollUp
+internal fun swipeArrowIsUp(
+    scrollUp: Boolean,
+    latchedSwipeArrows: Boolean,
+    altScreen: Boolean,
+): Boolean = if (latchedSwipeArrows && !altScreen) !scrollUp else scrollUp
+
+/**
+ * #736: held-swipe direction under auto-detection. The hold-to-repeat path
+ * (#524b) maps the finger literally; inside an alternate-screen app the
+ * page-slide model applies instead, so the vertical hold direction flips
+ * (hold up = next page = ↓). Horizontal holds are untouched — the pager
+ * question (#736 gap 2) is separate and undecided.
+ */
+internal fun swipeHoldArrowDirection(
+    direction: org.connectbot.terminal.SwipeHoldDirection,
+    latchedSwipeArrows: Boolean,
+    altScreen: Boolean,
+): org.connectbot.terminal.SwipeHoldDirection =
+    if (latchedSwipeArrows && altScreen) {
+        when (direction) {
+            org.connectbot.terminal.SwipeHoldDirection.Up -> org.connectbot.terminal.SwipeHoldDirection.Down
+            org.connectbot.terminal.SwipeHoldDirection.Down -> org.connectbot.terminal.SwipeHoldDirection.Up
+            else -> direction
+        }
+    } else direction
 
 /**
  * #609: the latched Swipe key may suppress the tab-switch pager gesture only
