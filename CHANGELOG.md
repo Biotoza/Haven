@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.47
+
+- **Swiping inside full-screen apps follows the page, not the finger (#736).** With the Swipe key latched, swiping up sent ↑ everywhere — right at a shell prompt, where it walks history, but inverted inside vim, htop or less, where a swipe up should bring the next page. Haven now tells the two apart by the alternate-screen buffer: inside a full-screen app a latched swipe follows the page-slide direction (swipe up = next page), and at a bare prompt it keeps walking history. The Swipe key stays the manual override; held swipes follow the same rule.
+- **Fixed: abandoned terminal sessions leaked native memory (#369, upstream termlib).** The JNI layer held a global reference to the terminal's callbacks, which rooted the Kotlin↔native object cycle: an emulator dropped without a clean close() — transport death, a tab closed mid-connect — was never reclaimed until the app exited. The reference is now borrowed per call, so abandoned sessions are collectible.
+
 ## v5.89.46
 
 - **Shift+swipe now sends the modified arrow, like Shift+arrow (#736).** The swipe-to-arrows path never saw the toolbar's Shift latch, so apps that change behaviour on Shift+arrow (lnav's smaller horizontal step) ignored Shift+swipe. A swipe with Shift lit now sends exactly what the Shift+arrow button sends (`ESC[1;2A` and friends), including during hold-to-repeat.
