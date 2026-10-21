@@ -2610,9 +2610,14 @@ internal fun swipeArrowIsUp(
 /**
  * #736: held-swipe direction under auto-detection. The hold-to-repeat path
  * (#524b) maps the finger literally; inside an alternate-screen app the
- * page-slide model applies instead, so the vertical hold direction flips
- * (hold up = next page = ↓). Horizontal holds are untouched — the pager
- * question (#736 gap 2) is separate and undecided.
+ * page-slide model applies instead, so the hold direction flips on both
+ * axes (hold up = next page = ↓; hold left = view right = →). The
+ * horizontal flip follows the same rule as the vertical one — the reporter
+ * felt the asymmetry directly ("they should be inverted, too") — and costs
+ * nothing in pager terms: latched mode already claims horizontal holds and
+ * suppresses the tab-pager gesture (#609). The separate pager question
+ * (#736 gap 2) is about the unclaimed AUTOMATIC path, which this function
+ * does not touch.
  */
 internal fun swipeHoldArrowDirection(
     direction: org.connectbot.terminal.SwipeHoldDirection,
@@ -2623,7 +2628,8 @@ internal fun swipeHoldArrowDirection(
         when (direction) {
             org.connectbot.terminal.SwipeHoldDirection.Up -> org.connectbot.terminal.SwipeHoldDirection.Down
             org.connectbot.terminal.SwipeHoldDirection.Down -> org.connectbot.terminal.SwipeHoldDirection.Up
-            else -> direction
+            org.connectbot.terminal.SwipeHoldDirection.Left -> org.connectbot.terminal.SwipeHoldDirection.Right
+            org.connectbot.terminal.SwipeHoldDirection.Right -> org.connectbot.terminal.SwipeHoldDirection.Left
         }
     } else direction
 

@@ -7,6 +7,7 @@ compare link is appended automatically — don't add it here.
 
 ## Unreleased
 
+- **Held horizontal swipes inside full-screen apps now follow the page, like vertical ones (#736).** With the Swipe key latched, holding left or right inside vim/htop/less sent the arrow your finger pointed at, while holding up or down had been flipped to the page-slide direction. The two axes now use the same rule: inside a full-screen app a horizontal hold slides the view the way the page moves (hold left = view right), and at a bare prompt it still walks literally. The automatic (unlatched) horizontal swipe is unchanged — it stays with the tab pager.
 - **AnyConnect: sign in to Cisco ASA gateways that answered "gateway returned HTTP 404" (#724).** Haven now labels its sign-in requests as XML (`application/xml`), as openconnect does; ocserv accepted the old form-encoded label, but an ASA treats such a POST to `/` as a web-portal page request and answers 404. Gateways that ask every client for a certificate before showing the login form now get one retry declining it (`<client-cert-fail/>`, as openconnect sends), instead of Haven giving up. A remaining 404 names the address and points at the Server field.
 
 ## v5.89.47
