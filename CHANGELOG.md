@@ -5,11 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
-## Unreleased
+## v5.89.48
 
 - **View-only mode for VNC sessions (#723).** A new eye toggle in the Desktop screen's action row turns the active VNC tab read-only: mouse, keyboard and remote-clipboard writes are dropped while it is on, and the screen keeps updating live. Tap it again to take control. Useful for watching a machine without risking a stray tap.
 - **Held horizontal swipes inside full-screen apps now follow the page, like vertical ones (#736).** With the Swipe key latched, holding left or right inside vim/htop/less sent the arrow your finger pointed at, while holding up or down had been flipped to the page-slide direction. The two axes now use the same rule: inside a full-screen app a horizontal hold slides the view the way the page moves (hold left = view right), and at a bare prompt it still walks literally. The automatic (unlatched) horizontal swipe is unchanged — it stays with the tab pager.
 - **AnyConnect: sign in to Cisco ASA gateways that answered "gateway returned HTTP 404" (#724).** Haven now labels its sign-in requests as XML (`application/xml`), as openconnect does; ocserv accepted the old form-encoded label, but an ASA treats such a POST to `/` as a web-portal page request and answers 404. Gateways that ask every client for a certificate before showing the login form now get one retry declining it (`<client-cert-fail/>`, as openconnect sends), instead of Haven giving up. A remaining 404 names the address and points at the Server field.
+- **Horizontal padding around the terminal grid (#745).** A new Settings → Terminal row (0–24 dp, default 0 = edge-to-edge as before) insets the terminal from the screen edges. The padding shrinks the measured width, so the column count is recalculated and the resize reaches the remote program; the strip is painted with the terminal background, so it reads as one surface.
+- **Fixed: the "session manager did not start" banner no longer false-positives on a custom session command (#731).** When a connection uses its own Session command, Haven can't verify the attach with the built-in list probe (on a Windows OpenSSH host the POSIX probe fails through cmd/PowerShell even when tmux attached fine), so the banner appeared over a working session. Verification is now skipped whenever a custom command is set. The banner also gained a dismiss button — previously it only cleared on re-attach.
+- **Fixed: zooming out in RDP/VNC no longer leaves a black edge (#738).** Pinching in and back out with your fingers off-centre left the picture shifted inside its own letterbox — one edge black, the opposite bar doubled — and dragging past the content edge did the same. The pan is now clamped so the content always covers the viewport, on pinch, drag, and the touchpad camera-follow.
 
 ## v5.89.47
 

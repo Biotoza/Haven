@@ -1,0 +1,1 @@
+New: view-only mode for VNC tabs, horizontal padding for the terminal grid, and AnyConnect sign-in for Cisco ASA gateways that returned HTTP 404. Held horizontal swipes inside full-screen apps now follow the page. Fixes: the "session manager did not start" banner false-positiving on custom session commands, and a black edge left after zooming out in RDP/VNC.
