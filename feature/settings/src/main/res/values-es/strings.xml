@@ -525,6 +525,14 @@ Cada clave privada ya almacenada en Haven deberá importarse o generarse de nuev
     <string name="settings_inline_images_off">Desactivado</string>
     <string name="settings_inline_images_ask">Preguntar</string>
     <string name="settings_inline_images_always">Siempre</string>
-    <string name="settings_ambiwidth_title">Ancho ambiguo como doble ancho</string>
-    <string name="settings_ambiwidth_subtitle">Renderizar caracteres ambiguos de Asia oriental como 2 celdas</string>
+    <string name="settings_ambiwidth_title">Gestión de caracteres de ancho ambiguo</string>
+    <string name="settings_ambiwidth_subtitle">Cómo se representan los caracteres ambiguos de Asia oriental (símbolos, griego)</string>
+    <string name="settings_ambiwidth_mode_narrow">Estrecho (1 celda)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">Siempre 1 celda (Unix estándar / XTerm, predeterminado)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">Automático + Estrecho</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">Medir la fuente activa; reserva en 1 celda</string>
+    <string name="settings_ambiwidth_mode_wide">Ancho (2 celdas)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">Siempre 2 celdas (ambiwidth CJK heredado)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">Automático + Ancho</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">Medir la fuente activa; reserva en 2 celdas (CJK)</string>
 </resources>

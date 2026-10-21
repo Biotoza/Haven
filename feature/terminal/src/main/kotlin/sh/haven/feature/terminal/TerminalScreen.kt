@@ -546,6 +546,15 @@ fun TerminalScreen(
     val altLocked by viewModel.altLocked.collectAsState()
     val toolbarKeyScale by viewModel.toolbarKeyScale.collectAsState()
     val swipeArrowsMode by viewModel.swipeArrowsMode.collectAsState()
+    val ambiwidthModePref by viewModel.terminalAmbiwidthMode.collectAsState()
+    val termlibAmbiwidthMode = remember(ambiwidthModePref) {
+        when (ambiwidthModePref) {
+            UserPreferencesRepository.TerminalAmbiwidthMode.NARROW -> org.connectbot.terminal.AmbiwidthMode.NARROW
+            UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW -> org.connectbot.terminal.AmbiwidthMode.AUTO_NARROW
+            UserPreferencesRepository.TerminalAmbiwidthMode.WIDE -> org.connectbot.terminal.AmbiwidthMode.WIDE
+            UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE -> org.connectbot.terminal.AmbiwidthMode.AUTO_WIDE
+        }
+    }
     // Toolbar Shift, hoisted out of KeyboardToolbar (#736) so the swipe path
     // can read it: Shift+swipe must modulate the step like Shift+arrow does
     // (lnav). A latch — only Tab consumes it, swipes read without consuming.
@@ -1974,6 +1983,7 @@ fun TerminalScreen(
                                     .padding(horizontal = horizontalPaddingDp.dp),
                                 initialFontSize = fontSize.sp,
                                 typeface = hackTypeface,
+                                ambiwidthMode = termlibAmbiwidthMode,
                                 keyboardEnabled = true,
                                 // Only the active tab restores; adjacent pager
                                 // pages stay composed and must not fight over

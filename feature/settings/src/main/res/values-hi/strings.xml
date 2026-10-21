@@ -525,6 +525,14 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_inline_images_off">बंद</string>
     <string name="settings_inline_images_ask">पूछें</string>
     <string name="settings_inline_images_always">हमेशा</string>
-    <string name="settings_ambiwidth_title">अस्पष्ट चौड़ाई को द्वि-चौड़ाई के रूप में</string>
-    <string name="settings_ambiwidth_subtitle">पूर्व एशियाई अस्पष्ट वर्णों को 2 सेल के रूप में रेंडर करें</string>
+    <string name="settings_ambiwidth_title">अस्पष्ट चौड़ाई वर्ण प्रबंधन</string>
+    <string name="settings_ambiwidth_subtitle">पूर्वी एशियाई अस्पष्ट वर्णों (प्रतीक, ग्रीक) को कैसे रेंडर किया जाए</string>
+    <string name="settings_ambiwidth_mode_narrow">संकीर्ण (1-सेल)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">हमेशा 1 सेल (मानक यूनिक्स / XTerm, डिफ़ॉल्ट)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">ऑटो + संकीर्ण</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">सक्रिय फ़ॉन्ट प्रोफाइल करें; फ़ॉलबैक 1 सेल</string>
+    <string name="settings_ambiwidth_mode_wide">चौड़ा (2-सेल)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">हमेशा 2 सेल (पारंपरिक CJK ambiwidth)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">ऑटो + चौड़ा</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">सक्रिय फ़ॉन्ट प्रोफाइल करें; फ़ॉलबैक 2 सेल (CJK)</string>
 </resources>
