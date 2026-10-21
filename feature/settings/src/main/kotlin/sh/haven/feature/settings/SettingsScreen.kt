@@ -80,6 +80,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.FontDownload
 import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.HorizontalSplit
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Download
@@ -189,6 +190,7 @@ fun SettingsScreen(
     val showDesktopsCard by viewModel.showDesktopsCard.collectAsState()
     val lockTimeout by viewModel.lockTimeout.collectAsState()
     val fontSize by viewModel.terminalFontSize.collectAsState()
+    val horizontalPadding by viewModel.terminalHorizontalPadding.collectAsState()
     val scrollbackRows by viewModel.terminalScrollbackRows.collectAsState()
     val theme by viewModel.theme.collectAsState()
     val sessionManager by viewModel.sessionManager.collectAsState()
@@ -264,6 +266,7 @@ fun SettingsScreen(
     var showPromptCharsDialog by remember { mutableStateOf(false) }
     var showLocaleDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
+    var showHorizontalPaddingDialog by remember { mutableStateOf(false) }
     var showScrollbackRowsDialog by remember { mutableStateOf(false) }
     var showSessionManagerDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -579,6 +582,12 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_font_size_title),
             subtitle = stringResource(R.string.settings_font_size_subtitle, fontSize),
             onClick = { showFontSizeDialog = true },
+        )
+        SettingsItem(
+            icon = Icons.Filled.HorizontalSplit,
+            title = stringResource(R.string.settings_horizontal_padding_title),
+            subtitle = stringResource(R.string.settings_horizontal_padding_subtitle, horizontalPadding),
+            onClick = { showHorizontalPaddingDialog = true },
         )
         SettingsToggleItem(
             icon = Icons.Filled.FormatSize,
@@ -1994,6 +2003,17 @@ fun SettingsScreen(
         )
     }
 
+    if (showHorizontalPaddingDialog) {
+        HorizontalPaddingDialog(
+            currentPadding = horizontalPadding,
+            onDismiss = { showHorizontalPaddingDialog = false },
+            onConfirm = { newPadding ->
+                viewModel.setTerminalHorizontalPadding(newPadding)
+                showHorizontalPaddingDialog = false
+            },
+        )
+    }
+
     if (showScrollbackRowsDialog) {
         ScrollbackRowsDialog(
             currentRows = scrollbackRows,
@@ -3060,6 +3080,67 @@ private fun FontSizeDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(displaySize) }) {
+                Text(stringResource(R.string.common_ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun HorizontalPaddingDialog(
+    currentPadding: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+) {
+    val step = UserPreferencesRepository.HORIZONTAL_PADDING_STEP_DP
+    var sliderValue by remember { mutableFloatStateOf(currentPadding.toFloat()) }
+    val displayPadding = sliderValue.toInt()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_horizontal_padding_dialog_title)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Live preview: a monospace strip inset by the chosen margin,
+                // painted on the same background the terminal strip gets.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = displayPadding.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_horizontal_padding_sample),
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.settings_horizontal_padding_value, displayPadding),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Slider(
+                    value = sliderValue,
+                    onValueChange = { sliderValue = it },
+                    valueRange = UserPreferencesRepository.MIN_HORIZONTAL_PADDING_DP.toFloat()..
+                        UserPreferencesRepository.MAX_HORIZONTAL_PADDING_DP.toFloat(),
+                    steps = (UserPreferencesRepository.MAX_HORIZONTAL_PADDING_DP -
+                        UserPreferencesRepository.MIN_HORIZONTAL_PADDING_DP) / step - 1,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(displayPadding) }) {
                 Text(stringResource(R.string.common_ok))
             }
         },

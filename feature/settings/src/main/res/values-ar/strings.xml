@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">بلا</string>
     <string name="settings_font_size_title">حجم خط الطرفية</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">تباعد أفقي</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">نظام ألوان الطرفية</string>
     <string name="settings_toolbar_title">شريط أدوات لوحة المفاتيح</string>
     <string name="settings_toolbar_subtitle">تكوين مفاتيح وتخطيط شريط الأدوات</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">حجم خط الطرفية</string>
     <string name="settings_font_size_sample">نص تجريبي</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">تباعد أفقي للطرفية</string>
+    <string name="settings_horizontal_padding_sample">نص تجريبي</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">شريط أدوات لوحة المفاتيح</string>

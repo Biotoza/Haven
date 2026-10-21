@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">कोई नहीं</string>
     <string name="settings_font_size_title">टर्मिनल फ़ॉन्ट आकार</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">क्षैतिज पैडिंग</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">टर्मिनल रंग योजना</string>
     <string name="settings_toolbar_title">कीबोर्ड टूलबार</string>
     <string name="settings_toolbar_subtitle">टूलबार कुंजी और लेआउट कॉन्फ़िगर करें</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">टर्मिनल फ़ॉन्ट आकार</string>
     <string name="settings_font_size_sample">नमूना पाठ</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">टर्मिनल क्षैतिज पैडिंग</string>
+    <string name="settings_horizontal_padding_sample">नमूना पाठ</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">कीबोर्ड टूलबार</string>

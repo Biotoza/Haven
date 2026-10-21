@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">Keine</string>
     <string name="settings_font_size_title">Terminal-Schriftgröße</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Horizontaler Abstand</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">Terminal-Farbschema</string>
     <string name="settings_toolbar_title">Tastatur-Toolbar</string>
     <string name="settings_toolbar_subtitle">Toolbar-Tasten und Layout konfigurieren</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">Terminal-Schriftgröße</string>
     <string name="settings_font_size_sample">Beispieltext</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Horizontaler Terminal-Abstand</string>
+    <string name="settings_horizontal_padding_sample">Beispieltext</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">Tastatur-Toolbar</string>

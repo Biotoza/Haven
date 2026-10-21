@@ -424,6 +424,8 @@ fun TerminalScreen(
     isActive: Boolean = false,
     terminalModifier: Modifier = Modifier,
     fontSize: Int = UserPreferencesRepository.DEFAULT_FONT_SIZE,
+    /** #745: horizontal margin around the terminal grid, in dp. */
+    horizontalPaddingDp: Int = UserPreferencesRepository.DEFAULT_HORIZONTAL_PADDING_DP,
     /**
      * Optional override for the terminal typeface — Settings → Terminal
      * font lets the user pick a Nerd Font (or any TTF/OTF) so prompts
@@ -1961,7 +1963,15 @@ fun TerminalScreen(
                         CompositionLocalProvider(LocalClipboardManager provides smartClipboard) {
                             HavenTerminal(
                                 terminalEmulator = activeTab.emulator,
-                                modifier = Modifier.fillMaxSize(),
+                                // #745: horizontal margin around the grid. The
+                                // padding shrinks the measured width, so termlib
+                                // recomputes columns and resizes the PTY; the
+                                // strip is painted with the terminal background
+                                // so it reads as one surface.
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(terminalBg.copy(alpha = effectiveBgOpacity))
+                                    .padding(horizontal = horizontalPaddingDp.dp),
                                 initialFontSize = fontSize.sp,
                                 typeface = hackTypeface,
                                 keyboardEnabled = true,

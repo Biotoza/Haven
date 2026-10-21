@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">নেই</string>
     <string name="settings_font_size_title">টার্মিনাল ফন্ট সাইজ</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">অনুভূমিক প্যাডিং</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">টার্মিনাল রঙের থিম</string>
     <string name="settings_toolbar_title">কীবোর্ড টুলবার</string>
     <string name="settings_toolbar_subtitle">টুলবার কী ও লেআউট কনফিগার করুন</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">টার্মিনাল ফন্ট সাইজ</string>
     <string name="settings_font_size_sample">নমুনা টেক্সট</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">টার্মিনাল অনুভূমিক প্যাডিং</string>
+    <string name="settings_horizontal_padding_sample">নমুনা টেক্সট</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">কীবোর্ড টুলবার</string>

@@ -29172,6 +29172,48 @@
      }
     },
     {
+     "name": "settings_horizontal_padding_title",
+     "en": "Horizontal padding",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "تباعد أفقي",
+      "bn": "অনুভূমিক প্যাডিং",
+      "de": "Horizontaler Abstand",
+      "es": "Relleno horizontal",
+      "fr": "Marge horizontale",
+      "hi": "क्षैतिज पैडिंग",
+      "ja": "左右の余白",
+      "ko": "좌우 여백",
+      "pt": "Preenchimento horizontal",
+      "ru": "Горизонтальные отступы",
+      "sr": "Хоризонтална маргина",
+      "zh": "水平边距"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_subtitle",
+     "en": "%1$d dp",
+     "comment": "Terminal section",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "%1$d dp",
+      "bn": "%1$d dp",
+      "de": "%1$d dp",
+      "es": "%1$d dp",
+      "fr": "%1$d dp",
+      "hi": "%1$d dp",
+      "ja": "%1$d dp",
+      "ko": "%1$d dp",
+      "pt": "%1$d dp",
+      "ru": "%1$d dp",
+      "sr": "%1$d dp",
+      "zh": "%1$d dp"
+     }
+    },
+    {
      "name": "settings_ambiwidth_title",
      "en": "Ambiguous width as double-width",
      "comment": "Terminal section",
@@ -32006,6 +32048,68 @@
       "ru": "%1$dsp",
       "sr": "%1$dsp",
       "zh": "%1$dsp"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_dialog_title",
+     "en": "Terminal horizontal padding",
+     "comment": "Font size dialog",
+     "args": [],
+     "t": {
+      "ar": "تباعد أفقي للطرفية",
+      "bn": "টার্মিনাল অনুভূমিক প্যাডিং",
+      "de": "Horizontaler Terminal-Abstand",
+      "es": "Relleno horizontal del terminal",
+      "fr": "Marge horizontale du terminal",
+      "hi": "टर्मिनल क्षैतिज पैडिंग",
+      "ja": "ターミナルの左右の余白",
+      "ko": "터미널 좌우 여백",
+      "pt": "Preenchimento horizontal do terminal",
+      "ru": "Горизонтальные отступы терминала",
+      "sr": "Хоризонтална маргина терминала",
+      "zh": "终端水平边距"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_sample",
+     "en": "Sample text",
+     "comment": "Font size dialog",
+     "args": [],
+     "t": {
+      "ar": "نص تجريبي",
+      "bn": "নমুনা টেক্সট",
+      "de": "Beispieltext",
+      "es": "Texto de ejemplo",
+      "fr": "Texte d\\'exemple",
+      "hi": "नमूना पाठ",
+      "ja": "サンプルテキスト",
+      "ko": "샘플 텍스트",
+      "pt": "Texto de exemplo",
+      "ru": "Пример текста",
+      "sr": "Пробни текст",
+      "zh": "示例文本"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_value",
+     "en": "%1$d dp",
+     "comment": "Font size dialog",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "%1$d dp",
+      "bn": "%1$d dp",
+      "de": "%1$d dp",
+      "es": "%1$d dp",
+      "fr": "%1$d dp",
+      "hi": "%1$d dp",
+      "ja": "%1$d dp",
+      "ko": "%1$d dp",
+      "pt": "%1$d dp",
+      "ru": "%1$d dp",
+      "sr": "%1$d dp",
+      "zh": "%1$d dp"
      }
     },
     {

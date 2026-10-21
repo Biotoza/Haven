@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">Ninguna</string>
     <string name="settings_font_size_title">Tamaño de fuente del terminal</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Relleno horizontal</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">Esquema de colores del terminal</string>
     <string name="settings_toolbar_title">Barra de herramientas</string>
     <string name="settings_toolbar_subtitle">Configurar teclas y diseño de la barra</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">Tamaño de fuente del terminal</string>
     <string name="settings_font_size_sample">Texto de ejemplo</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Relleno horizontal del terminal</string>
+    <string name="settings_horizontal_padding_sample">Texto de ejemplo</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">Barra de herramientas</string>

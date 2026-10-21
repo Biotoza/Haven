@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">Aucune</string>
     <string name="settings_font_size_title">Taille de police du terminal</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Marge horizontale</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">Thème de couleurs du terminal</string>
     <string name="settings_toolbar_title">Barre d\'outils clavier</string>
     <string name="settings_toolbar_subtitle">Configurer les touches et la disposition de la barre</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">Taille de police du terminal</string>
     <string name="settings_font_size_sample">Texte d\'exemple</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Marge horizontale du terminal</string>
+    <string name="settings_horizontal_padding_sample">Texte d\'exemple</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">Barre d\'outils clavier</string>

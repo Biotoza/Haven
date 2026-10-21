@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">なし</string>
     <string name="settings_font_size_title">ターミナルのフォントサイズ</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">左右の余白</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">ターミナルの配色</string>
     <string name="settings_toolbar_title">キーボードツールバー</string>
     <string name="settings_toolbar_subtitle">ツールバーのキーとレイアウトを設定</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">ターミナルのフォントサイズ</string>
     <string name="settings_font_size_sample">サンプルテキスト</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">ターミナルの左右の余白</string>
+    <string name="settings_horizontal_padding_sample">サンプルテキスト</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">キーボードツールバー</string>
