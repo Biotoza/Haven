@@ -21,6 +21,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
@@ -188,6 +190,21 @@ fun DesktopScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Spacer(modifier = Modifier.weight(1f))
+                    // #723: view-only toggle for the active VNC tab — drops
+                    // mouse/keyboard/remote-clipboard input, frame keeps streaming.
+                    val vncTab = activeTab as? DesktopTab.Vnc
+                    if (vncTab != null) {
+                        val viewOnly by vncTab.viewOnly.collectAsState()
+                        IconButton(
+                            onClick = { desktopViewModel.toggleVncViewOnly() },
+                        ) {
+                            Icon(
+                                imageVector = if (viewOnly) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = stringResource(R.string.app_desktop_view_only_cd),
+                                tint = if (viewOnly) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = { userManageOverride = !showManage },
                     ) {

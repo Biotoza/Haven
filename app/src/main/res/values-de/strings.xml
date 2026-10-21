@@ -130,6 +130,7 @@
     <string name="app_desktop_addon_with_size">%1$s (%2$s)</string>
     <string name="app_desktop_sessions_cd">Sitzungen</string>
     <string name="app_desktop_manage_cd">Desktops verwalten</string>
+    <string name="app_desktop_view_only_cd">Nur anzeigen</string>
     <string name="app_desktop_empty_hint">Über VNC oder RDP vom Tab „Verbindungen" verbinden</string>
     <string name="app_desktop_tab_label">%1$s %2$s</string>
     <string name="app_desktop_move_tab_left_cd">Nach links</string>

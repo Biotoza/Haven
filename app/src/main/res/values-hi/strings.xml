@@ -130,6 +130,7 @@
     <string name="app_desktop_addon_with_size">%1$s (%2$s)</string>
     <string name="app_desktop_sessions_cd">सत्र</string>
     <string name="app_desktop_manage_cd">डेस्कटॉप प्रबंधित करें</string>
+    <string name="app_desktop_view_only_cd">केवल देखें</string>
     <string name="app_desktop_empty_hint">Connections टैब से VNC या RDP के माध्यम से कनेक्ट करें</string>
     <string name="app_desktop_tab_label">%1$s %2$s</string>
     <string name="app_desktop_move_tab_left_cd">बाएँ ले जाएँ</string>

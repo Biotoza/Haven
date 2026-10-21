@@ -5072,6 +5072,26 @@
      }
     },
     {
+     "name": "app_desktop_view_only_cd",
+     "en": "View only",
+     "comment": "Desktop sessions screen",
+     "args": [],
+     "t": {
+      "ar": "عرض فقط",
+      "bn": "শুধু দেখুন",
+      "de": "Nur anzeigen",
+      "es": "Solo vista",
+      "fr": "Affichage seul",
+      "hi": "केवल देखें",
+      "ja": "表示のみ",
+      "ko": "보기 전용",
+      "pt": "Somente visualização",
+      "ru": "Только просмотр",
+      "sr": "Само приказ",
+      "zh": "仅查看"
+     }
+    },
+    {
      "name": "app_desktop_empty_hint",
      "en": "Connect via VNC or RDP from the Connections tab",
      "comment": "Desktop sessions screen",

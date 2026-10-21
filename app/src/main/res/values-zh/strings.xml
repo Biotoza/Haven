@@ -130,6 +130,7 @@
     <string name="app_desktop_addon_with_size">%1$s（%2$s）</string>
     <string name="app_desktop_sessions_cd">会话</string>
     <string name="app_desktop_manage_cd">管理桌面</string>
+    <string name="app_desktop_view_only_cd">仅查看</string>
     <string name="app_desktop_empty_hint">通过连接标签页使用 VNC 或 RDP 连接</string>
     <string name="app_desktop_tab_label">%1$s %2$s</string>
     <string name="app_desktop_move_tab_left_cd">左移</string>

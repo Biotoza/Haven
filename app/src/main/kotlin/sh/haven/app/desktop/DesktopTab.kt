@@ -53,6 +53,8 @@ sealed class DesktopTab {
         val _bandwidthSuggestion: MutableStateFlow<String?> = MutableStateFlow(null),
         /** Latest remote clipboard text pushed via RFB ServerCutText (#718); consumed by UI. */
         val _remoteClipboard: MutableStateFlow<String?> = MutableStateFlow(null),
+        /** #723: view-only mode — input (mouse, keyboard, remote clipboard writes) is dropped. */
+        val _viewOnly: MutableStateFlow<Boolean> = MutableStateFlow(false),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
         val profileId: String? = null,
@@ -76,6 +78,7 @@ sealed class DesktopTab {
         val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
         val bandwidthSuggestion: StateFlow<String?> get() = _bandwidthSuggestion
         val remoteClipboard: StateFlow<String?> get() = _remoteClipboard
+        val viewOnly: StateFlow<Boolean> get() = _viewOnly
     }
 
     data class Rdp(

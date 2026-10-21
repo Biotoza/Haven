@@ -14,6 +14,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import sh.haven.core.local.LocalSessionManager
@@ -105,5 +107,41 @@ class DesktopViewModelVncTypingTest {
         // already have been recorded.
         verify(timeout = 3000, atLeast = 1) { client.typeText("hello") }
         verify(exactly = 0) { client.copyText(any()) }
+    }
+
+    /**
+     * #723: view-only mode drops keyboard, mouse and remote-clipboard input
+     * on the active VNC tab; toggling it back off restores dispatch.
+     */
+    @Test
+    fun `view-only drops input and the toggle restores it`() = runTest {
+        val client = mockk<VncClient>(relaxed = true)
+        backgroundScope.launch { vm.activeTab.collect { } }
+        val tab = DesktopTab.Vnc(id = "t1", label = "t1", client = client)
+        vm.addTabForTest(tab)
+        advanceUntilIdle()
+
+        vm.toggleVncViewOnly()
+        assertTrue(tab._viewOnly.value)
+
+        vm.typeVncText("hello")
+        vm.sendClick(10, 20)
+        vm.scrollUp()
+        vm.sendVncClipboardText("clip")
+        advanceUntilIdle()
+
+        verify(exactly = 0) { client.typeText(any()) }
+        verify(exactly = 0) { client.moveMouse(any(), any()) }
+        verify(exactly = 0) { client.updateMouseButton(any(), any()) }
+        verify(exactly = 0) { client.copyText(any()) }
+
+        vm.toggleVncViewOnly()
+        assertFalse(tab._viewOnly.value)
+
+        vm.typeVncText("hello")
+        vm.sendClick(10, 20)
+        advanceUntilIdle()
+        verify(timeout = 3000, atLeast = 1) { client.typeText("hello") }
+        verify(timeout = 3000, atLeast = 1) { client.moveMouse(10, 20) }
     }
 }

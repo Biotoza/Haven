@@ -130,6 +130,7 @@
     <string name="app_desktop_addon_with_size">%1$s (%2$s)</string>
     <string name="app_desktop_sessions_cd">Sessions</string>
     <string name="app_desktop_manage_cd">Gérer les bureaux</string>
+    <string name="app_desktop_view_only_cd">Affichage seul</string>
     <string name="app_desktop_empty_hint">Connectez-vous via VNC ou RDP depuis l\'onglet Connexions</string>
     <string name="app_desktop_tab_label">%1$s %2$s</string>
     <string name="app_desktop_move_tab_left_cd">Déplacer à gauche</string>

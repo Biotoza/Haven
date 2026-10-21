@@ -1908,10 +1908,11 @@ class DesktopViewModel @Inject constructor(
                     profileId,
                     DesktopInputHandle(
                         protocol = "VNC",
-                        mouseMove = { x, y -> newTab.remoteDesktop.sendMouseMove(x, y) },
-                        mouseClick = { x, y, button -> newTab.remoteDesktop.sendMouseClick(x, y, button) },
-                        mouseWheel = { deltaY -> newTab.remoteDesktop.sendMouseWheel(deltaY) },
-                        clipboard = { text -> newTab.remoteDesktop.sendClipboardText(text) },
+                        // #723: the MCP input handle honours the tab's view-only flag.
+                        mouseMove = { x, y -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseMove(x, y) },
+                        mouseClick = { x, y, button -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseClick(x, y, button) },
+                        mouseWheel = { deltaY -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseWheel(deltaY) },
+                        clipboard = { text -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendClipboardText(text) },
                     ),
                 )
                 // Let MCP disconnect_profile close this tab even when there's
@@ -2440,7 +2441,22 @@ class DesktopViewModel @Inject constructor(
     private val inputLane = RemoteInputLane(viewModelScope)
 
     /** Submit [event] for the active tab's session, resolved now rather than when it runs. */
+    /**
+     * #723: true when the active tab is a view-only VNC session. All input
+     * dispatch (UI gestures, keyboard, remote-clipboard writes, MCP input
+     * handles) is dropped while set; the frame stream keeps running.
+     */
+    private fun activeTabIsViewOnly(): Boolean =
+        (activeTab.value as? DesktopTab.Vnc)?._viewOnly?.value == true
+
+    /** #723: flip view-only on the active VNC tab; no-op for other protocols. */
+    fun toggleVncViewOnly() {
+        val tab = activeTab.value as? DesktopTab.Vnc ?: return
+        tab._viewOnly.value = !tab._viewOnly.value
+    }
+
     private fun sendToActive(event: (RemoteDesktopSession) -> Unit) {
+        if (activeTabIsViewOnly()) return
         val session = activeTab.value?.remoteDesktop ?: return
         inputLane.submit { event(session) }
     }
@@ -2484,11 +2500,13 @@ class DesktopViewModel @Inject constructor(
     }
 
     fun sendVncKey(keySym: Int, pressed: Boolean) {
+        if (activeTabIsViewOnly()) return
         val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
         inputLane.submit { client.updateKey(keySym, pressed) }
     }
 
     fun typeVncKey(keySym: Int) {
+        if (activeTabIsViewOnly()) return
         val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
         inputLane.submit { client.type(keySym) }
     }
@@ -2505,6 +2523,7 @@ class DesktopViewModel @Inject constructor(
      * writes the remote clipboard.
      */
     fun typeVncText(text: String) {
+        if (activeTabIsViewOnly()) return
         val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
         inputLane.submit {
             client.typeText(text)
@@ -2515,6 +2534,7 @@ class DesktopViewModel @Inject constructor(
      * Push [text] to the active VNC tab's remote clipboard via RFB ClientCutText (#718).
      */
     fun sendVncClipboardText(text: String) {
+        if (activeTabIsViewOnly()) return
         val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
         inputLane.submit {
             client.copyText(text)
