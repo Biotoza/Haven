@@ -39,6 +39,11 @@ File Transfer:
 - SMB/Windows file share browsing with optional SSH tunnel
 - Cross-filesystem copy between any backends
 
+On-device Linux:
+- PRoot userland: Alpine, Debian, Arch, or Void side-by-side, each with its native package manager
+- Linux Guest (UML): a whole Linux kernel booted as an app process on any arm64 device — real /proc, real block devices, its own network stack, for when syscall emulation isn't enough
+- USB card rescue: a failing SD card's raw device reaches a Linux guest in seconds, ready for ddrescue
+
 Networking:
 - SSH with auto-reconnect, port forwarding, and ProxyJump multi-hop
 - Tailscale peer auto-discovery

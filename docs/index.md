@@ -76,6 +76,8 @@ sideloads track the GitHub Releases key.
 - **[Connections](features/connections.md)** — port forwarding (-L/-R/-D/-J), SOCKS/HTTP/Tor proxies, per-app WireGuard & Tailscale tunnels, port knocking + fwknop SPA, SSH keys & FIDO2.
 - **[Email](features/email.md)** — ProtonMail + IMAP/SMTP, compose/reply/forward, multi-account, Mail Rules automation.
 - **[Local Linux](features/local-linux.md)** — Alpine / Debian / Arch / Void via PRoot, side-by-side, no root required.
+- **[Linux Guest (UML)](features/uml-guest.md)** — a whole Linux kernel (user-mode Linux) booted as an app process on any arm64 device, no root: Alpine with `apk`, its own ext4 disk and network stack, for when PRoot's syscall emulation isn't enough.
+- **[USB card rescue console](features/usb-recovery-live.md)** — a failing SD card's raw device reaches a Linux guest in seconds, ready for `ddrescue`.
 - **[USB forwarding](features/usb.md)** — broker a USB device to the agent, the Linux guest, or a remote host over USB/IP.
 - **[Reticulum](features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` forwarding over mesh. The one transport that keeps working with no internet at all.
 - **[Agent transport (MCP)](mcp-tools.md)** — ~230 consent-gated tools; the agent can even drive Haven's own UI.
@@ -91,6 +93,7 @@ The list above is the parts; the point is how they compose. Each of these is one
 - SSH to a box, forward its port, tap the VNC profile that targets `localhost` — the desktop opens in the same app, keyboard and clipboard shared.
 - Cut a log directory from an S3 bucket, switch tabs, paste it onto an SFTP server — rclone does the server-side copy when it can, otherwise Haven streams it through.
 - Run your agent CLI in the on-device Linux shell; it pushes over the SSH agent you forwarded from your laptop while you watch on the same screen.
+- Hit something PRoot can't do — a tracer, a mount, a script you don't trust — and boot the UML guest instead: a real kernel as an app process, which an agent can drive over the same MCP tools.
 - Cast a cloud video to the TV across the room over HLS, copy the LAN URL from the snackbar, send it to a friend so they can watch too.
 
 The phone is the thin client, Haven is the thin-client OS, and the cloud, your servers, and your agents are the computer. Width is sufficient; composition is the point. ([Vision](https://github.com/GlassHaven/Haven/blob/main/VISION.md).)
@@ -103,10 +106,10 @@ Available in 12 languages: English, Chinese (simplified), Spanish, Hindi, Arabic
 
 ## Why Haven?
 
-- **One app covers the whole loop.** SSH + Mosh + ET + VNC + RDP + SFTP + cloud storage + on-device Linux + media transcode, from a single tab bar.
+- **One app covers the whole loop.** SSH + Mosh + ET + VNC + RDP + SFTP + cloud storage + on-device Linux (PRoot and a full UML kernel) + media transcode, from a single tab bar.
 - **No telemetry, no ads, no account.** Nothing is phoned home. See the [privacy policy](privacy-policy.html).
 - **Per-app tunnels.** Route individual SSH profiles through WireGuard or Tailscale *without* taking Android's one VPN slot — other apps keep using the direct network.
-- **Native everything.** FFmpeg, labwc, IronRDP, rclone, and the Kotlin Reticulum transport are all compiled from source — no Python runtime, no Chaquopy.
+- **Native everything.** FFmpeg, labwc, IronRDP, rclone, the Linux UML guest kernel, and the Kotlin Reticulum transport are all compiled from source — no Python runtime, no Chaquopy.
 - **Ships often.** Releases reach F-Droid via an automated MR. See the [release history](https://github.com/GlassHaven/Haven/releases).
 
 ## Build from source

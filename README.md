@@ -6,7 +6,7 @@
 
 <p align="center">
   Free, open-source remote access &amp; mobile workspace for Android —<br/>
-  SSH · Mosh · VNC · RDP · SFTP · SMB · email · cloud storage, a local Linux shell, mesh networking, and a consent-gated AI-agent endpoint
+  SSH · Mosh · VNC · RDP · SFTP · SMB · email · cloud storage, a local Linux shell and a full Linux kernel (UML), mesh networking, and a consent-gated AI-agent endpoint
 </p>
 
 > *"Haven is an interesting vibe coding experiment. Let's see what comes out of it."* — DBP
@@ -63,6 +63,8 @@
 - **[Email](docs/features/email.md)** — ProtonMail (bridge protocol) and any IMAP/SMTP mailbox; compose / reply / forward, multi-account, attachments; plus **Mail Rules** inbound automation.
 - **[AI chat](docs/features/chat.md)** — chat with self-hosted or API models (OpenAI-compatible, Ollama, Anthropic, Gemini) over per-profile tunnel routing; image attach for vision models, clipboard copy/paste both ways, opt-in encrypted saved transcripts.
 - **[Local Linux](docs/features/local-linux.md)** — a Linux userland via PRoot (no root, any Android 8+ device): Alpine, Debian, Arch, or Void, side-by-side.
+- **[Linux Guest (UML)](docs/features/uml-guest.md)** — a whole Linux kernel (user-mode Linux) booted as an app process on any arm64 device, no root: Alpine with `apk`, its own ext4 disk and network stack, for when PRoot's syscall emulation isn't enough.
+- **[USB card rescue console](docs/features/usb-recovery-live.md)** — plug in a failing SD card and the raw device reaches a Linux guest in seconds, ready for `ddrescue`; the rescued image lands in app storage.
 - **[USB forwarding](docs/features/usb.md)** — broker an attached USB device through Android and re-expose it to the agent, into the Linux guest, or over USB/IP to a **remote host** (e.g. a phone-hosted YubiKey, touch on the phone).
 - **[Reticulum](docs/features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` port forwarding over Reticulum mesh, pure Kotlin. The one transport that keeps working with no internet at all.
 - **[Agent transport (MCP)](docs/mcp-tools.md)** — an optional MCP server exposing ~130 consent-gated, audited tools; the agent can even **see and operate Haven itself** for a self-hosting build → install → verify loop.
@@ -84,6 +86,9 @@ flow inside Haven — no second app, no `curl | ssh` incantation:
   it through.
 - Run your agent CLI in the on-device Linux shell; it pushes over the SSH agent
   you forwarded from your laptop while you watch on the same screen.
+- Hit something PRoot can't do — a tracer, a mount, a script you don't trust —
+  and boot the UML guest instead: a real kernel as an app process, which an
+  agent can drive over the same MCP tools.
 - Cast a cloud video to the TV across the room over HLS, copy the LAN URL from
   the snackbar, send it to a friend so they can watch too.
 
@@ -166,6 +171,8 @@ Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
 | [rnsh-kt](https://github.com/GlassOnTin/rnsh-kt) | Reticulum remote shell client (Kotlin) | AGPL-3.0 |
 | [FFmpeg](https://ffmpeg.org) | Media conversion and streaming | LGPL-2.1 / GPL-2.0 |
 | [PRoot](https://proot-me.github.io) | Local Linux shell (userspace chroot) | GPL-2.0 |
+| [Linux UML](https://user-mode-linux.sourceforge.net) | Linux Guest kernel (real kernel as an app process) | GPL-2.0 |
+| [passt](https://passt.top) | Guest networking (userspace TCP/IP for the UML guest) | GPL-2.0 |
 | [labwc](https://labwc.github.io) | Wayland compositor (native desktop) | GPL-2.0 |
 | [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) | Wayland compositor library | MIT |
 | [virglrenderer](https://gitlab.freedesktop.org/virgl/virglrenderer) | GPU virtualization (OpenGL passthrough to PRoot apps) | MIT |
