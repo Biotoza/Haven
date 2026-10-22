@@ -332,18 +332,31 @@ fun ConnectionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    // haven://connect with no saved match (#305): seed a draft and open the
-    // New-Connection editor for the user to add auth and save.
+    // haven://connect with no saved match (#305), and standard-scheme links
+    // ssh:// rdp:// vnc:// (#751): seed a draft and open the New-Connection
+    // editor for the user to add auth and save. The transport picks the profile
+    // type and its default port so an rdp:// link opens the RDP editor, not SSH.
     LaunchedEffect(prefillNewConnection) {
         val p = prefillNewConnection ?: return@LaunchedEffect
+        val transport = p.transport ?: "ssh"
+        val connectionType = when (transport) {
+            "rdp" -> "RDP"
+            "vnc" -> "VNC"
+            else -> "SSH"
+        }
+        val defaultPort = when (transport) {
+            "rdp" -> 3389
+            "vnc" -> 5900
+            else -> 22
+        }
         prefillDraft = ConnectionProfile(
             label = "",
             host = p.host,
             username = p.username ?: "",
-            port = p.port ?: 22,
-            connectionType = "SSH",
-            useMosh = p.transport == "mosh",
-            useEternalTerminal = p.transport == "et",
+            port = p.port ?: defaultPort,
+            connectionType = connectionType,
+            useMosh = transport == "mosh",
+            useEternalTerminal = transport == "et",
             sessionManager = if (p.session != null) "TMUX" else null,
         )
         showAddDialog = true

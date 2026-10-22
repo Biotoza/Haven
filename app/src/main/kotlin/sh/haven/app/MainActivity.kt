@@ -188,6 +188,7 @@ class MainActivity : AppCompatActivity() {
         handleAppWindowShortcut(intent)
         handleRenewCertDeepLink(intent)
         handleConnectDeepLink(intent)
+        handleStandardSchemeDeepLink(intent)
         handleOpenUsbDriveIntent(intent)
         handleOpenMailRulesIntent(intent)
         handleOpenAgentLogExtra(intent)
@@ -439,6 +440,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Standard-scheme links (#751): `ssh://[user@]host[:port]`, `rdp://…`,
+     * `vnc://…` — the form mail clients, desktop terminals and QR codes emit.
+     * Same resolve path as haven://connect: a single matching saved profile
+     * connects after the confirm sheet; anything else opens the
+     * New-Connection editor pre-filled (a link carries no credentials, so it
+     * never silently creates a profile).
+     */
+    private fun handleStandardSchemeDeepLink(intent: Intent?) {
+        val data = intent?.data ?: return
+        val scheme = data.scheme?.lowercase() ?: return
+        if (scheme != "ssh" && scheme != "rdp" && scheme != "vnc") return
+        val params = ConnectDeepLink.parseStandardScheme(scheme, data.userInfo, data.host, data.port.takeIf { it > 0 })
+            ?: return
+        if (!isFreshDeepLink(data)) return
+        intent.data = null
+        Log.d("MainActivity", "standard-scheme deep link host=${LogRedact.of(params.host)} transport=${params.transport}")
+        MainScope().launch {
+            agentUiCommandBus.emit(ConnectDeepLink.resolve(connectionRepository.getAll(), params))
+        }
+    }
+
+    /**
      * If [intent] carries a workspace launch action (long-press shortcut
      * tap, or a `compose_workspace` MCP call routed through here in a
      * future patch), kick off the launcher. Idempotent — extras are
@@ -497,6 +520,7 @@ class MainActivity : AppCompatActivity() {
         handleAppWindowShortcut(intent)
         handleRenewCertDeepLink(intent)
         handleConnectDeepLink(intent)
+        handleStandardSchemeDeepLink(intent)
         handleOpenUsbDriveIntent(intent)
         handleOpenMailRulesIntent(intent)
         handleOpenAgentLogExtra(intent)
@@ -670,6 +694,7 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent().apply { data = uri }
         handleRenewCertDeepLink(intent)
         handleConnectDeepLink(intent)
+        handleStandardSchemeDeepLink(intent)
     }
 
     companion object {

@@ -49,7 +49,7 @@ object ConnectDeepLink {
         )
     }
 
-    /** Whether [profile] is the SSH-family transport named by [transport]. */
+    /** Whether [profile] is the transport named by [transport]. */
     fun matchesTransport(profile: ConnectionProfile, transport: String): Boolean =
         when (transport) {
             "mosh" -> profile.connectionType == "SSH" && profile.useMosh
@@ -57,8 +57,34 @@ object ConnectDeepLink {
             // Plain "ssh" matches any SSH-family profile for the host (incl.
             // mosh/ET-enabled ones) rather than excluding them on a technicality.
             "ssh" -> profile.connectionType == "SSH"
+            // Standard-scheme links (#751) carry their own transport; match the
+            // profile type exactly so an ssh:// link never dials an RDP profile
+            // that happens to share the host.
+            "rdp" -> profile.connectionType == "RDP"
+            "vnc" -> profile.connectionType == "VNC"
             else -> true
         }
+
+    /**
+     * Build [Params] from a standard-scheme link (`ssh://[user@]host[:port]`,
+     * `rdp://[user@]host[:port]`, `vnc://host[:port]`) — the form other apps,
+     * mail clients and QR codes emit (#751). [user] is the userinfo before any
+     * `@` (the caller strips it), [host]/[port] from the authority. Returns null
+     * for an empty host or an unclaimed scheme, so the link is a no-op rather
+     * than a half-parsed connect. Port stays null when the link omitted it —
+     * inventing a default would over-narrow saved-profile matching.
+     */
+    fun parseStandardScheme(scheme: String, user: String?, host: String?, port: Int?): Params? {
+        val h = host?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val transport = scheme.trim().lowercase().takeIf { it == "ssh" || it == "rdp" || it == "vnc" } ?: return null
+        return Params(
+            host = h,
+            username = user?.trim()?.takeIf { it.isNotEmpty() },
+            port = port,
+            transport = transport,
+            session = null,
+        )
+    }
 
     /** Saved profiles whose host (and any supplied user/port/transport) match [p]. */
     fun matches(profiles: List<ConnectionProfile>, p: Params): List<ConnectionProfile> {

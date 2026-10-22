@@ -270,4 +270,56 @@ class ConnectDeepLinkTest {
         )
         assertTrue(cmd is AgentUiCommand.PrefillNewConnection)
     }
+
+    // --- standard URI schemes (#751) ---
+
+    @Test
+    fun `parseStandardScheme maps ssh user at host and port`() {
+        val p = ConnectDeepLink.parseStandardScheme("ssh", "deploy", "server.example.com", 2222)!!
+        assertEquals("server.example.com", p.host)
+        assertEquals("deploy", p.username)
+        assertEquals(2222, p.port)
+        assertEquals("ssh", p.transport)
+    }
+
+    @Test
+    fun `parseStandardScheme leaves port null when the link did not specify one`() {
+        // Inventing a port here would over-narrow saved-profile matching: a
+        // profile on a non-default port should still be found by a bare link.
+        val p = ConnectDeepLink.parseStandardScheme("ssh", null, "h", null)!!
+        assertNull(p.port)
+        assertNull(p.username)
+    }
+
+    @Test
+    fun `parseStandardScheme maps rdp and vnc to their transports`() {
+        assertEquals("rdp", ConnectDeepLink.parseStandardScheme("rdp", null, "pc.lan", 3389)!!.transport)
+        assertEquals("vnc", ConnectDeepLink.parseStandardScheme("vnc", null, "pc.lan", 5900)!!.transport)
+    }
+
+    @Test
+    fun `parseStandardScheme rejects an empty host and an unknown scheme`() {
+        assertNull(ConnectDeepLink.parseStandardScheme("ssh", null, "", null))
+        assertNull(ConnectDeepLink.parseStandardScheme("ftp", null, "h", null))
+    }
+
+    @Test
+    fun `matchesTransport recognises rdp and vnc profile types`() {
+        assertTrue(ConnectDeepLink.matchesTransport(profile(type = "RDP"), "rdp"))
+        assertTrue(!ConnectDeepLink.matchesTransport(profile(type = "SSH"), "rdp"))
+        assertTrue(ConnectDeepLink.matchesTransport(profile(type = "VNC"), "vnc"))
+        assertTrue(!ConnectDeepLink.matchesTransport(profile(type = "SSH"), "vnc"))
+    }
+
+    @Test
+    fun `resolve prefills an rdp draft for an unmatched rdp link`() {
+        val p = ConnectDeepLink.parseStandardScheme("rdp", "admin", "newpc", 3390)!!
+        val cmd = ConnectDeepLink.resolve(emptyList(), p)
+        assertTrue(cmd is AgentUiCommand.PrefillNewConnection)
+        cmd as AgentUiCommand.PrefillNewConnection
+        assertEquals("newpc", cmd.host)
+        assertEquals("admin", cmd.username)
+        assertEquals(3390, cmd.port)
+        assertEquals("rdp", cmd.transport)
+    }
 }

@@ -111,6 +111,19 @@
                     android:scheme="haven"
                     android:host="connect" />
             </intent-filter>
+            <!-- standard-scheme connect links (#751): ssh://[user@]host[:port],
+                 rdp://…, vnc://… — the form mail clients, desktop terminals and
+                 QR codes emit. Resolved through the same confirm/prefill path as
+                 haven://connect, so a drive-by link never silently connects or
+                 creates a profile. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ssh" />
+                <data android:scheme="rdp" />
+                <data android:scheme="vnc" />
+            </intent-filter>
         </activity>
 
         <activity
