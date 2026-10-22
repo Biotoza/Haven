@@ -1,0 +1,1 @@
+New: choose how ambiguous-width characters are measured — Narrow, Auto+Narrow (default), Wide, or Auto+Wide — and open sessions re-sync when you change it. AnyConnect: sign in to newer Cisco gateways that answered the sign-in with HTTP 404.
