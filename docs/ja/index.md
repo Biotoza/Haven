@@ -27,6 +27,17 @@ title: Haven
   AGPLv3 のもとでオープンソース。テレメトリなし。広告なし。アカウント不要。
 </p>
 
+<p align="center">
+  <video autoplay loop muted playsinline width="720" style="max-width:100%;border-radius:8px">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.webm" type="video/webm">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.mp4" type="video/mp4">
+  </video>
+</p>
+
+<p align="center" style="font-size:.85em">
+  スマートフォン上で動作するライブ壁紙（<a href="https://magicfluids.com/">MagicFluids</a>）の上に重ねたターミナルの透過表示。
+</p>
+
 ## ダウンロード
 
 <table>
@@ -59,15 +70,17 @@ title: Haven
 
 ## ひと目で分かる機能
 
-- **[ターミナル](../features/terminal.md)** — Mosh / Eternal Terminal / SSH、tmux セッションの復元、カスタマイズ可能なキーボードツールバー、OSC 7/8/9/52/133/777 連携。
+- **[ターミナル](../features/terminal.md)** — Mosh / Eternal Terminal / SSH、シリアル↔TCP ブリッジ付きの USB / Bluetooth / BLE シリアルコンソール、tmux セッションの復元、カスタマイズ可能なキーボードツールバー、OSC 7/8/9/52/133/777 連携。
 - **[デスクトップ](../features/desktops.md)** — VNC（RFB 3.8 / VeNCrypt）、RDP（IronRDP + EGFX）、SPICE（QEMU/KVM、GLZ/QUIC）、GPU アクセラレーション対応のネイティブ Wayland コンポジタ、複数ディストリビューション対応のローカルデスクトップマネージャ。
 - **[ファイルとクラウド](../features/files-and-cloud.md)** — SFTP/SCP、SMB、60 以上のクラウドプロバイダ（rclone）、ファイルシステムをまたいだコピー／移動。さらに FFmpeg によるトランスコード、HLS、DLNA。
 - **[接続](../features/connections.md)** — ポートフォワーディング（-L/-R/-D/-J）、SOCKS/HTTP/Tor プロキシ、アプリごとの WireGuard と Tailscale トンネル、ポートノッキング + fwknop SPA、SSH 鍵と FIDO2。
 - **[メール](../features/email.md)** — ProtonMail + IMAP/SMTP、作成／返信／転送、複数アカウント、メールルールの自動化。
-- **[ローカル Linux](../features/local-linux.md)** — PRoot 経由の Alpine / Debian / Arch / Void を並行して実行。root 不要。
+- **[ローカル Linux](../features/local-linux.md)** — PRoot 経由の Alpine / Debian / Ubuntu / Arch / Void を並行して実行。root 不要。
+- **[Linux ゲスト（UML）](../features/uml-guest.md)** — 任意の arm64 デバイス上で root なしのアプリプロセスとして起動する完全な Linux カーネル（user-mode Linux）：`apk` 付き Alpine、独自の ext4 ディスクとネットワークスタックを備え、PRoot のシステムコールエミュレーションでは不十分な場面に対応。
+- **[USB カードレスキューコンソール](../features/usb-recovery-live.md)** — 故障しかけた SD カードの raw デバイスが数秒で Linux ゲストに渡り、すぐに `ddrescue` を実行可能。
 - **[USB フォワーディング](../features/usb.md)** — USB デバイスをエージェント、Linux ゲスト、または USB/IP 経由でリモートホストに仲介します。
 - **[Reticulum](../features/reticulum.md)** — rnsh シェル、ファイル転送、メッシュ越しの `-L`/`-D` フォワーディング。インターネットがまったくなくても機能し続ける唯一のトランスポート。
-- **[エージェントトランスポート（MCP）](../mcp-tools.md)** — 約 130 個の同意制ツール。エージェントは Haven 自身の UI を操作することさえできます。
+- **[エージェントトランスポート（MCP）](../mcp-tools.md)** — 約 230 個の同意制ツール。エージェントは Haven 自身の UI を操作することさえできます。
 - **[セキュリティ](../features/security.md)** — 生体認証ロック、テレメトリなし、暗号化されたバックアップ／復元（AES-256-GCM）。
 
 [全機能一覧](../FEATURES.md)を見る。
@@ -80,6 +93,7 @@ title: Haven
 - マシンに SSH 接続し、そのポートを転送し、`localhost` を指す VNC プロファイルをタップ — デスクトップが同じアプリ内で開き、キーボードとクリップボードを共有します。
 - S3 バケットからログディレクトリを切り取り、タブを切り替えて SFTP サーバーに貼り付け — rclone は可能ならサーバー側でコピーし、できなければ Haven が中継します。
 - デバイス上の Linux シェルでエージェント CLI を実行 — ノートパソコンから転送した SSH エージェント経由で `push` し、その様子を同じ画面で見られます。
+- PRoot ではできないこと（トレーサー、マウント、信頼できないスクリプトなど）にぶつかったら、代わりに UML ゲストを起動 — アプリプロセスとして動く本物のカーネルで、エージェントは同じ MCP ツールから操作できます。
 - クラウドの動画を HLS で部屋の向こうのテレビにキャストし、スナックバーから LAN の URL をコピーして友人に送れば、その人も一緒に視聴できます。
 
 電話機がシンクライアントであり、Haven がシンクライアント OS であり、クラウド・あなたのサーバー・あなたのエージェントがコンピューターです。幅は十分にある。要は組み合わせ（コンポジション）です。（[ビジョン](https://github.com/GlassHaven/Haven/blob/main/VISION.md)）
@@ -92,11 +106,11 @@ title: Haven
 
 ## なぜ Haven なのか？
 
-- **1 つのアプリでループ全体をカバー。** SSH + Mosh + ET + VNC + RDP + SFTP + クラウドストレージ + オンデバイス Linux + メディアのトランスコードを、単一のタブバーから。
+- **1 つのアプリでループ全体をカバー。** SSH + Mosh + ET + VNC + RDP + SFTP + クラウドストレージ + オンデバイス Linux（PRoot と完全な UML カーネル）+ メディアのトランスコードを、単一のタブバーから。
 - **テレメトリなし、広告なし、アカウント不要。** 何も外部に送信されません。[プライバシーポリシー](../privacy-policy.html)をご覧ください。
 - **アプリごとのトンネル。** 個々の SSH プロファイルを WireGuard や Tailscale 経由でルーティングできます。しかも Android の唯一の VPN 枠を占有*せず*に — 他のアプリは直接のネットワークを使い続けられます。
-- **すべてがネイティブ。** FFmpeg、labwc、IronRDP、rclone、そして Kotlin 製 Reticulum トランスポートはすべてソースからコンパイルされています。Python ランタイムも Chaquopy もありません。
-- **頻繁にリリース。** リリースは自動 MR により 24 時間以内に F-Droid に届きます。[リリース履歴](https://github.com/GlassHaven/Haven/releases)をご覧ください。
+- **すべてがネイティブ。** FFmpeg、labwc、IronRDP、rclone、Linux UML ゲストカーネル、そして Kotlin 製 Reticulum トランスポートはすべてソースからコンパイルされています。Python ランタイムも Chaquopy もありません。
+- **頻繁にリリース。** リリースは自動 MR により F-Droid に届きます。[リリース履歴](https://github.com/GlassHaven/Haven/releases)をご覧ください。
 
 ## ソースからのビルド
 
@@ -134,6 +148,6 @@ cd Haven
 <p align="center">
   <sub>
     Haven は <a href="https://github.com/GlassHaven/Haven/blob/main/LICENSE">AGPLv3</a> のもとでオープンソースです。
-    &middot; Android is a trademark of Google LLC.
+    &middot; Android は Google LLC の商標です。
   </sub>
 </p>

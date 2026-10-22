@@ -27,6 +27,17 @@ title: Haven
   Open Source unter AGPLv3. Keine Telemetrie. Keine Werbung. Kein Konto.
 </p>
 
+<p align="center">
+  <video autoplay loop muted playsinline width="720" style="max-width:100%;border-radius:8px">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.webm" type="video/webm">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.mp4" type="video/mp4">
+  </video>
+</p>
+
+<p align="center" style="font-size:.85em">
+  Terminal-Transparenz über einem Live-Hintergrundbild des Geräts (<a href="https://magicfluids.com/">MagicFluids</a>), direkt auf dem Telefon ausgeführt.
+</p>
+
 ## Download
 
 <table>
@@ -59,15 +70,17 @@ Sideloads folgen dem GitHub-Releases-Schlüssel.
 
 ## Auf einen Blick
 
-- **[Terminal](../features/terminal.md)** — Mosh / Eternal Terminal / SSH, tmux-Sitzungswiederherstellung, konfigurierbare Tastatur-Werkzeugleiste, OSC 7/8/9/52/133/777-Integration.
+- **[Terminal](../features/terminal.md)** — Mosh / Eternal Terminal / SSH, serielle USB- / Bluetooth- / BLE-Konsolen mit einer Seriell↔TCP-Brücke, tmux-Sitzungswiederherstellung, konfigurierbare Tastatur-Werkzeugleiste, OSC 7/8/9/52/133/777-Integration.
 - **[Desktops](../features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), SPICE (QEMU/KVM, GLZ/QUIC), ein GPU-beschleunigter nativer Wayland-Compositor und ein Multi-Distro-Manager für lokale Desktops.
 - **[Dateien & Cloud](../features/files-and-cloud.md)** — SFTP/SCP, SMB, 60+ Cloud-Anbieter (rclone), dateisystemübergreifendes Kopieren/Verschieben; dazu FFmpeg-Transcodierung, HLS und DLNA.
 - **[Verbindungen](../features/connections.md)** — Portweiterleitung (-L/-R/-D/-J), SOCKS/HTTP/Tor-Proxys, App-spezifische WireGuard- & Tailscale-Tunnel, Port-Knocking + fwknop SPA, SSH-Schlüssel & FIDO2.
 - **[E-Mail](../features/email.md)** — ProtonMail + IMAP/SMTP, Verfassen/Antworten/Weiterleiten, mehrere Konten, Automatisierung mit Mail-Regeln.
-- **[Lokales Linux](../features/local-linux.md)** — Alpine / Debian / Arch / Void über PRoot, nebeneinander, kein Root erforderlich.
+- **[Lokales Linux](../features/local-linux.md)** — Alpine / Debian / Ubuntu / Arch / Void über PRoot, nebeneinander, kein Root erforderlich.
+- **[Linux-Gast (UML)](../features/uml-guest.md)** — ein vollständiger Linux-Kernel (User-Mode Linux), der als App-Prozess auf jedem arm64-Gerät ohne Root startet: Alpine mit `apk`, eigenem ext4-Laufwerk und Netzwerk-Stack, wenn die Syscall-Emulation von PRoot nicht ausreicht.
+- **[USB-Karten-Rettungskonsole](../features/usb-recovery-live.md)** — das Rohgerät einer ausfallenden SD-Karte erreicht in Sekunden einen Linux-Gast, bereit für `ddrescue`.
 - **[USB-Weiterleitung](../features/usb.md)** — vermittle ein USB-Gerät an den Agenten, das Linux-Gastsystem oder einen entfernten Host über USB/IP.
 - **[Reticulum](../features/reticulum.md)** — rnsh-Shell, Dateiübertragung und `-L`/`-D`-Weiterleitung über Mesh. Der eine Transportweg, der ganz ohne Internet weiter funktioniert.
-- **[Agent-Transport (MCP)](../mcp-tools.md)** — ~130 zustimmungspflichtige Werkzeuge; der Agent kann sogar Havens eigene Oberfläche bedienen.
+- **[Agent-Transport (MCP)](../mcp-tools.md)** — ~230 zustimmungspflichtige Werkzeuge; der Agent kann sogar Havens eigene Oberfläche bedienen.
 - **[Sicherheit](../features/security.md)** — biometrische Sperre, keine Telemetrie, verschlüsselte Sicherung/Wiederherstellung (AES-256-GCM).
 
 Durchstöbere den [vollständigen Funktionsindex](../FEATURES.md).
@@ -80,6 +93,7 @@ Die Liste oben sind die Bausteine; worauf es ankommt, ist, wie sie sich kombinie
 - Per SSH auf einen Rechner, leite dessen Port weiter, tippe auf das VNC-Profil, das auf `localhost` zeigt — der Desktop öffnet sich in derselben App, Tastatur und Zwischenablage geteilt.
 - Schneide ein Log-Verzeichnis aus einem S3-Bucket aus, wechsle den Tab, füge es auf einem SFTP-Server ein — rclone kopiert serverseitig, wenn es geht, sonst leitet Haven es durch.
 - Starte die CLI deines Agenten in der Linux-Shell auf dem Gerät; sie pusht über den SSH-Agent, den du von deinem Laptop weitergeleitet hast, während du auf demselben Bildschirm zusiehst.
+- Stoße auf etwas, das PRoot nicht kann — einen Tracer, ein Mount, ein Skript, dem du nicht vertraust — und starte stattdessen den UML-Gast: einen echten Kernel als App-Prozess, den ein Agent über dieselben MCP-Werkzeuge steuern kann.
 - Streame ein Cloud-Video per HLS auf den Fernseher auf der anderen Seite des Raums, kopiere die LAN-URL aus der Snackbar und schicke sie einem Freund, damit er mitschauen kann.
 
 Das Telefon ist der Thin Client, Haven ist das Thin-Client-Betriebssystem, und die Cloud, deine Server und deine Agenten sind der Computer. Die Breite genügt; worauf es ankommt, ist die Komposition. ([Vision](https://github.com/GlassHaven/Haven/blob/main/VISION.md).)
@@ -92,11 +106,11 @@ Verfügbar in 12 Sprachen: Englisch, Chinesisch (vereinfacht), Spanisch, Hindi, 
 
 ## Warum Haven?
 
-- **Eine App deckt den gesamten Arbeitsablauf ab.** SSH + Mosh + ET + VNC + RDP + SFTP + Cloud-Speicher + Linux auf dem Gerät + Medien-Transcodierung, aus einer einzigen Tab-Leiste.
+- **Eine App deckt den gesamten Arbeitsablauf ab.** SSH + Mosh + ET + VNC + RDP + SFTP + Cloud-Speicher + Linux auf dem Gerät (PRoot und ein vollständiger UML-Kernel) + Medien-Transcodierung, aus einer einzigen Tab-Leiste.
 - **Keine Telemetrie, keine Werbung, kein Konto.** Nichts wird nach Hause gefunkt. Siehe die [Datenschutzerklärung](../privacy-policy.html).
 - **App-spezifische Tunnel.** Leite einzelne SSH-Profile durch WireGuard oder Tailscale, *ohne* Androids einzigen VPN-Slot zu belegen — andere Apps nutzen weiterhin das direkte Netzwerk.
-- **Alles nativ.** FFmpeg, labwc, IronRDP, rclone und der Kotlin-Reticulum-Transport sind alle aus dem Quellcode kompiliert — keine Python-Laufzeit, kein Chaquopy.
-- **Häufige Veröffentlichungen.** Releases erreichen F-Droid innerhalb von 24 Stunden über einen automatisierten MR. Siehe den [Veröffentlichungsverlauf](https://github.com/GlassHaven/Haven/releases).
+- **Alles nativ.** FFmpeg, labwc, IronRDP, rclone, der Linux-UML-Gastkernel und der Kotlin-Reticulum-Transport sind alle aus dem Quellcode kompiliert — keine Python-Laufzeit, kein Chaquopy.
+- **Häufige Veröffentlichungen.** Releases erreichen F-Droid über einen automatisierten MR. Siehe den [Veröffentlichungsverlauf](https://github.com/GlassHaven/Haven/releases).
 
 ## Aus dem Quellcode erstellen
 

@@ -27,6 +27,17 @@ title: Haven
   AGPLv3로 공개된 오픈 소스. 텔레메트리 없음. 광고 없음. 계정 없음.
 </p>
 
+<p align="center">
+  <video autoplay loop muted playsinline width="720" style="max-width:100%;border-radius:8px">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.webm" type="video/webm">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.mp4" type="video/mp4">
+  </video>
+</p>
+
+<p align="center" style="font-size:.85em">
+  휴대폰에서 실행 중인 기기 라이브 배경화면(<a href="https://magicfluids.com/">MagicFluids</a>) 위의 터미널 투명 효과.
+</p>
+
 ## 다운로드
 
 <table>
@@ -59,15 +70,17 @@ title: Haven
 
 ## 한눈에 보기
 
-- **[터미널](../features/terminal.md)** — Mosh / Eternal Terminal / SSH, tmux 세션 복원, 구성 가능한 키보드 툴바, OSC 7/8/9/52/133/777 통합.
+- **[터미널](../features/terminal.md)** — Mosh / Eternal Terminal / SSH, 시리얼↔TCP 브리지가 포함된 USB / Bluetooth / BLE 시리얼 콘솔, tmux 세션 복원, 구성 가능한 키보드 툴바, OSC 7/8/9/52/133/777 통합.
 - **[데스크톱](../features/desktops.md)** — VNC(RFB 3.8 / VeNCrypt), RDP(IronRDP + EGFX), SPICE(QEMU/KVM, GLZ/QUIC), GPU 가속 네이티브 Wayland 컴포지터, 그리고 다중 배포판 로컬 데스크톱 관리자.
 - **[파일 & 클라우드](../features/files-and-cloud.md)** — SFTP/SCP, SMB, 60개 이상의 클라우드 제공업체(rclone), 파일시스템 간 복사/이동; 그리고 FFmpeg 트랜스코딩, HLS, DLNA.
 - **[연결](../features/connections.md)** — 포트 포워딩(-L/-R/-D/-J), SOCKS/HTTP/Tor 프록시, 앱별 WireGuard & Tailscale 터널, 포트 노킹 + fwknop SPA, SSH 키 & FIDO2.
 - **[이메일](../features/email.md)** — ProtonMail + IMAP/SMTP, 작성/회신/전달, 다중 계정, 메일 규칙 자동화.
-- **[로컬 Linux](../features/local-linux.md)** — PRoot를 통한 Alpine / Debian / Arch / Void, 나란히 실행, root 불필요.
+- **[로컬 Linux](../features/local-linux.md)** — PRoot를 통한 Alpine / Debian / Ubuntu / Arch / Void, 나란히 실행, root 불필요.
+- **[Linux 게스트(UML)](../features/uml-guest.md)** — 모든 arm64 기기에서 root 없이 앱 프로세스로 부팅되는 전체 Linux 커널(user-mode Linux): `apk`가 포함된 Alpine, 자체 ext4 디스크 및 네트워크 스택을 갖추어 PRoot의 시스템 콜 에뮬레이션만으로 부족할 때 사용.
+- **[USB 카드 복구 콘솔](../features/usb-recovery-live.md)** — 고장 난 SD 카드의 원시 장치가 몇 초 만에 Linux 게스트에 연결되어 바로 `ddrescue`를 실행할 준비가 됨.
 - **[USB 포워딩](../features/usb.md)** — USB/IP를 통해 USB 장치를 에이전트, Linux 게스트, 또는 원격 호스트에 중개.
 - **[Reticulum](../features/reticulum.md)** — 메시 위에서 rnsh 셸, 파일 전송, 그리고 `-L`/`-D` 포워딩. 인터넷이 전혀 없어도 계속 작동하는 유일한 전송 수단.
-- **[에이전트 전송(MCP)](../mcp-tools.md)** — 동의 게이트가 적용된 약 130개의 도구; 에이전트가 Haven 자체 UI를 조작할 수도 있습니다.
+- **[에이전트 전송(MCP)](../mcp-tools.md)** — 동의 게이트가 적용된 약 230개의 도구; 에이전트가 Haven 자체 UI를 조작할 수도 있습니다.
 - **[보안](../features/security.md)** — 생체 인증 잠금, 텔레메트리 없음, 암호화된 백업/복원(AES-256-GCM).
 
 [전체 기능 색인](../FEATURES.md)을 둘러보세요.
@@ -80,6 +93,7 @@ title: Haven
 - 한 머신에 SSH로 접속하고 그 포트를 포워딩한 뒤 `localhost`를 가리키는 VNC 프로필을 탭하면 — 데스크톱이 같은 앱에서 열리고 키보드와 클립보드를 공유합니다.
 - S3 버킷에서 로그 디렉터리를 잘라내 탭을 바꿔 SFTP 서버에 붙여넣으면 — rclone이 가능할 때 서버 측 복사를 하고, 아니면 Haven이 중계합니다.
 - 기기의 Linux 셸에서 에이전트 CLI를 실행하면, 노트북에서 포워딩한 SSH 에이전트를 통해 `push`하며, 당신은 같은 화면에서 그 과정을 지켜봅니다.
+- PRoot로 할 수 없는 작업 — 트레이서, 마운트, 신뢰할 수 없는 스크립트 — 에 부딪히면 대신 UML 게스트를 부팅하세요: 앱 프로세스로 실행되는 실제 커널이며, 에이전트가 동일한 MCP 도구로 조작할 수 있습니다.
 - 클라우드 영상을 HLS로 방 건너편 TV에 캐스팅하고, 스낵바에서 LAN URL을 복사해 친구에게 보내면 친구도 함께 볼 수 있습니다.
 
 휴대폰은 신 클라이언트이고, Haven은 신 클라이언트 운영체제이며, 클라우드와 당신의 서버, 당신의 에이전트가 바로 그 컴퓨터입니다. 폭은 충분합니다; 핵심은 조합입니다. ([비전](https://github.com/GlassHaven/Haven/blob/main/VISION.md).)
@@ -92,11 +106,11 @@ title: Haven
 
 ## 왜 Haven인가?
 
-- **하나의 앱이 전체 흐름을 아우릅니다.** SSH + Mosh + ET + VNC + RDP + SFTP + 클라우드 스토리지 + 온디바이스 Linux + 미디어 트랜스코딩, 단일 탭 바에서.
+- **하나의 앱이 전체 흐름을 아우릅니다.** SSH + Mosh + ET + VNC + RDP + SFTP + 클라우드 스토리지 + 온디바이스 Linux(PRoot 및 전체 UML 커널) + 미디어 트랜스코딩, 단일 탭 바에서.
 - **텔레메트리 없음, 광고 없음, 계정 없음.** 외부로 전송되는 것은 아무것도 없습니다. [개인정보 처리방침](../privacy-policy.html)을 참조하세요.
 - **앱별 터널.** Android의 단일 VPN 슬롯을 차지하지 *않고* 개별 SSH 프로필을 WireGuard나 Tailscale을 통해 라우팅하세요 — 다른 앱들은 직접 네트워크를 계속 사용합니다.
-- **모든 것이 네이티브.** FFmpeg, labwc, IronRDP, rclone, 그리고 Kotlin Reticulum 전송은 모두 소스에서 컴파일됩니다 — Python 런타임 없음, Chaquopy 없음.
-- **자주 출시됩니다.** 릴리스는 자동화된 MR을 통해 24시간 이내에 F-Droid에 도달합니다. [릴리스 기록](https://github.com/GlassHaven/Haven/releases)을 참조하세요.
+- **모든 것이 네이티브.** FFmpeg, labwc, IronRDP, rclone, Linux UML 게스트 커널, 그리고 Kotlin Reticulum 전송은 모두 소스에서 컴파일됩니다 — Python 런타임 없음, Chaquopy 없음.
+- **자주 출시됩니다.** 릴리스는 자동화된 MR을 통해 F-Droid에 도달합니다. [릴리스 기록](https://github.com/GlassHaven/Haven/releases)을 참조하세요.
 
 ## 소스에서 빌드하기
 

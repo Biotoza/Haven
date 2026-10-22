@@ -75,7 +75,7 @@ sideloads track the GitHub Releases key.
 - **[Files & cloud](features/files-and-cloud.md)** — SFTP/SCP, SMB, 60+ cloud providers (rclone), cross-filesystem copy/move; plus FFmpeg transcode, HLS, and DLNA.
 - **[Connections](features/connections.md)** — port forwarding (-L/-R/-D/-J), SOCKS/HTTP/Tor proxies, per-app WireGuard & Tailscale tunnels, port knocking + fwknop SPA, SSH keys & FIDO2.
 - **[Email](features/email.md)** — ProtonMail + IMAP/SMTP, compose/reply/forward, multi-account, Mail Rules automation.
-- **[Local Linux](features/local-linux.md)** — Alpine / Debian / Arch / Void via PRoot, side-by-side, no root required.
+- **[Local Linux](features/local-linux.md)** — Alpine / Debian / Ubuntu / Arch / Void via PRoot, side-by-side, no root required.
 - **[Linux Guest (UML)](features/uml-guest.md)** — a whole Linux kernel (user-mode Linux) booted as an app process on any arm64 device, no root: Alpine with `apk`, its own ext4 disk and network stack, for when PRoot's syscall emulation isn't enough.
 - **[USB card rescue console](features/usb-recovery-live.md)** — a failing SD card's raw device reaches a Linux guest in seconds, ready for `ddrescue`.
 - **[USB forwarding](features/usb.md)** — broker a USB device to the agent, the Linux guest, or a remote host over USB/IP.

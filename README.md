@@ -56,18 +56,18 @@
 
 ## At a glance
 
-- **[Terminal](docs/features/terminal.md)** — Mosh / Eternal Terminal / SSH, tmux-aware session restore, configurable keyboard toolbar, OSC 7/8/9/52/133/777 integration.
-- **[Desktops](docs/features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), a GPU-accelerated native Wayland compositor, and a multi-distro local-desktop manager.
+- **[Terminal](docs/features/terminal.md)** — Mosh / Eternal Terminal / SSH, USB / Bluetooth / BLE serial consoles with a serial↔TCP bridge, tmux-aware session restore, configurable keyboard toolbar, OSC 7/8/9/52/133/777 integration.
+- **[Desktops](docs/features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), SPICE (QEMU/KVM, GLZ/QUIC), a GPU-accelerated native Wayland compositor, and a multi-distro local-desktop manager.
 - **[Files & cloud](docs/features/files-and-cloud.md)** — unified browser for SFTP/SCP, SMB, and 60+ cloud providers; cross-filesystem copy/move, editor and image tools; plus on-device FFmpeg transcode, HLS streaming, and DLNA.
 - **[Connections](docs/features/connections.md)** — port forwarding (-L/-R/-D/-J), SOCKS/HTTP/Tor proxies, per-app WireGuard, Tailscale, NetBird & Cisco AnyConnect tunnels, port knocking and fwknop SPA, and SSH keys (incl. FIDO2/SK).
 - **[Email](docs/features/email.md)** — ProtonMail (bridge protocol) and any IMAP/SMTP mailbox; compose / reply / forward, multi-account, attachments; plus **Mail Rules** inbound automation.
 - **[AI chat](docs/features/chat.md)** — chat with self-hosted or API models (OpenAI-compatible, Ollama, Anthropic, Gemini) over per-profile tunnel routing; image attach for vision models, clipboard copy/paste both ways, opt-in encrypted saved transcripts.
-- **[Local Linux](docs/features/local-linux.md)** — a Linux userland via PRoot (no root, any Android 8+ device): Alpine, Debian, Arch, or Void, side-by-side.
+- **[Local Linux](docs/features/local-linux.md)** — a Linux userland via PRoot (no root, any Android 8+ device): Alpine, Debian, Ubuntu, Arch, or Void, side-by-side.
 - **[Linux Guest (UML)](docs/features/uml-guest.md)** — a whole Linux kernel (user-mode Linux) booted as an app process on any arm64 device, no root: Alpine with `apk`, its own ext4 disk and network stack, for when PRoot's syscall emulation isn't enough.
 - **[USB card rescue console](docs/features/usb-recovery-live.md)** — plug in a failing SD card and the raw device reaches a Linux guest in seconds, ready for `ddrescue`; the rescued image lands in app storage.
 - **[USB forwarding](docs/features/usb.md)** — broker an attached USB device through Android and re-expose it to the agent, into the Linux guest, or over USB/IP to a **remote host** (e.g. a phone-hosted YubiKey, touch on the phone).
 - **[Reticulum](docs/features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` port forwarding over Reticulum mesh, pure Kotlin. The one transport that keeps working with no internet at all.
-- **[Agent transport (MCP)](docs/mcp-tools.md)** — an optional MCP server exposing ~130 consent-gated, audited tools; the agent can even **see and operate Haven itself** for a self-hosting build → install → verify loop.
+- **[Agent transport (MCP)](docs/mcp-tools.md)** — an optional MCP server exposing ~230 consent-gated, audited tools; the agent can even **see and operate Haven itself** for a self-hosting build → install → verify loop.
 - **[Security](docs/features/security.md)** — biometric lock, no telemetry, encrypted backup/restore (AES-256-GCM).
 
 See [docs/FEATURES.md](docs/FEATURES.md) for the full feature index.

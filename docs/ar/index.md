@@ -32,6 +32,17 @@ title: Haven
   مفتوح المصدر بموجب رخصة AGPLv3. بلا قياس عن بُعد. بلا إعلانات. بلا حساب.
 </p>
 
+<p align="center">
+  <video autoplay loop muted playsinline width="720" style="max-width:100%;border-radius:8px">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.webm" type="video/webm">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.mp4" type="video/mp4">
+  </video>
+</p>
+
+<p align="center" style="font-size:.85em">
+  شفافية الطرفية فوق خلفية جهاز متحركة (<a href="https://magicfluids.com/">MagicFluids</a>)، تعمل على الهاتف.
+</p>
+
 ## التنزيل
 
 <table>
@@ -64,15 +75,17 @@ title: Haven
 
 ## لمحة سريعة
 
-- **[الطرفية](../features/terminal.md)** — Mosh / Eternal Terminal / SSH، استعادة جلسات tmux، شريط أدوات لوحة مفاتيح قابل للتخصيص، تكامل OSC 7/8/9/52/133/777.
+- **[الطرفية](../features/terminal.md)** — Mosh / Eternal Terminal / SSH، وحدات تحكّم تسلسلية عبر USB / Bluetooth / BLE مع جسر تسلسلي↔TCP، استعادة جلسات tmux، شريط أدوات لوحة مفاتيح قابل للتخصيص، تكامل OSC 7/8/9/52/133/777.
 - **[أسطح المكتب](../features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt)، RDP (IronRDP + EGFX)، SPICE (QEMU/KVM، GLZ/QUIC)، مُركِّب Wayland أصلي مُسرَّع بواسطة وحدة معالجة الرسوميات، ومدير أسطح مكتب محلية متعدد التوزيعات.
 - **[الملفات والسحابة](../features/files-and-cloud.md)** — SFTP/SCP، SMB، أكثر من 60 مزوّد سحابي (rclone)، النسخ/النقل عبر أنظمة الملفات؛ إضافةً إلى ترميز FFmpeg و HLS و DLNA.
 - **[الاتصالات](../features/connections.md)** — إعادة توجيه المنافذ (-L/-R/-D/-J)، وكلاء SOCKS/HTTP/Tor، أنفاق WireGuard و Tailscale لكل تطبيق، طَرْق المنافذ + fwknop SPA، مفاتيح SSH و FIDO2.
 - **[البريد الإلكتروني](../features/email.md)** — ProtonMail + IMAP/SMTP، الكتابة/الرد/إعادة التوجيه، تعدد الحسابات، أتمتة قواعد البريد.
-- **[لينكس المحلي](../features/local-linux.md)** — Alpine / Debian / Arch / Void عبر PRoot، جنبًا إلى جنب، دون الحاجة إلى صلاحيات الجذر.
+- **[لينكس المحلي](../features/local-linux.md)** — Alpine / Debian / Ubuntu / Arch / Void عبر PRoot، جنبًا إلى جنب، دون الحاجة إلى صلاحيات الجذر.
+- **[ضيف لينكس (UML)](../features/uml-guest.md)** — نواة لينكس كاملة (user-mode Linux) تقلع كعملية تطبيق على أي جهاز arm64 دون صلاحيات الجذر: Alpine مع `apk` وقرص ext4 ومكدس شبكة خاصين بها، عندما لا تكفي محاكاة استدعاءات النظام في PRoot.
+- **[وحدة تحكم إنقاذ بطاقات USB](../features/usb-recovery-live.md)** — يصل الجهاز الخام لبطاقة SD المتعطلة إلى ضيف لينكس خلال ثوانٍ، جاهزًا لـ `ddrescue`.
 - **[إعادة توجيه USB](../features/usb.md)** — وساطة جهاز USB للوكيل، أو لضيف لينكس، أو لمضيف بعيد عبر USB/IP.
 - **[Reticulum](../features/reticulum.md)** — صدفة rnsh، ونقل الملفات، وإعادة التوجيه `-L`/`-D` عبر الشبكة المتشابكة. الناقل الوحيد الذي يستمر في العمل بلا أي اتصال بالإنترنت إطلاقًا.
-- **[ناقل الوكيل (MCP)](../mcp-tools.md)** — نحو 130 أداة محكومة بالموافقة؛ يمكن للوكيل حتى أن يقود واجهة Haven نفسها.
+- **[ناقل الوكيل (MCP)](../mcp-tools.md)** — نحو 230 أداة محكومة بالموافقة؛ يمكن للوكيل حتى أن يقود واجهة Haven نفسها.
 - **[الأمان](../features/security.md)** — قفل بيومتري، بلا قياس عن بُعد، نسخ احتياطي/استعادة مشفّر (AES-256-GCM).
 
 تصفّح [فهرس المزايا الكامل](../FEATURES.md).
@@ -85,6 +98,7 @@ title: Haven
 - اتّصل عبر SSH بجهاز، وحوّل منفذه، وانقر ملف تعريف VNC الذي يشير إلى `localhost` — يفتح سطح المكتب داخل التطبيق نفسه، مع مشاركة لوحة المفاتيح والحافظة.
 - قُصّ مجلّد سجلّات من حاوية S3، وبدّل التبويب، والصقه على خادم SFTP — يقوم rclone بالنسخ من جهة الخادم عند الإمكان، وإلّا فإنّ Haven ينقله عبره.
 - شغّل واجهة سطر أوامر وكيلك في صدفة لينكس على الجهاز؛ فهو ينفّذ `push` عبر وكيل SSH الذي حوّلته من حاسوبك المحمول بينما تشاهد على الشاشة نفسها.
+- إن واجهت شيئًا لا يستطيع PRoot فعله — متعقِّبًا، أو عملية ربط (mount)، أو سكربتًا لا تثق به — فأقلع ضيف UML بدلًا من ذلك: نواة حقيقية كعملية تطبيق، يمكن للوكيل قيادتها عبر أدوات MCP نفسها.
 - ابثّ فيديو من السحابة إلى التلفاز في الجهة الأخرى من الغرفة عبر HLS، وانسخ عنوان URL للشبكة المحلية من الشريط المنبثق، وأرسله إلى صديق ليشاهده هو أيضًا.
 
 الهاتف هو العميل الخفيف، وHaven هو نظام تشغيل العميل الخفيف، والسحابة وخوادمك ووكلاؤك هم الحاسوب. الاتّساع كافٍ؛ والمهمّ هو التركيب. ([الرؤية](https://github.com/GlassHaven/Haven/blob/main/VISION.md).)
@@ -97,11 +111,11 @@ title: Haven
 
 ## لماذا Haven؟
 
-- **تطبيق واحد يغطي الدورة كاملة.** SSH + Mosh + ET + VNC + RDP + SFTP + التخزين السحابي + لينكس على الجهاز + ترميز الوسائط، من شريط تبويبات واحد.
+- **تطبيق واحد يغطي الدورة كاملة.** SSH + Mosh + ET + VNC + RDP + SFTP + التخزين السحابي + لينكس على الجهاز (PRoot ونواة UML كاملة) + ترميز الوسائط، من شريط تبويبات واحد.
 - **بلا قياس عن بُعد، بلا إعلانات، بلا حساب.** لا يُرسَل أي شيء إلى الخوادم. راجع [سياسة الخصوصية](../privacy-policy.html).
 - **أنفاق لكل تطبيق.** وجِّه ملفات تعريف SSH فردية عبر WireGuard أو Tailscale *دون* أن تشغل خانة VPN الوحيدة في Android — تبقى التطبيقات الأخرى تستخدم الشبكة المباشرة.
-- **أصلي في كل شيء.** FFmpeg و labwc و IronRDP و rclone وناقل Reticulum المكتوب بلغة Kotlin كلها مُجمَّعة من المصدر — بلا بيئة تشغيل Python، وبلا Chaquopy.
-- **إصدارات متكررة.** تصل الإصدارات إلى F-Droid خلال 24 ساعة عبر طلب دمج آلي. راجع [سجل الإصدارات](https://github.com/GlassHaven/Haven/releases).
+- **أصلي في كل شيء.** FFmpeg و labwc و IronRDP و rclone ونواة ضيف لينكس UML وناقل Reticulum المكتوب بلغة Kotlin كلها مُجمَّعة من المصدر — بلا بيئة تشغيل Python، وبلا Chaquopy.
+- **إصدارات متكررة.** تصل الإصدارات إلى F-Droid عبر طلب دمج آلي. راجع [سجل الإصدارات](https://github.com/GlassHaven/Haven/releases).
 
 ## البناء من المصدر
 

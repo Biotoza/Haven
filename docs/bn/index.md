@@ -27,6 +27,17 @@ title: Haven
   AGPLv3 এর অধীনে ওপেন সোর্স। কোনো টেলিমেট্রি নেই। কোনো বিজ্ঞাপন নেই। কোনো অ্যাকাউন্ট নেই।
 </p>
 
+<p align="center">
+  <video autoplay loop muted playsinline width="720" style="max-width:100%;border-radius:8px">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.webm" type="video/webm">
+    <source src="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.mp4" type="video/mp4">
+  </video>
+</p>
+
+<p align="center" style="font-size:.85em">
+  ফোনে চলমান একটি লাইভ ডিভাইস ওয়ালপেপারের (<a href="https://magicfluids.com/">MagicFluids</a>) উপর টার্মিনাল স্বচ্ছতা।
+</p>
+
 ## ডাউনলোড
 
 <table>
@@ -59,15 +70,17 @@ title: Haven
 
 ## এক নজরে
 
-- **[টার্মিনাল](../features/terminal.md)** — Mosh / Eternal Terminal / SSH, tmux সেশন পুনরুদ্ধার, কনফিগারযোগ্য কীবোর্ড টুলবার, OSC 7/8/9/52/133/777 ইন্টিগ্রেশন।
+- **[টার্মিনাল](../features/terminal.md)** — Mosh / Eternal Terminal / SSH, সিরিয়াল↔TCP ব্রিজ সহ USB / Bluetooth / BLE সিরিয়াল কনসোল, tmux সেশন পুনরুদ্ধার, কনফিগারযোগ্য কীবোর্ড টুলবার, OSC 7/8/9/52/133/777 ইন্টিগ্রেশন।
 - **[ডেস্কটপ](../features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), SPICE (QEMU/KVM, GLZ/QUIC), একটি GPU-অ্যাক্সিলারেটেড নেটিভ Wayland কম্পোজিটর, এবং একটি বহু-ডিস্ট্রো লোকাল-ডেস্কটপ ম্যানেজার।
 - **[ফাইল ও ক্লাউড](../features/files-and-cloud.md)** — SFTP/SCP, SMB, ৬০+ ক্লাউড প্রদানকারী (rclone), ক্রস-ফাইলসিস্টেম কপি/মুভ; এছাড়াও FFmpeg ট্রান্সকোড, HLS, এবং DLNA।
 - **[সংযোগ](../features/connections.md)** — পোর্ট ফরওয়ার্ডিং (-L/-R/-D/-J), SOCKS/HTTP/Tor প্রক্সি, প্রতি-অ্যাপ WireGuard ও Tailscale টানেল, পোর্ট নকিং + fwknop SPA, SSH কী ও FIDO2।
 - **[ইমেইল](../features/email.md)** — ProtonMail + IMAP/SMTP, রচনা/উত্তর/ফরওয়ার্ড, বহু-অ্যাকাউন্ট, Mail Rules অটোমেশন।
-- **[লোকাল Linux](../features/local-linux.md)** — PRoot এর মাধ্যমে Alpine / Debian / Arch / Void, পাশাপাশি, কোনো root প্রয়োজন নেই।
+- **[লোকাল Linux](../features/local-linux.md)** — PRoot এর মাধ্যমে Alpine / Debian / Ubuntu / Arch / Void, পাশাপাশি, কোনো root প্রয়োজন নেই।
+- **[Linux গেস্ট (UML)](../features/uml-guest.md)** — যেকোনো arm64 ডিভাইসে কোনো root ছাড়াই অ্যাপ প্রসেস হিসেবে বুট হওয়া একটি পূর্ণ Linux কার্নেল (user-mode Linux): `apk` সহ Alpine, নিজস্ব ext4 ডিস্ক ও নেটওয়ার্ক স্ট্যাক, যখন PRoot-এর সিসকল ইমুলেশন যথেষ্ট নয়।
+- **[USB কার্ড রেসকিউ কনসোল](../features/usb-recovery-live.md)** — ত্রুটিপূর্ণ SD কার্ডের কাঁচা ডিভাইস কয়েক সেকেন্ডে Linux গেস্টে পৌঁছে যায়, `ddrescue`-এর জন্য প্রস্তুত।
 - **[USB ফরওয়ার্ডিং](../features/usb.md)** — USB/IP এর মাধ্যমে একটি USB ডিভাইস এজেন্ট, Linux গেস্ট, বা একটি দূরবর্তী হোস্টে ব্রোকার করুন।
 - **[Reticulum](../features/reticulum.md)** — মেশের উপর rnsh শেল, ফাইল স্থানান্তর, এবং `-L`/`-D` ফরওয়ার্ডিং। একমাত্র ট্রান্সপোর্ট যা ইন্টারনেট ছাড়াই কাজ করতে থাকে।
-- **[এজেন্ট ট্রান্সপোর্ট (MCP)](../mcp-tools.md)** — ~১৩০টি সম্মতি-নিয়ন্ত্রিত টুল; এজেন্ট এমনকি Haven এর নিজস্ব UI চালাতে পারে।
+- **[এজেন্ট ট্রান্সপোর্ট (MCP)](../mcp-tools.md)** — ~২৩০টি সম্মতি-নিয়ন্ত্রিত টুল; এজেন্ট এমনকি Haven এর নিজস্ব UI চালাতে পারে।
 - **[নিরাপত্তা](../features/security.md)** — বায়োমেট্রিক লক, কোনো টেলিমেট্রি নেই, এনক্রিপ্ট করা ব্যাকআপ/পুনরুদ্ধার (AES-256-GCM)।
 
 [সম্পূর্ণ বৈশিষ্ট্য সূচক](../FEATURES.md) ব্রাউজ করুন।
@@ -80,6 +93,7 @@ title: Haven
 - কোনো মেশিনে SSH করুন, তার পোর্ট ফরওয়ার্ড করুন, `localhost`-এ নির্দেশ করা VNC প্রোফাইলে ট্যাপ করুন — ডেস্কটপ একই অ্যাপে খোলে, কীবোর্ড ও ক্লিপবোর্ড ভাগ করে নেওয়া।
 - একটি S3 বাকেট থেকে একটি লগ ডিরেক্টরি কাটুন, ট্যাব বদলান, এবং একটি SFTP সার্ভারে পেস্ট করুন — সম্ভব হলে rclone সার্ভার-সাইড কপি করে, না হলে Haven সেটি স্ট্রিম করে পাঠায়।
 - ডিভাইসের Linux শেলে আপনার এজেন্টের CLI চালান; এটি আপনার ল্যাপটপ থেকে ফরওয়ার্ড করা SSH এজেন্টের মাধ্যমে `push` করে, আর আপনি একই স্ক্রিনে দেখতে থাকেন।
+- PRoot যা পারে না এমন কিছুর মুখোমুখি হলে — কোনো ট্রেসার, মাউন্ট, বা আপনার অবিশ্বস্ত কোনো স্ক্রিপ্ট — তার বদলে UML গেস্ট বুট করুন: অ্যাপ প্রসেস হিসেবে একটি আসল কার্নেল, যা এজেন্ট একই MCP টুল দিয়ে চালাতে পারে।
 - ক্লাউডের একটি ভিডিও HLS-এর মাধ্যমে ঘরের অন্য প্রান্তের TV-তে কাস্ট করুন, snackbar থেকে LAN URL কপি করুন, এবং কোনো বন্ধুকে পাঠান যাতে সে-ও দেখতে পারে।
 
 ফোনটি হলো থিন ক্লায়েন্ট, Haven হলো থিন-ক্লায়েন্ট OS, আর ক্লাউড, আপনার সার্ভার এবং আপনার এজেন্টরাই হলো কম্পিউটার। প্রস্থ যথেষ্ট; আসল কথা হলো কম্পোজিশন। ([ভিশন](https://github.com/GlassHaven/Haven/blob/main/VISION.md)।)
@@ -92,11 +106,11 @@ title: Haven
 
 ## কেন Haven?
 
-- **একটি অ্যাপ পুরো লুপ কভার করে।** SSH + Mosh + ET + VNC + RDP + SFTP + ক্লাউড স্টোরেজ + অন-ডিভাইস Linux + মিডিয়া ট্রান্সকোড, একটি একক ট্যাব বার থেকে।
+- **একটি অ্যাপ পুরো লুপ কভার করে।** SSH + Mosh + ET + VNC + RDP + SFTP + ক্লাউড স্টোরেজ + অন-ডিভাইস Linux (PRoot এবং একটি পূর্ণ UML কার্নেল) + মিডিয়া ট্রান্সকোড, একটি একক ট্যাব বার থেকে।
 - **কোনো টেলিমেট্রি নেই, কোনো বিজ্ঞাপন নেই, কোনো অ্যাকাউন্ট নেই।** কিছুই বাড়িতে পাঠানো হয় না। [গোপনীয়তা নীতি](../privacy-policy.html) দেখুন।
 - **প্রতি-অ্যাপ টানেল।** Android এর একমাত্র VPN স্লট *দখল না করেই* পৃথক SSH প্রোফাইলগুলোকে WireGuard বা Tailscale এর মাধ্যমে রুট করুন — অন্যান্য অ্যাপ সরাসরি নেটওয়ার্ক ব্যবহার করতে থাকে।
-- **সবকিছু নেটিভ।** FFmpeg, labwc, IronRDP, rclone, এবং Kotlin Reticulum ট্রান্সপোর্ট সবই সোর্স থেকে কম্পাইল করা — কোনো Python রানটাইম নেই, কোনো Chaquopy নেই।
-- **ঘন ঘন প্রকাশিত হয়।** একটি স্বয়ংক্রিয় MR এর মাধ্যমে রিলিজ ২৪ ঘণ্টার মধ্যে F-Droid এ পৌঁছায়। [রিলিজ ইতিহাস](https://github.com/GlassHaven/Haven/releases) দেখুন।
+- **সবকিছু নেটিভ।** FFmpeg, labwc, IronRDP, rclone, Linux UML গেস্ট কার্নেল, এবং Kotlin Reticulum ট্রান্সপোর্ট সবই সোর্স থেকে কম্পাইল করা — কোনো Python রানটাইম নেই, কোনো Chaquopy নেই।
+- **ঘন ঘন প্রকাশিত হয়।** একটি স্বয়ংক্রিয় MR এর মাধ্যমে রিলিজ F-Droid এ পৌঁছায়। [রিলিজ ইতিহাস](https://github.com/GlassHaven/Haven/releases) দেখুন।
 
 ## সোর্স থেকে তৈরি করুন
 
