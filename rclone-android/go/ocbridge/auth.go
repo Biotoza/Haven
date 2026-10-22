@@ -326,7 +326,7 @@ func initRequest(base *url.URL, certFail bool) string {
 	var b bytes.Buffer
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	b.WriteString(`<config-auth client="vpn" type="init" aggregate-auth-version="2">`)
-	b.WriteString(`<version who="vpn">v9.12</version>`)
+	b.WriteString(`<version who="vpn">v9.21</version>`)
 	b.WriteString(`<device-id>linux-64</device-id>`)
 	b.WriteString(`<group-access>`)
 	xml.EscapeText(&b, []byte(base.String()))
@@ -497,7 +497,7 @@ func replyXML(opaque string, fields [][2]string, groupSelect string) string {
 	var b bytes.Buffer
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	b.WriteString(`<config-auth client="vpn" type="auth-reply" aggregate-auth-version="2">`)
-	b.WriteString(`<version who="vpn">v9.12</version>`)
+	b.WriteString(`<version who="vpn">v9.21</version>`)
 	b.WriteString(`<device-id>linux-64</device-id>`)
 	b.WriteString(`<session-token/><session-id/>`)
 	b.WriteString(opaque)

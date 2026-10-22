@@ -156,8 +156,8 @@ type fakeGateway struct {
 	cur         net.Conn    // tunnel connection packets are forwarded to
 	issued      atomic.Int32
 
-	// asa replays the sign-in of a real Cisco ASA (reported in #724
-	// follow-up): a POST whose Content-Type isn't XML gets 404, the first
+	// asa replays the sign-in of a real Cisco ASA (reported in #740): a
+	// POST whose User-Agent doesn't start with "AnyConnect" gets 404, the first
 	// init gets a bare <client-cert-request>, and only an init carrying
 	// <client-cert-fail/> gets the login form.
 	asa atomic.Bool
@@ -261,8 +261,10 @@ func (g *fakeGateway) handleASA(w http.ResponseWriter, r *http.Request, s string
 	g.mu.Lock()
 	g.asaPaths = append(g.asaPaths, r.URL.Path)
 	g.mu.Unlock()
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/xml") {
-		// What the reporter's ASA does with a form-encoded POST to "/".
+	if !strings.HasPrefix(r.Header.Get("User-Agent"), "AnyConnect") {
+		// What newer Cisco servers do with the initial XML POST from a
+		// client whose User-Agent doesn't start with "AnyConnect"
+		// (openconnect #665): 404, which is what the reporter saw.
 		http.NotFound(w, r)
 		return
 	}
@@ -844,6 +846,25 @@ func TestASA_XMLContentTypeAndClientCertRetry(t *testing.T) {
 	}
 	echo(t, c, "through the ASA")
 	c.Close()
+}
+
+func TestASA_OldUserAgentGets404(t *testing.T) {
+	// The User-Agent Haven sent up to v5.89.48 (openconnect's pre-9.20
+	// default) reproduces the reported "gateway returned HTTP 404".
+	g := newFakeGateway(t)
+	g.asa.Store(true)
+	cfg := g.config(func(c *Config) {
+		c.Server = strings.TrimPrefix(g.srv.URL, "https://")
+		c.AuthGroup = ""
+		c.UserAgent = "Open AnyConnect VPN Agent v9.12"
+	})
+	_, err := StartTunnel(cfg)
+	if err == nil || !strings.Contains(err.Error(), "HTTP 404") {
+		t.Fatalf("want the reported 404, got %v", err)
+	}
+	if !strings.HasPrefix(defaultUserAgent, "AnyConnect") {
+		t.Fatalf("defaultUserAgent %q must start with \"AnyConnect\"", defaultUserAgent)
+	}
 }
 
 func TestASA_CertificateReallyRequired(t *testing.T) {

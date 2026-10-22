@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **AnyConnect: sign in to newer Cisco gateways that still answered "HTTP 404" (#740).** Haven identified itself as `Open AnyConnect VPN Agent`, openconnect's default before 9.20. Newer Cisco servers answer the initial XML sign-in with a misleading 404 unless the User-Agent *starts with* `AnyConnect` (openconnect #665, !497). Haven now sends `AnyConnect-compatible`, verified against the reporter's gateway. The v5.89.48 Content-Type change was not the cause of this 404, but matches openconnect and stays.
+
 ## v5.89.48
 
 - **View-only mode for VNC sessions (#723).** A new eye toggle in the Desktop screen's action row turns the active VNC tab read-only: mouse, keyboard and remote-clipboard writes are dropped while it is on, and the screen keeps updating live. Tap it again to take control. Useful for watching a machine without risking a stray tap.

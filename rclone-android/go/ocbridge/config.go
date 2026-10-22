@@ -54,13 +54,21 @@ type Config struct {
 
 	// UserAgent overrides the HTTP User-Agent. Some ASA policies only admit
 	// clients that identify as Cisco's ("AnyConnect Linux_64 4.10.07061").
+	// Newer Cisco servers need it to start with "AnyConnect" (see
+	// defaultUserAgent).
 	UserAgent string `json:"userAgent,omitempty"`
 }
 
-// defaultUserAgent identifies as openconnect, whose protocol behaviour this
-// package follows (aggregate XML auth, CSTP over TLS, no DTLS/compression).
-// Both ocserv and ASA accept it by default.
-const defaultUserAgent = "Open AnyConnect VPN Agent v9.12"
+// defaultUserAgent is what Haven sends unless the tunnel overrides it.
+//
+// It must START with "AnyConnect": newer Cisco servers answer the initial
+// XML POST from any other client with a misleading 404 Not Found (openconnect
+// issue #665, merge request !497, which is why openconnect 9.20 changed its
+// own default). Haven used openconnect's old "Open AnyConnect VPN Agent"
+// until a user hit exactly that 404 (#740). Only the prefix matters, and the
+// check may be case-sensitive, so keep "AnyConnect" exactly as written. This
+// string was verified against the reporter's gateway; ocserv accepts it too.
+const defaultUserAgent = "AnyConnect-compatible"
 
 func parseConfig(text string) (*Config, error) {
 	var c Config
