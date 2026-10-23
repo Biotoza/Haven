@@ -211,6 +211,36 @@ class GlkvmClient private constructor(
         postOk("/api/hid/events/send_mouse_button", mapOf("button" to button))
     }
 
+/**
+     * Type [text] as real keystrokes. Mapped characters go through the
+     * layout table ([GlkvmLayout.keySequenceFor]) as position codes + Shift
+     * — the target OS then applies its own layout — paced at [delay] ms per
+     * stroke. Characters outside the table fall back to kvmd's
+     * `/api/hid/print` keysym printer, which bakes in a US layout and may
+     * mangle those on other targets (accents land wrong; documented GL
+     * behaviour).
+     */
+    fun typeText(text: String, targetLayout: String? = null, delay: Long = 20) {
+        if (text.isEmpty()) return
+        val table = GlkvmLayout.tableFor(targetLayout)
+        var lastWasPrint = false
+        for (ch in text) {
+            val key = table[ch]
+            if (key != null) {
+                if (key.shift) sendKey("ShiftLeft", true)
+                sendKey(key.code, true)
+                Thread.sleep(delay / 2)
+                sendKey(key.code, false)
+                if (key.shift) sendKey("ShiftLeft", false)
+                Thread.sleep(delay)
+                lastWasPrint = false
+            } else {
+                callText("POST", "/api/hid/print", mapOf("delay" to (delay / 10).toString()), body = ch.toString())
+                lastWasPrint = true
+            }
+        }
+    }
+
     /**
      * Wheel notches on the device convention (measured one notch down ≈
      * delta_y = -3): positive [notches] scroll down, negative up. One POST

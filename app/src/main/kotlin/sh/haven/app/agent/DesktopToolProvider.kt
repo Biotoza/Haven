@@ -229,6 +229,20 @@ internal class DesktopToolProvider(
             },
         ) { args -> tapDesktopTab(args) },
 
+        "type_desktop_text" to ToolHandler(
+            description = "Type text into a remote-desktop VIEWER tab as real keystrokes. GLKVM only today: GLKVM's HID path types mapped characters as physical position keys (the target OS applies its own keyboard layout — UK/US set on the profile) and falls back to the device's US-layout printer for accents; VNC/RDP/SPICE have no keyboard verb yet and error out here (use send_desktop_clipboard). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, chars }.",
+            inputSchema = objectSchema {
+                string("profileId", "Profile id (from list_desktop_sessions). Omit when exactly one is open.")
+                string("text", "Text to type as keystrokes.", required = true)
+            },
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
+            summarise = { args ->
+                val pid = args.optString("profileId").takeIf { it.isNotBlank() }
+                val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
+                "Type ${args.optString("text").length} chars into $who"
+            },
+        ) { args -> typeDesktopText(args) },
+
         "scroll_desktop_tab" to ToolHandler(
             description = "Scroll a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) by injecting mouse-wheel notches into the remote server. deltaY > 0 scrolls down, < 0 scrolls up; magnitude is the number of notches. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, deltaY }.",
             inputSchema = objectSchema {
@@ -819,6 +833,22 @@ internal class DesktopToolProvider(
         h.mouseWheel(deltaY)
         return JSONObject().apply {
             put("profileId", pid); put("protocol", h.protocol); put("deltaY", deltaY)
+        }
+    }
+
+    private fun typeDesktopText(args: JSONObject): JSONObject {
+        val (pid, h) = resolveDesktopInput(args)
+        val text = args.optString("text")
+        if (text.isEmpty()) throw McpError(-32602, "text is required")
+        val type = h.typeText
+            ?: throw McpError(
+                -32602,
+                "${h.protocol} does not support text typing (no keyboard verb yet); " +
+                    "use send_desktop_clipboard on this tab instead.",
+            )
+        type(text)
+        return JSONObject().apply {
+            put("profileId", pid); put("protocol", h.protocol); put("chars", text.length)
         }
     }
 

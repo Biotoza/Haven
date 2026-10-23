@@ -42,7 +42,7 @@ expand one for its description and arguments. The tag after each name is its
 consent level:
 
 - **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (78 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (61 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (62 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (92 tools).
 
 ## Sections
@@ -54,7 +54,7 @@ consent level:
 - [**Files, media & clipboard**](#sec-files) — 23 tools
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
 - [**Email**](#sec-email) — 15 tools
-- [**Linux guest (proot) & desktops**](#sec-linux) — 46 tools
+- [**Linux guest (proot) & desktops**](#sec-linux) — 47 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
 - [**USB & host-device brokers**](#sec-usb) — 19 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
@@ -1255,7 +1255,7 @@ Send a plain-text email from a connected EMAIL profile. Pass profileId (from lis
 
 <a id="sec-linux"></a>
 
-## Linux guest (proot) & desktops (46)
+## Linux guest (proot) & desktops (47)
 
 The on-device Linux distros, their desktop environments and windows, guest services, the audio bridge, and guest-file access.
 
@@ -1670,6 +1670,16 @@ Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a 
 - `y` (integer, required) — Remote framebuffer Y (0..height from capture_desktop_tab).
 - `button` (integer) — X11 button: 1=left (default), 2=middle, 3=right.
 - `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.
+
+</details>
+
+<details markdown="1">
+<summary><code>type_desktop_text</code> · asks once per session</summary>
+
+Type text into a remote-desktop VIEWER tab as real keystrokes. GLKVM only today: GLKVM's HID path types mapped characters as physical position keys (the target OS applies its own keyboard layout — UK/US set on the profile) and falls back to the device's US-layout printer for accents; VNC/RDP/SPICE have no keyboard verb yet and error out here (use send_desktop_clipboard). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, chars }.
+
+- `text` (string, required) — Text to type as keystrokes.
+- `profileId` (string) — Profile id (from list_desktop_sessions). Omit when exactly one is open.
 
 </details>
 

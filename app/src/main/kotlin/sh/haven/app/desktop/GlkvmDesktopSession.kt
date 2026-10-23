@@ -162,6 +162,15 @@ class GlkvmDesktopSession(
         client.sendKey(code, pressed)
     }
 
+    /**
+     * Type [text] as real keystrokes (blocking; run through the input lane).
+     * Layout-targeted: mapped chars are position codes + Shift, the rest go
+     * to kvmd's US-layout printer.
+     */
+    fun typeText(text: String) = runCatchingInput {
+        client.typeText(text, targetLayout)
+    }
+
     fun describeCertError(e: Throwable): String? =
         (e as? GlkvmCertMismatch)?.message
 

@@ -2608,6 +2608,11 @@ class DesktopViewModel @Inject constructor(
                         mouseClick = { x, y, button -> tab.remoteDesktop.sendMouseClick(x, y, button) },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                        // GLKVM types as real keystrokes (layout table + kvmd
+                        // printer for the rest) — the one desktop protocol
+                        // with a text verb today; MCP's type_desktop_text
+                        // routes through this.
+                        typeText = { text -> session.typeText(text) },
                     ),
                 )
                 desktopSessionRegistry.registerCloseHandle(profileId) {
