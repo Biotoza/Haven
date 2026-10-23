@@ -1,5 +1,6 @@
 package sh.haven.core.tunnel
 
+import android.util.Log
 import com.jcraft.jsch.ProxyHTTP
 import com.jcraft.jsch.ProxySOCKS4
 import com.jcraft.jsch.ProxySOCKS5
@@ -44,6 +45,10 @@ class TunnelResolver @Inject constructor(
     private val tunnelManager: TunnelManager,
 ) {
 
+    private companion object {
+        const val TAG = "TunnelResolver"
+    }
+
     suspend fun dial(
         profile: ConnectionProfile,
         host: String,
@@ -51,6 +56,14 @@ class TunnelResolver @Inject constructor(
         timeoutMs: Int,
     ): TunneledConnection? {
         tunnelFor(profile)?.let { return it.dial(host, port, timeoutMs) }
+        if (profile.tunnelConfigId != null) {
+            Log.i(TAG, "tunnel ${profile.tunnelConfigId} unavailable — dialling $host:$port directly (rides any system VPN routing)")
+            // Expected case: the tunnel bring-up was refused because the
+            // config's address is held by an active system VPN (same config
+            // in a VPN app). Direct dial is then the RIGHT path: the system
+            // VPN routes the destination. Other dial failures surface as
+            // their own errors without this extra attempt.
+        }
         // Fall through to legacy SOCKS / HTTP proxy if configured.
         proxySocketFactoryFor(profile, timeoutMs)?.let { factory ->
             val socket = factory.createSocket(host, port)
@@ -217,7 +230,15 @@ class TunnelResolver @Inject constructor(
 
     private suspend fun tunnelFor(profile: ConnectionProfile): Tunnel? {
         val tunnelId = profile.tunnelConfigId ?: return null
-        return tunnelManager.acquire(tunnelId, profile.id)
+        return try {
+            tunnelManager.acquire(tunnelId, profile.id)
+        } catch (e: WireGuardSystemVpnConflict) {
+            Log.i(
+                TAG,
+                "WG tunnel $tunnelId refused: ${e.message} — falling back to direct dial",
+            )
+            null
+        }
     }
 
     private fun proxySocketFactoryFor(

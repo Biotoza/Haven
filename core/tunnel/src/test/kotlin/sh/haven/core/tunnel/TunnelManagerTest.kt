@@ -177,7 +177,7 @@ class TunnelManagerTest {
         // start, so a config saved without a usable setup key fails fast
         // with an actionable message rather than a 60 s native failure.
         // The guard fires before Context use, so a mock Context is enough.
-        val factory = DefaultTunnelFactory(mockk(), OkHttpClient(), TunnelAuthBroker(mockk()))
+        val factory = DefaultTunnelFactory(mockk(), OkHttpClient(), TunnelAuthBroker(mockk()), mockk<SystemVpnAddressProbe>(relaxed = true))
         val ex = assertThrows(IOException::class.java) {
             factory.create(
                 TunnelConfig(
@@ -212,7 +212,7 @@ class TunnelManagerTest {
     @Test
     fun defaultFactoryRejectsAnyConnectConfigWithoutServer() {
         // Parse guard runs before the native start (and before Context use).
-        val factory = DefaultTunnelFactory(mockk(), OkHttpClient(), TunnelAuthBroker(mockk()))
+        val factory = DefaultTunnelFactory(mockk(), OkHttpClient(), TunnelAuthBroker(mockk()), mockk<SystemVpnAddressProbe>(relaxed = true))
         val ex = assertThrows(IOException::class.java) {
             factory.create(
                 TunnelConfig(

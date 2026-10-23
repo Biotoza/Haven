@@ -2,14 +2,116 @@ package sh.haven.core.tunnel
 
 import sh.haven.rclone.binding.wgbridge.Conn as NativeConn
 import sh.haven.rclone.binding.wgbridge.Listener as NativeListener
-import sh.haven.rclone.binding.wgbridge.TunnelHandle as NativeHandle
+import sh.haven.rclone.binding.wgbridge.TunnelHandle as GomobileHandle
 import sh.haven.rclone.binding.wgbridge.UDPConn as NativeUDPConn
 import sh.haven.rclone.binding.wgbridge.Wgbridge
+import android.os.SystemClock
+import android.util.Log
 import java.io.IOException
 import java.io.InputStream
 import java.io.InterruptedIOException
 import java.io.OutputStream
 import java.net.InetSocketAddress
+
+/**
+ * Kotlin-side view of the gomobile tunnel handle. The binding's classes are
+ * final and JNI-backed (class init links libgojni, absent in JVM unit
+ * tests), so [WireguardTunnel] works against these seams and the gomobile
+ * types appear only inside the [GomobileWgNative] adapter — tests inject a
+ * pure-Kotlin fake via the tunnel's `starter`.
+ *
+ * The shape mirrors the Go API one-to-one (rclone-android/go/wgbridge/wgbridge.go):
+ * one handle, dial / listenUDP / startSocksListener / listenTCP.
+ */
+internal interface WgNativeDevice : AutoCloseable {
+    fun dial(host: String, port: Long, timeoutMs: Long): WgNativeConn
+    fun listenUdp(): WgNativeUdpConn
+    fun startSocksListener(): Long
+    fun listenTcp(port: Long): WgNativeListener
+    fun bindAddr(): String
+}
+
+internal interface WgNativeConn : AutoCloseable {
+    fun read(size: Int): ByteArray?
+    fun write(data: ByteArray)
+    fun remoteAddrHost(): String
+    override fun close()
+}
+
+internal interface WgNativeUdpConn : AutoCloseable {
+    fun readFrom(size: Int, timeoutMs: Int): WgUdpPacket?
+    fun writeTo(data: ByteArray, host: String, port: Int)
+    override fun close()
+}
+
+internal class WgUdpPacket(
+    val data: ByteArray?,
+    val fromHost: String?,
+    val fromPort: Int,
+)
+
+internal interface WgNativeListener : AutoCloseable {
+    fun accept(): WgNativeConn
+    override fun close()
+}
+
+/**
+ * Production [WgNativeDevice]: over the gomobile binding. Static methods
+ * ([GomobileWgNative.start]) are the only place the JNI-backed classes are
+ * touched.
+ */
+internal object GomobileWgNative {
+    fun start(preparedConfig: String): WgNativeDevice = impl(Wgbridge.startTunnel(preparedConfig))
+
+    fun impl(handle: GomobileHandle): WgNativeDevice = object : WgNativeDevice {
+        override fun dial(host: String, port: Long, timeoutMs: Long): WgNativeConn =
+            ConnBinding(handle.dial(host, port, timeoutMs))
+
+        override fun listenUdp(): WgNativeUdpConn = UdpBinding(handle.listenUDP())
+
+        override fun startSocksListener(): Long = handle.startSocksListener()
+
+        override fun listenTcp(port: Long): WgNativeListener =
+            ListenerBinding(handle.listenTCP(port))
+
+        override fun bindAddr(): String = handle.bindAddr()
+
+        override fun close() {
+            handle.close()
+        }
+    }
+}
+
+private class ConnBinding(private val conn: NativeConn) : WgNativeConn {
+    override fun read(size: Int): ByteArray? = conn.read(size.toLong())
+    override fun write(data: ByteArray) {
+        conn.write(data)
+    }
+    override fun remoteAddrHost(): String = conn.remoteAddrHost()
+    override fun close() {
+        conn.close()
+    }
+}
+
+private class UdpBinding(private val udp: NativeUDPConn) : WgNativeUdpConn {
+    override fun readFrom(size: Int, timeoutMs: Int): WgUdpPacket? {
+        val r = udp.readFrom(size.toLong(), timeoutMs.toLong()) ?: return null
+        return WgUdpPacket(r.data, r.fromHost, r.fromPort.toInt())
+    }
+    override fun writeTo(data: ByteArray, host: String, port: Int) {
+        udp.writeTo(data, host, port.toLong())
+    }
+    override fun close() {
+        udp.close()
+    }
+}
+
+private class ListenerBinding(private val listener: NativeListener) : WgNativeListener {
+    override fun accept(): WgNativeConn = ConnBinding(listener.accept())
+    override fun close() {
+        listener.close()
+    }
+}
 
 /**
  * [Tunnel] implementation backed by wireguard-go + gVisor netstack via
@@ -20,11 +122,28 @@ import java.net.InetSocketAddress
  * Holds one live native tunnel handle — created up-front from the user's
  * wg-quick config text, torn down on [close]. Dials are safe to call
  * concurrently; the native layer serialises as needed.
+ *
+ * #WG-reliability: on repeated dial timeouts (roam onto a new network, the
+ * peer endpoint's DDNS name moving) the handle bounces itself — a fresh
+ * start re-resolves the endpoint and re-homes the UDP bind, which the
+ * userspace device never does on its own. Cooldown-bounded so a dead path
+ * can't thrash.
  */
-class WireguardTunnel internal constructor(configText: String) : Tunnel {
+class WireguardTunnel internal constructor(
+    private val configText: String,
+    /**
+     * Native bring-up seam. Null = the real binding ([GomobileWgNative]);
+     * unit tests inject a pure-Kotlin fake (the real class init links
+     * libgojni, absent on the JVM). Receives the keepalive-injected config.
+     */
+    private val nativeStarter: ((String) -> WgNativeDevice)? = null,
+) : Tunnel {
 
-    private val native: NativeHandle = try {
-        Wgbridge.startTunnel(ensurePeerKeepalive(configText))
+    private val nativeLock = Any()
+
+    @Volatile
+    private var native: WgNativeDevice = try {
+        launchNative(ensurePeerKeepalive(configText))
     } catch (e: Exception) {
         throw IOException("Failed to start WireGuard tunnel: ${e.message}", e)
     }
@@ -32,18 +151,80 @@ class WireguardTunnel internal constructor(configText: String) : Tunnel {
     @Volatile
     private var socksCached: InetSocketAddress? = null
 
+    /** Consecutive dial timeouts since the last successful dial (reset on success). */
+    @Volatile
+    private var consecutiveDialTimeouts = 0
+
+    /** Epoch ms of the last bounce; a cooldown keeps a dead path from thrashing. */
+    @Volatile
+    private var lastBounceMs = 0L
+
     override fun dial(host: String, port: Int, timeoutMs: Int): TunneledConnection {
         val conn = try {
-            native.dial(host, port.toLong(), timeoutMs.toLong())
+            val c = native.dial(host, port.toLong(), timeoutMs.toLong())
+            consecutiveDialTimeouts = 0
+            c
         } catch (e: Exception) {
+            if (isDialTimeout(e)) {
+                // Roamed onto a new network / the endpoint hostname moved: the
+                // userspace device keeps dialling into a dead bind with no
+                // recovery of its own (the WG server simply drops the stale
+                // session's frames). Bouncing the native handle forces a fresh
+                // endpoint resolution + UDP rebind — what the official app's
+                // on-demand re-resolution does.
+                consecutiveDialTimeouts++
+                maybeBounce("dial timeout to $host:$port")
+            }
             throw IOException("WireGuard dial $host:$port failed: ${e.message}", e)
         }
         return NativeTunneledConnection(conn)
     }
 
+    /** Minimum dial timeouts in a row before bouncing. */
+    internal var bounceAfterTimeouts: Int = BOUNCE_AFTER_TIMEOUTS
+
+    /**
+     * Recreate the native tunnel handle when dials keep timing out. The
+     * 60 s cooldown bounds the churn. Listener/SOCKS objects minted from the
+     * old netstack die with it — the MCP binder's retry loop re-binds them
+     * from the fresh handle (acquireFirstWireguard finds the same Kotlin
+     * Tunnel instance, whose native is now new).
+     */
+    internal fun maybeBounce(why: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (consecutiveDialTimeouts < bounceAfterTimeouts) return
+        if (lastBounceMs != 0L && now - lastBounceMs < BOUNCE_COOLDOWN_MS) return
+        synchronized(nativeLock) {
+            // Re-check under the lock; another thread may have just bounced.
+            if (consecutiveDialTimeouts < bounceAfterTimeouts) return
+            if (lastBounceMs != 0L && now - lastBounceMs < BOUNCE_COOLDOWN_MS) return
+            lastBounceMs = now
+            try {
+                val fresh = launchNative(ensurePeerKeepalive(configText))
+                native.close()
+                native = fresh
+                consecutiveDialTimeouts = 0
+                socksCached = null // the old SOCKS listener died with the old netstack
+                Log.i(TAG, "WG tunnel bounced ($why): endpoint re-resolved, bind re-homed")
+            } catch (e: Exception) {
+                // Keep the old (dead) device rather than leaving nothing.
+                Log.w(TAG, "WG bounce failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun isDialTimeout(e: Exception): Boolean {
+        // The Go side surfaces net.Dialer deadlines as "context deadline
+        // exceeded" (ctx) or gVisor timeouts; accept both shapes.
+        val msg = e.message.orEmpty()
+        if (msg.contains("context deadline exceeded", ignoreCase = true)) return true
+        if (msg.contains("i/o timeout", ignoreCase = true)) return true
+        return e.cause?.message?.contains("context deadline exceeded", ignoreCase = true) == true
+    }
+
     override fun listenUdp(): TunneledDatagramSocket? {
         val udp = try {
-            native.listenUDP()
+            native.listenUdp()
         } catch (e: Exception) {
             throw IOException("WireGuard listenUDP failed: ${e.message}", e)
         }
@@ -55,17 +236,17 @@ class WireguardTunnel internal constructor(configText: String) : Tunnel {
         return synchronized(this) {
             socksCached?.let { return@synchronized it }
             val port = try {
-                native.startSocksListener().toInt()
+                native.startSocksListener()
             } catch (e: Exception) {
                 throw IOException("WireGuard SOCKS5 listener failed: ${e.message}", e)
             }
-            InetSocketAddress("127.0.0.1", port).also { socksCached = it }
+            InetSocketAddress("127.0.0.1", port.toInt()).also { socksCached = it }
         }
     }
 
     override fun listenTcp(port: Int): TunneledServerSocket? {
         val ln = try {
-            native.listenTCP(port.toLong())
+            native.listenTcp(port.toLong())
         } catch (e: Exception) {
             throw IOException("WireGuard listenTCP $port failed: ${e.message}", e)
         }
@@ -82,12 +263,26 @@ class WireguardTunnel internal constructor(configText: String) : Tunnel {
         }
     }
 
+    private fun launchNative(prepared: String): WgNativeDevice {
+        val starter = nativeStarter
+            ?: return GomobileWgNative.start(prepared)
+        return starter(prepared)
+    }
+
     companion object {
+        private const val TAG = "WireguardTunnel"
+
         /**
          * WireGuard's standard NAT/firewall keepalive interval (seconds). Injected
          * into a [Peer] that omits one so the userspace tunnel stays warm.
          */
         internal const val DEFAULT_KEEPALIVE_SECONDS = 25
+
+        /** Dial timeouts in a row before the tunnel recycles itself. */
+        internal const val BOUNCE_AFTER_TIMEOUTS = 2
+
+        /** Minimum spacing between bounces, regardless of failure rate. */
+        internal const val BOUNCE_COOLDOWN_MS = 60_000L
 
         private val SECTION_HEADER = Regex("""^\s*\[\s*(\w+)\s*]""")
         private val KEEPALIVE_LINE = Regex("""^\s*PersistentKeepalive\s*=""", RegexOption.IGNORE_CASE)
@@ -142,9 +337,9 @@ class WireguardTunnel internal constructor(configText: String) : Tunnel {
     }
 }
 
-/** Wraps a native [NativeListener] as [TunneledServerSocket]. */
+/** Wraps a [WgNativeListener] as [TunneledServerSocket]. */
 private class NativeTunneledServerSocket(
-    private val listener: NativeListener,
+    private val listener: WgNativeListener,
 ) : TunneledServerSocket {
 
     override fun accept(): TunneledConnection {
@@ -166,14 +361,14 @@ private class NativeTunneledServerSocket(
 }
 
 /**
- * Wraps a native [NativeConn] as [TunneledConnection]. The Go side
- * returns fresh byte slices from `read(size)` because gomobile copies
- * `[]byte` arguments across the JNI boundary — the caller's buffer
- * wouldn't be updated otherwise. The extra copy is immaterial for SSH
- * traffic (small frames, network round-trip dominates).
+ * Wraps a [WgNativeConn] as [TunneledConnection]. The gomobile layer returns
+ * fresh byte slices from `read(size)` because it copies `[]byte` arguments
+ * across the JNI boundary — the caller's buffer wouldn't be updated otherwise.
+ * The seam carries that convention through. The extra copy is immaterial
+ * for SSH traffic (small frames, network round-trip dominates).
  */
 private class NativeTunneledConnection(
-    private val conn: NativeConn,
+    private val conn: WgNativeConn,
 ) : TunneledConnection {
 
     override val remoteAddress: String?
@@ -192,7 +387,7 @@ private class NativeTunneledConnection(
             if (eof) return -1
             if (len == 0) return 0
             val bytes = try {
-                conn.read(len.toLong())
+                conn.read(len)
             } catch (_: Exception) {
                 eof = true
                 return -1
@@ -232,24 +427,18 @@ private class NativeTunneledConnection(
 }
 
 /**
- * Wraps a native [NativeUDPConn] as [TunneledDatagramSocket]. Identical
- * shape to [NativeTunneledConnection] but for UDP — gomobile returns a
- * fresh `[]byte` slice per receive, so we copy into the caller's buffer
- * here rather than trying to share storage across JNI.
- *
- * Timeouts: the Go side translates `timeoutMs <= 0` to "no deadline"
- * and `timeoutMs > 0` to a one-shot read deadline. When the deadline
- * fires, gomobile surfaces the underlying `net.OpError` here as a Java
- * exception whose message contains "i/o timeout" — we recognise that
- * and return null to match [TunneledDatagramSocket]'s timeout contract.
+ * Wraps a [WgNativeUdpConn] as [TunneledDatagramSocket]. Timeouts: the Go
+ * side translates `timeoutMs <= 0` to "no deadline" and `timeoutMs > 0` to a
+ * one-shot read deadline; a fired deadline appears as an exception whose
+ * message contains "i/o timeout" here, recognised and returned as null.
  */
 private class NativeTunneledDatagramSocket(
-    private val udp: NativeUDPConn,
+    private val udp: WgNativeUdpConn,
 ) : TunneledDatagramSocket {
 
     override fun send(data: ByteArray, host: String, port: Int) {
         try {
-            udp.writeTo(data, host, port.toLong())
+            udp.writeTo(data, host, port)
         } catch (e: Exception) {
             throw IOException("WireGuard UDP writeTo $host:$port failed: ${e.message}", e)
         }
@@ -257,19 +446,18 @@ private class NativeTunneledDatagramSocket(
 
     override fun receive(buf: ByteArray, timeoutMs: Int): ReceivedPacket? {
         val result = try {
-            udp.readFrom(buf.size.toLong(), timeoutMs.toLong())
+            udp.readFrom(buf.size, timeoutMs)
         } catch (e: Exception) {
             if (isTimeoutException(e)) return null
             throw IOException("WireGuard UDP readFrom failed: ${e.message}", e)
         }
-        if (result == null) return null
-        val bytes = result.data ?: return null
+        val bytes = result?.data ?: return null
         val n = minOf(bytes.size, buf.size)
         System.arraycopy(bytes, 0, buf, 0, n)
         return ReceivedPacket(
             length = n,
-            srcHost = result.fromHost,
-            srcPort = result.fromPort.toInt(),
+            srcHost = result.fromHost ?: "",
+            srcPort = result.fromPort,
         )
     }
 

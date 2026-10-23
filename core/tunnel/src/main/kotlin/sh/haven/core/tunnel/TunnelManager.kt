@@ -278,9 +278,21 @@ class DefaultTunnelFactory @Inject constructor(
     @ApplicationContext private val context: Context,
     private val httpClient: OkHttpClient,
     private val authBroker: TunnelAuthBroker,
+    private val systemVpnAddressProbe: SystemVpnAddressProbe,
 ) : TunnelFactory {
+
     override fun create(config: TunnelConfig): Tunnel = when (config.typeEnum) {
-        TunnelConfigType.WIREGUARD -> WireguardTunnel(String(config.configText))
+        TunnelConfigType.WIREGUARD -> {
+            val text = String(config.configText)
+            // Refuse to run a second WG device on a key the phone's system
+            // VPN already holds (the "same config loaded in both apps" case):
+            // two devices on one peer key fight over the single server-side
+            // session and BOTH flap. Rides the system VPN instead. The refuser
+            // lives here, before the native device exists, so acquire() fails
+            // fast and the resolver falls through to direct dialling.
+            SystemVpnAddressProbe.collides(text, systemVpnAddressProbe)?.let { throw it }
+            WireguardTunnel(text)
+        }
         TunnelConfigType.TAILSCALE -> {
             val parsed = TailscaleConfigBlob.parse(config.configText)
             TailscaleTunnel(

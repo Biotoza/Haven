@@ -757,6 +757,22 @@ class McpServer @Inject constructor(
                 if (!carrierId.isNullOrBlank()) {
                     try {
                         tunnelManager.acquire(carrierId, wireguardCarrierProfileId)
+                    } catch (e: sh.haven.core.tunnel.WireGuardSystemVpnConflict) {
+                        // The tunnel config is also loaded in a VPN app and
+                        // that app's VpnService is up: running Haven's device
+                        // on the same key would fight the app over the
+                        // server-side session. Back off and report the
+                        // collision instead of holding a dead device; the
+                        // retry re-acquires once the system VPN leaves.
+                        Log.w(TAG, "MCP WG carrier paused: ${e.message}")
+                        mcpStatusHolder.setWireguardCollision(
+                            sh.haven.core.data.agent.WgCollisionInfo(
+                                vpnInterface = e.vpnInterface,
+                                address = e.address,
+                            ),
+                        )
+                        delay(WG_RETRY_MS)
+                        continue
                     } catch (e: Exception) {
                         Log.w(TAG, "MCP WG carrier acquire ($carrierId) failed: ${e.message}")
                     }
