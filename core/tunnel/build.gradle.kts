@@ -40,6 +40,8 @@ dependencies {
     // OkHttp WebSocket client for the Cloudflare Access SSH gateway (#154).
     implementation(libs.okhttp)
     implementation(project(":core:security"))
+    // LogRedact for tunnel log lines (NoRawPiiInLogsTest).
+    implementation(project(":core:redact"))
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
