@@ -2149,6 +2149,19 @@ class ConnectionsViewModel @Inject constructor(
     /**
      * Try connecting with key auth (no password dialog). On failure, show password dialog.
      */
+    /**
+     * Dial [profile] as a one-off that never touches the database (#751).
+     * The flag is set here rather than trusting the caller so no path can
+     * accidentally dial a non-ephemeral profile through this entry point and
+     * have it treated as saved (or vice versa). The PasswordDialog hides its
+     * Remember tick for the resulting fallback prompt, and
+     * [answerPasswordFallback] downgrades rememberPassword to null, so the
+     * persist helpers never upsert the throwaway row.
+     */
+    fun connectEphemeral(profile: ConnectionProfile) {
+        connect(profile.copy().also { it.ephemeral = true }, password = "")
+    }
+
     fun connectWithKey(profile: ConnectionProfile) {
         if (profile.username.isBlank() && (profile.isSsh || profile.isReticulum)) {
             // Route through the prompt dialog so the user can supply a username first.
@@ -2211,7 +2224,10 @@ class ConnectionsViewModel @Inject constructor(
             connect(
                 profile,
                 password,
-                rememberPassword = rememberPassword,
+                // An ephemeral one-off (#751) has no row to remember into —
+                // null keeps the persist helpers from upserting the
+                // throwaway profile into the database.
+                rememberPassword = if (profile.ephemeral) null else rememberPassword,
                 usernameOverride = username,
             )
         }
@@ -3944,7 +3960,7 @@ class ConnectionsViewModel @Inject constructor(
             val reuseClient = if (profile.tunnelConfigId != null) {
                 sshSessionManager.awaitReusableClient(profile.id)
             } else null
-            val client = reuseClient ?: SshConnectionFactory.create(sshEngineFromOptionsText(profile.sshOptions)).apply {
+            val client = reuseClient ?: clientFactory(profile).apply {
                 fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
                 openKeychainClients = OpenKeychainClientFactory.from(appContext)
                 this.verboseLogger = verboseLogger
@@ -4974,6 +4990,15 @@ class ConnectionsViewModel @Inject constructor(
      * Seam for tests to observe the jump leg's dial (#690). Production keeps
      * the plain JSch client, matching the pre-existing construction.
      */
+    /**
+     * Seam for tests to stand in the target leg's client (#751 ephemeral
+     * connect coverage). Production keeps the factory the pre-existing code
+     * used, with the same engine selection.
+     */
+    internal var clientFactory: (ConnectionProfile) -> SshConnection = {
+        SshConnectionFactory.create(sshEngineFromOptionsText(it.sshOptions))
+    }
+
     internal var jumpClientFactory: () -> SshConnection = {
         // The jump leg runs the jump profile's own auth (an FIDO2 SK key on
         // the jump host must work here too) — #732.
@@ -5449,7 +5474,12 @@ class ConnectionsViewModel @Inject constructor(
 
         repository.markConnected(profile.id)
         if (effectiveSessionName != null) {
-            repository.save(profile.copy(lastSessionName = effectiveSessionName))
+            // Guard with getById like finishMoshConnect: an ephemeral one-off
+            // connect (#751) has no row, and save() upserts — it would INSERT
+            // the throwaway profile into the database.
+            repository.getById(profile.id)?.let { persisted ->
+                repository.save(persisted.copy(lastSessionName = effectiveSessionName))
+            }
         }
         connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.CONNECTED, verboseLog = verboseLogger?.drain())
         startForegroundServiceIfNeeded()

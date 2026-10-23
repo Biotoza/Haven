@@ -11,6 +11,7 @@
     <string name="common_rename">Umbenennen</string>
     <string name="common_create">Erstellen</string>
     <string name="common_connect">Verbinden</string>
+    <string name="connections_connect_without_saving">Ohne Speichern verbinden</string>
     <string name="common_disconnect">Trennen</string>
     <string name="common_copy">Kopieren</string>
     <string name="common_paste">Einfügen</string>

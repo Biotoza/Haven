@@ -198,6 +198,15 @@ fun ConnectionEditDialog(
      * into a port-forward rule by the screen.
      */
     onSave: (ConnectionProfile, EmbeddedCloudflareTunnelInput?, Boolean) -> Unit,
+    /**
+     * "Connect without saving" (#751): when non-null, a new-connection dialog
+     * gains a second action that dials the form's profile as a one-off
+     * ([ConnectionProfile.ephemeral]) instead of writing it. The screen wires
+     * this only for the add/prefill call site — editing an existing profile
+     * keeps its Save semantics. The Cloudflare-tunnel and MCP-reverse-tunnel
+     * options are save-only and are not carried by a quick connect.
+     */
+    onQuickConnect: ((ConnectionProfile) -> Unit)? = null,
 ) {
     // Initial field values come from the edited profile or, for a new
     // connection, an optional deep-link [prefill] (#305). [existing] alone
@@ -3629,512 +3638,533 @@ fun ConnectionEditDialog(
                 "OPENAI" -> host.isNotBlank() && aiRouteComplete(aiRouteMode, aiRouteCarrierId)
                 else -> destinationHash.length == 32 && (localSideband || rnsHost.isNotBlank())
             }
-            TextButton(
-                onClick = {
-                    val etPortInt = etPort.toIntOrNull() ?: 2022
-                    val profile = if (connectionType == "LOCAL") {
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = "localhost",
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { if (useAndroidShell) "Android Shell" else "Local Shell" },
-                            host = "localhost",
-                            port = 0,
-                            username = "",
-                            connectionType = "LOCAL",
-                            useAndroidShell = useAndroidShell,
-                            prootDistroId = if (useAndroidShell) null else prootDistroId,
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                        )
-                    } else if (connectionType == "GUEST") {
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = "localhost",
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "Linux Guest" },
-                            host = "localhost",
-                            port = 0,
-                            username = "",
-                            connectionType = "GUEST",
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                        )
-                    } else if (connectionType == "BTSERIAL") {
-                        // The paired device MAC lives in `host` (no new column).
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = btDevice,
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "Bluetooth: $btDevice" },
-                            host = btDevice,
-                            port = 0,
-                            username = "",
-                            connectionType = "BTSERIAL",
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                        )
-                    } else if (connectionType == "BLESERIAL") {
-                        // The BLE device MAC lives in `host` (no new column); the
-                        // GATT UUIDs are auto-detected (NUS / HM-10) at connect.
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = bleDevice,
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "BLE: $bleDevice" },
-                            host = bleDevice,
-                            port = 0,
-                            username = "",
-                            connectionType = "BLESERIAL",
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                        )
-                    } else if (connectionType == "USBSERIAL") {
-                        // vid:pid → `host`, baud → `port`, the rest of the line
-                        // format (data/parity/stop/flow) → `sshOptions`. No new
-                        // column, mirroring how host/port are repurposed. #408
-                        val usbLineConfig = sh.haven.core.usbserial.UsbSerialParams(
-                            dataBits = usbDataBits.toIntOrNull() ?: 8,
-                            parity = sh.haven.core.usbserial.UsbSerialParams.Parity.valueOf(usbParity),
-                            stopBits = sh.haven.core.usbserial.UsbSerialParams.StopBits.valueOf(usbStopBits),
-                            flowControl = sh.haven.core.usbserial.UsbSerialParams.FlowControl.valueOf(usbFlow),
-                        ).toConfigString()
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = usbDevice,
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "USB: $usbDevice" },
-                            host = usbDevice,
-                            port = usbBaud.toIntOrNull() ?: 115200,
-                            sshOptions = usbLineConfig,
-                            username = "",
-                            connectionType = "USBSERIAL",
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                        )
-                    } else if (connectionType == "VNC") {
-                        val vncPortInt = port.toIntOrNull() ?: 5900
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = host,
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "VNC: $host" },
-                            host = host,
-                            port = vncPortInt,
-                            username = "",
-                            connectionType = "VNC",
-                            vncPort = vncPortInt,
-                            vncUsername = vncUsername.ifBlank { null },
-                            vncPassword = vncPassword.ifBlank { null },
-                            vncSshForward = vncSshForward,
-                            vncSshProfileId = tunnelCarrierForSave(vncSshForward, vncSshProfileId),
-                            vncColorDepth = vncColorDepth,
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                            portKnockSequence = portKnockSequence.ifBlank { null },
-                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
-                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
-                            spaKey = spaKey.ifBlank { null },
-                            spaKeyBase64 = spaKeyBase64,
-                            spaHmacKey = spaHmacKey.ifBlank { null },
-                            spaHmacKeyBase64 = spaHmacKeyBase64,
-                            spaAccessSpec = spaAccessSpec.ifBlank { null },
-                            spaAllowMode = spaAllowMode,
-                            spaExplicitIp = spaExplicitIp.ifBlank { null },
-                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
-                                ?: SpaConfig.DEFAULT_SPA_PORT,
-                        ).withRoutingSelection(
-                            proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
-                        )
-                    } else if (connectionType == "RDP") {
-                        val rdpPortInt = port.toIntOrNull() ?: 3389
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = host,
-                            username = rdpUsername,
-                        )).copy(
-                            label = label.ifBlank { "RDP: $rdpUsername@$host" },
-                            host = host,
-                            port = rdpPortInt,
-                            username = rdpUsername,
-                            connectionType = "RDP",
-                            rdpPort = rdpPortInt,
-                            rdpUsername = rdpUsername.ifBlank { null },
-                            rdpPassword = rdpPassword.ifBlank { null },
-                            rdpDomain = rdpDomain.ifBlank { null },
-                            rdpSshForward = rdpSshForward,
-                            rdpSshProfileId = tunnelCarrierForSave(rdpSshForward, rdpSshProfileId),
-                            rdpUseNla = rdpUseNla,
-                            rdpColorDepth = rdpColorDepth,
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                            portKnockSequence = portKnockSequence.ifBlank { null },
-                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
-                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
-                            spaKey = spaKey.ifBlank { null },
-                            spaKeyBase64 = spaKeyBase64,
-                            spaHmacKey = spaHmacKey.ifBlank { null },
-                            spaHmacKeyBase64 = spaHmacKeyBase64,
-                            spaAccessSpec = spaAccessSpec.ifBlank { null },
-                            spaAllowMode = spaAllowMode,
-                            spaExplicitIp = spaExplicitIp.ifBlank { null },
-                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
-                                ?: SpaConfig.DEFAULT_SPA_PORT,
-                        ).withRoutingSelection(
-                            proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
-                        )
-                    } else if (connectionType == "SPICE") {
-                        val spicePortInt = port.toIntOrNull() ?: 5900
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = host,
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "SPICE: $host" },
-                            host = host,
-                            port = spicePortInt,
-                            username = "",
-                            connectionType = "SPICE",
-                            spicePort = spicePortInt,
-                            spicePassword = spicePassword.ifBlank { null },
-                            spiceSshForward = spiceSshForward,
-                            spiceSshProfileId = tunnelCarrierForSave(spiceSshForward, spiceSshProfileId),
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                            portKnockSequence = portKnockSequence.ifBlank { null },
-                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
-                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
-                            spaKey = spaKey.ifBlank { null },
-                            spaKeyBase64 = spaKeyBase64,
-                            spaHmacKey = spaHmacKey.ifBlank { null },
-                            spaHmacKeyBase64 = spaHmacKeyBase64,
-                            spaAccessSpec = spaAccessSpec.ifBlank { null },
-                            spaAllowMode = spaAllowMode,
-                            spaExplicitIp = spaExplicitIp.ifBlank { null },
-                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
-                                ?: SpaConfig.DEFAULT_SPA_PORT,
-                        ).withRoutingSelection(
-                            proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
-                        )
-                    } else if (connectionType == "RCLONE") {
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = "",
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank {
-                                val providerLabel = when (rcloneProvider) {
-                                    "drive" -> "Google Drive"
-                                    "dropbox" -> "Dropbox"
-                                    "onedrive" -> "OneDrive"
-                                    "s3" -> "Amazon S3"
-                                    "b2" -> "Backblaze B2"
-                                    "mega" -> "MEGA"
-                                    "pcloud" -> "pCloud"
-                                    "box" -> "Box"
-                                    "filen" -> "Filen"
-                                    else -> rcloneProvider
-                                }
-                                providerLabel
-                            },
-                            host = "",
-                            port = 0,
-                            username = "",
-                            connectionType = "RCLONE",
-                            rcloneRemoteName = rcloneRemoteName.ifBlank { "$rcloneProvider-$rcloneRemoteToken" },
-                            rcloneProvider = rcloneProvider,
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                        )
-                    } else if (connectionType == "EMAIL") {
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = host,
-                            username = emailUsername,
-                        )).copy(
-                            label = label.ifBlank {
-                                emailUsername.ifBlank {
-                                    if (emailProvider.equals("imap", true)) "Email" else "Proton Mail"
-                                }
-                            },
-                            // host carries the optional tunnel-ingress/bastion that
-                            // SPA/knock guards; for Proton the mail server is Proton's,
-                            // for IMAP it's emailServer (reached through the tunnel).
-                            host = host,
-                            port = 0,
-                            username = emailUsername,
-                            connectionType = "EMAIL",
-                            emailProvider = emailProvider,
-                            emailUsername = emailUsername,
-                            emailPassword = emailPassword.ifBlank { null },
-                            emailMailboxPassword = emailMailboxPassword.ifBlank { null },
-                            emailServer = emailServer.ifBlank { null },
-                            emailSmtpServer = emailSmtpServer.ifBlank { null },
-                            emailPort = emailPort.toIntOrNull()?.takeIf { it in 1..65535 } ?: 993,
-                            emailSmtpPort = emailSmtpPort.toIntOrNull()?.takeIf { it in 1..65535 } ?: 465,
-                            emailTls = emailTls,
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                            tunnelConfigId = tunnelConfigId,
-                            portKnockSequence = portKnockSequence.ifBlank { null },
-                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
-                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
-                            spaKey = spaKey.ifBlank { null },
-                            spaKeyBase64 = spaKeyBase64,
-                            spaHmacKey = spaHmacKey.ifBlank { null },
-                            spaHmacKeyBase64 = spaHmacKeyBase64,
-                            spaAccessSpec = spaAccessSpec.ifBlank { null },
-                            spaAllowMode = spaAllowMode,
-                            spaExplicitIp = spaExplicitIp.ifBlank { null },
-                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
-                                ?: SpaConfig.DEFAULT_SPA_PORT,
-                        )
-                    } else if (connectionType == "OPENAI") {
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = host,
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "AI Endpoint" },
-                            host = host,
-                            port = port.toIntOrNull()?.takeIf { it in 1..65535 } ?: 0,
-                            username = "",
-                            connectionType = "OPENAI",
-                            openaiApiKey = openaiApiKey.ifBlank { null },
-                            openaiPathPrefix = openaiPathPrefix.trim().ifBlank { null },
-                            aiProtocol = openaiProtocol.takeIf { it != "OPENAI" },
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                            tunnelConfigId = tunnelConfigId,
-                            portKnockSequence = portKnockSequence.ifBlank { null },
-                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
-                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
-                            spaKey = spaKey.ifBlank { null },
-                            spaKeyBase64 = spaKeyBase64,
-                            spaHmacKey = spaHmacKey.ifBlank { null },
-                            spaHmacKeyBase64 = spaHmacKeyBase64,
-                            spaAccessSpec = spaAccessSpec.ifBlank { null },
-                            spaAllowMode = spaAllowMode,
-                            spaExplicitIp = spaExplicitIp.ifBlank { null },
-                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
-                                ?: SpaConfig.DEFAULT_SPA_PORT,
-                        ).withRoutingSelection(
-                            proxyType = if (aiRouteMode == "NONE") proxyType else null,
-                            proxyHost = proxyHost,
-                            proxyPort = proxyPort,
-                            proxyUser = proxyUser,
-                            proxyPassword = proxyPassword,
-                            tunnelConfigId = if (aiRouteMode == "NONE") tunnelConfigId else null,
-                        ).copy(
-                            // One (type, carrier) pair, self-exclusive: a
-                            // saved profile can never carry two carriers.
-                            aiRouteType = aiRouteTypeForSave(aiRouteMode),
-                            aiRouteProfileId = aiRouteCarrierForSave(aiRouteMode, aiRouteCarrierId),
-                        )
-                    } else if (connectionType == "SMB") {
-                        val smbPortInt = port.toIntOrNull() ?: 445
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = host,
-                            username = username,
-                        )).copy(
-                            label = label.ifBlank { "SMB: \\\\$host\\$smbShare" },
-                            host = host,
-                            port = smbPortInt,
-                            username = username,
-                            connectionType = "SMB",
-                            smbPort = smbPortInt,
-                            smbShare = smbShare.ifBlank { null },
-                            smbPassword = smbPassword.ifBlank { null },
-                            smbDomain = smbDomain.ifBlank { null },
-                            smbSshForward = smbSshForward,
-                            smbSshProfileId = tunnelCarrierForSave(smbSshForward, smbSshProfileId),
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                            portKnockSequence = portKnockSequence.ifBlank { null },
-                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
-                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
-                            spaKey = spaKey.ifBlank { null },
-                            spaKeyBase64 = spaKeyBase64,
-                            spaHmacKey = spaHmacKey.ifBlank { null },
-                            spaHmacKeyBase64 = spaHmacKeyBase64,
-                            spaAccessSpec = spaAccessSpec.ifBlank { null },
-                            spaAllowMode = spaAllowMode,
-                            spaExplicitIp = spaExplicitIp.ifBlank { null },
-                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
-                                ?: SpaConfig.DEFAULT_SPA_PORT,
-                        ).withRoutingSelection(
-                            proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
-                        )
-                    } else if (connectionType == "SSH") {
-                        // CF tunnel transport forces port 22 (the tunnel
-                        // dial ignores port; this keeps downstream consumers
-                        // that read `profile.port` sensible).
-                        val portInt = if (useCloudflareTunnel) 22 else (port.toIntOrNull() ?: 22)
-                        // Saved VNC settings round-trip: if the section was
-                        // visible and the user didn't hit "Clear", persist the
-                        // edited values; if they cleared it, null everything
-                        // out so the quick-dialog reprompts next time.
-                        val vncPortInt = if (vncSettingsStored) vncSavedPort.toIntOrNull() else null
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = host,
-                            port = portInt,
-                            username = username,
-                        )).copy(
-                            label = label.ifBlank { "$username@$host" },
-                            host = host,
-                            port = portInt,
-                            username = username,
-                            connectionType = "SSH",
-                            destinationHash = null,
-                            jumpProfileId = jumpProfileId,
-                            proxyType = if (useCloudflareTunnel) null else proxyType,
-                            proxyHost = if (useCloudflareTunnel) null else proxyHost.ifBlank { null },
-                            proxyPort = proxyPort.toIntOrNull() ?: 1080,
-                            proxyUser = if (useCloudflareTunnel || proxyType == null) null
-                                else proxyUser.ifBlank { null },
-                            proxyPassword = if (useCloudflareTunnel || proxyType == null || proxyType == "SOCKS4") null
-                                else proxyPassword.ifBlank { null },
-                            // #166: persist the ordered method list, and keep
-                            // the legacy authType/keyId in sync with the
-                            // primary (first) method so code paths that still
-                            // read them (list_connections, audit labels) stay
-                            // correct.
-                            authMethods = authMethodsText,
-                            // Reflect a key in the legacy authType when ANY method
-                            // is a key (not just the first) — a [Password, Key]
-                            // chain previously reported authType=PASSWORD/keyId=null,
-                            // hiding the pinned key from list_connections and the
-                            // legacy resolve path.
-                            authType = if (ConnectionProfile.AuthMethodSpec.parseList(authMethodsText)
-                                    .any { it is ConnectionProfile.AuthMethodSpec.Key }
-                            ) ConnectionProfile.AuthType.KEY else ConnectionProfile.AuthType.PASSWORD,
-                            keyId = ConnectionProfile.AuthMethodSpec.parseList(authMethodsText)
-                                .filterIsInstance<ConnectionProfile.AuthMethodSpec.Key>()
-                                .firstOrNull()?.keyId,
-                            totpConfirmBeforeSend = totpConfirmBeforeSend,
-                            ignoreSavedKeys = ignoreSavedKeys,
-                            // tunnelConfigId is owned by the ViewModel save
-                            // helper when the user picks the inline CF
-                            // transport — it overwrites this with the
-                            // upserted embedded tunnel id. Anything else
-                            // (shared standalone tunnel) is persisted as-is.
-                            tunnelConfigId = if (useCloudflareTunnel) null else tunnelConfigId,
-                            sshOptions = sshOptions.ifBlank { null },
-                            moshServerCommand = moshServerCommand.ifBlank { null },
-                            postLoginCommand = postLoginCommand.ifBlank { null },
-                            postLoginBeforeSessionManager = postLoginBeforeSessionManager,
-                            remoteCommand = remoteCommand.ifBlank { null },
-                            requestPty = requestPty,
-                            sessionCommandOverride = sessionCommandOverride.ifBlank { null },
-                            usbForwardVidPid = usbForwardVidPid,
-                            disableAltScreen = disableAltScreen,
-                            terminalColorScheme = terminalColorScheme,
-                            terminalBackgroundOpacity = terminalBackgroundOpacity,
-                            useAndroidShell = useAndroidShell,
-                            prootDistroId = if (useAndroidShell) null else prootDistroId,
-                            forwardAgent = forwardAgent,
-                            addressFamily = addressFamily,
-                            bindAddress = bindAddress.ifBlank { null },
-                            autoReconnect = autoReconnect,
-                            reconnectMaxAttempts = reconnectMaxAttempts.toIntOrNull()?.coerceAtLeast(0) ?: 5,
-                            reconnectOnNetworkChange = reconnectOnNetworkChange,
-                            tunnelOnly = tunnelOnly,
-                            mcpEnabled = mcpEnabled,
-                            sessionManager = selectedSessionManager,
-                            useMosh = selectedTransport == "MOSH",
-                            useEternalTerminal = selectedTransport == "ET",
-                            etPort = etPortInt,
-                            fileTransport = fileTransport,
-                            vncPort = vncPortInt,
-                            vncUsername = if (vncSettingsStored) vncUsername.ifBlank { null } else null,
-                            vncPassword = if (vncSettingsStored) vncPassword.ifBlank { null } else null,
-                            vncSshForward = if (vncSettingsStored) vncSavedSshForward else true,
-                            vncColorDepth = if (vncSettingsStored) vncColorDepth else "BPP_24_TRUE",
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                            portKnockSequence = portKnockSequence.ifBlank { null },
-                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
-                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
-                            spaKey = spaKey.ifBlank { null },
-                            spaKeyBase64 = spaKeyBase64,
-                            spaHmacKey = spaHmacKey.ifBlank { null },
-                            spaHmacKeyBase64 = spaHmacKeyBase64,
-                            spaAccessSpec = spaAccessSpec.ifBlank { null },
-                            spaAllowMode = spaAllowMode,
-                            spaExplicitIp = spaExplicitIp.ifBlank { null },
-                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
-                                ?: SpaConfig.DEFAULT_SPA_PORT,
-                        )
-                    } else {
-                        val savedHost = if (localSideband) "127.0.0.1" else rnsHost
-                        val savedPort = if (localSideband) 37428 else (rnsPort.toIntOrNull() ?: 4242)
-                        (existing ?: ConnectionProfile(
-                            label = label,
-                            host = "",
-                            port = 0,
-                            username = "",
-                        )).copy(
-                            label = label.ifBlank { "RNS:${destinationHash.take(12)}" },
-                            host = "",
-                            port = 0,
-                            username = "",
-                            connectionType = "RETICULUM",
-                            destinationHash = destinationHash.lowercase(),
-                            reticulumHost = savedHost,
-                            reticulumPort = savedPort,
-                            reticulumNetworkName = rnsNetworkName.ifBlank { null },
-                            reticulumPassphrase = rnsPassphrase.ifBlank { null },
-                            postLoginCommand = postLoginCommand.ifBlank { null },
-                            postLoginBeforeSessionManager = postLoginBeforeSessionManager,
-                            colorTag = colorTag,
-                            groupId = groupId,
-                            identityId = identityId,
-                        )
+            // Build the profile from the current form state. Shared by Save
+            // and "Connect without saving" (#751) so both dial/save exactly
+            // what the form shows.
+            fun buildProfile(): ConnectionProfile {
+                        val etPortInt = etPort.toIntOrNull() ?: 2022
+                        val profile = if (connectionType == "LOCAL") {
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = "localhost",
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { if (useAndroidShell) "Android Shell" else "Local Shell" },
+                                host = "localhost",
+                                port = 0,
+                                username = "",
+                                connectionType = "LOCAL",
+                                useAndroidShell = useAndroidShell,
+                                prootDistroId = if (useAndroidShell) null else prootDistroId,
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                            )
+                        } else if (connectionType == "GUEST") {
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = "localhost",
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "Linux Guest" },
+                                host = "localhost",
+                                port = 0,
+                                username = "",
+                                connectionType = "GUEST",
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                            )
+                        } else if (connectionType == "BTSERIAL") {
+                            // The paired device MAC lives in `host` (no new column).
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = btDevice,
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "Bluetooth: $btDevice" },
+                                host = btDevice,
+                                port = 0,
+                                username = "",
+                                connectionType = "BTSERIAL",
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                            )
+                        } else if (connectionType == "BLESERIAL") {
+                            // The BLE device MAC lives in `host` (no new column); the
+                            // GATT UUIDs are auto-detected (NUS / HM-10) at connect.
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = bleDevice,
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "BLE: $bleDevice" },
+                                host = bleDevice,
+                                port = 0,
+                                username = "",
+                                connectionType = "BLESERIAL",
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                            )
+                        } else if (connectionType == "USBSERIAL") {
+                            // vid:pid → `host`, baud → `port`, the rest of the line
+                            // format (data/parity/stop/flow) → `sshOptions`. No new
+                            // column, mirroring how host/port are repurposed. #408
+                            val usbLineConfig = sh.haven.core.usbserial.UsbSerialParams(
+                                dataBits = usbDataBits.toIntOrNull() ?: 8,
+                                parity = sh.haven.core.usbserial.UsbSerialParams.Parity.valueOf(usbParity),
+                                stopBits = sh.haven.core.usbserial.UsbSerialParams.StopBits.valueOf(usbStopBits),
+                                flowControl = sh.haven.core.usbserial.UsbSerialParams.FlowControl.valueOf(usbFlow),
+                            ).toConfigString()
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = usbDevice,
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "USB: $usbDevice" },
+                                host = usbDevice,
+                                port = usbBaud.toIntOrNull() ?: 115200,
+                                sshOptions = usbLineConfig,
+                                username = "",
+                                connectionType = "USBSERIAL",
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                            )
+                        } else if (connectionType == "VNC") {
+                            val vncPortInt = port.toIntOrNull() ?: 5900
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = host,
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "VNC: $host" },
+                                host = host,
+                                port = vncPortInt,
+                                username = "",
+                                connectionType = "VNC",
+                                vncPort = vncPortInt,
+                                vncUsername = vncUsername.ifBlank { null },
+                                vncPassword = vncPassword.ifBlank { null },
+                                vncSshForward = vncSshForward,
+                                vncSshProfileId = tunnelCarrierForSave(vncSshForward, vncSshProfileId),
+                                vncColorDepth = vncColorDepth,
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                                portKnockSequence = portKnockSequence.ifBlank { null },
+                                portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                    ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                                spaKey = spaKey.ifBlank { null },
+                                spaKeyBase64 = spaKeyBase64,
+                                spaHmacKey = spaHmacKey.ifBlank { null },
+                                spaHmacKeyBase64 = spaHmacKeyBase64,
+                                spaAccessSpec = spaAccessSpec.ifBlank { null },
+                                spaAllowMode = spaAllowMode,
+                                spaExplicitIp = spaExplicitIp.ifBlank { null },
+                                spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                    ?: SpaConfig.DEFAULT_SPA_PORT,
+                            ).withRoutingSelection(
+                                proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
+                            )
+                        } else if (connectionType == "RDP") {
+                            val rdpPortInt = port.toIntOrNull() ?: 3389
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = host,
+                                username = rdpUsername,
+                            )).copy(
+                                label = label.ifBlank { "RDP: $rdpUsername@$host" },
+                                host = host,
+                                port = rdpPortInt,
+                                username = rdpUsername,
+                                connectionType = "RDP",
+                                rdpPort = rdpPortInt,
+                                rdpUsername = rdpUsername.ifBlank { null },
+                                rdpPassword = rdpPassword.ifBlank { null },
+                                rdpDomain = rdpDomain.ifBlank { null },
+                                rdpSshForward = rdpSshForward,
+                                rdpSshProfileId = tunnelCarrierForSave(rdpSshForward, rdpSshProfileId),
+                                rdpUseNla = rdpUseNla,
+                                rdpColorDepth = rdpColorDepth,
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                                portKnockSequence = portKnockSequence.ifBlank { null },
+                                portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                    ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                                spaKey = spaKey.ifBlank { null },
+                                spaKeyBase64 = spaKeyBase64,
+                                spaHmacKey = spaHmacKey.ifBlank { null },
+                                spaHmacKeyBase64 = spaHmacKeyBase64,
+                                spaAccessSpec = spaAccessSpec.ifBlank { null },
+                                spaAllowMode = spaAllowMode,
+                                spaExplicitIp = spaExplicitIp.ifBlank { null },
+                                spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                    ?: SpaConfig.DEFAULT_SPA_PORT,
+                            ).withRoutingSelection(
+                                proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
+                            )
+                        } else if (connectionType == "SPICE") {
+                            val spicePortInt = port.toIntOrNull() ?: 5900
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = host,
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "SPICE: $host" },
+                                host = host,
+                                port = spicePortInt,
+                                username = "",
+                                connectionType = "SPICE",
+                                spicePort = spicePortInt,
+                                spicePassword = spicePassword.ifBlank { null },
+                                spiceSshForward = spiceSshForward,
+                                spiceSshProfileId = tunnelCarrierForSave(spiceSshForward, spiceSshProfileId),
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                                portKnockSequence = portKnockSequence.ifBlank { null },
+                                portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                    ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                                spaKey = spaKey.ifBlank { null },
+                                spaKeyBase64 = spaKeyBase64,
+                                spaHmacKey = spaHmacKey.ifBlank { null },
+                                spaHmacKeyBase64 = spaHmacKeyBase64,
+                                spaAccessSpec = spaAccessSpec.ifBlank { null },
+                                spaAllowMode = spaAllowMode,
+                                spaExplicitIp = spaExplicitIp.ifBlank { null },
+                                spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                    ?: SpaConfig.DEFAULT_SPA_PORT,
+                            ).withRoutingSelection(
+                                proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
+                            )
+                        } else if (connectionType == "RCLONE") {
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = "",
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank {
+                                    val providerLabel = when (rcloneProvider) {
+                                        "drive" -> "Google Drive"
+                                        "dropbox" -> "Dropbox"
+                                        "onedrive" -> "OneDrive"
+                                        "s3" -> "Amazon S3"
+                                        "b2" -> "Backblaze B2"
+                                        "mega" -> "MEGA"
+                                        "pcloud" -> "pCloud"
+                                        "box" -> "Box"
+                                        "filen" -> "Filen"
+                                        else -> rcloneProvider
+                                    }
+                                    providerLabel
+                                },
+                                host = "",
+                                port = 0,
+                                username = "",
+                                connectionType = "RCLONE",
+                                rcloneRemoteName = rcloneRemoteName.ifBlank { "$rcloneProvider-$rcloneRemoteToken" },
+                                rcloneProvider = rcloneProvider,
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                            )
+                        } else if (connectionType == "EMAIL") {
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = host,
+                                username = emailUsername,
+                            )).copy(
+                                label = label.ifBlank {
+                                    emailUsername.ifBlank {
+                                        if (emailProvider.equals("imap", true)) "Email" else "Proton Mail"
+                                    }
+                                },
+                                // host carries the optional tunnel-ingress/bastion that
+                                // SPA/knock guards; for Proton the mail server is Proton's,
+                                // for IMAP it's emailServer (reached through the tunnel).
+                                host = host,
+                                port = 0,
+                                username = emailUsername,
+                                connectionType = "EMAIL",
+                                emailProvider = emailProvider,
+                                emailUsername = emailUsername,
+                                emailPassword = emailPassword.ifBlank { null },
+                                emailMailboxPassword = emailMailboxPassword.ifBlank { null },
+                                emailServer = emailServer.ifBlank { null },
+                                emailSmtpServer = emailSmtpServer.ifBlank { null },
+                                emailPort = emailPort.toIntOrNull()?.takeIf { it in 1..65535 } ?: 993,
+                                emailSmtpPort = emailSmtpPort.toIntOrNull()?.takeIf { it in 1..65535 } ?: 465,
+                                emailTls = emailTls,
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                                tunnelConfigId = tunnelConfigId,
+                                portKnockSequence = portKnockSequence.ifBlank { null },
+                                portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                    ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                                spaKey = spaKey.ifBlank { null },
+                                spaKeyBase64 = spaKeyBase64,
+                                spaHmacKey = spaHmacKey.ifBlank { null },
+                                spaHmacKeyBase64 = spaHmacKeyBase64,
+                                spaAccessSpec = spaAccessSpec.ifBlank { null },
+                                spaAllowMode = spaAllowMode,
+                                spaExplicitIp = spaExplicitIp.ifBlank { null },
+                                spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                    ?: SpaConfig.DEFAULT_SPA_PORT,
+                            )
+                        } else if (connectionType == "OPENAI") {
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = host,
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "AI Endpoint" },
+                                host = host,
+                                port = port.toIntOrNull()?.takeIf { it in 1..65535 } ?: 0,
+                                username = "",
+                                connectionType = "OPENAI",
+                                openaiApiKey = openaiApiKey.ifBlank { null },
+                                openaiPathPrefix = openaiPathPrefix.trim().ifBlank { null },
+                                aiProtocol = openaiProtocol.takeIf { it != "OPENAI" },
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                                tunnelConfigId = tunnelConfigId,
+                                portKnockSequence = portKnockSequence.ifBlank { null },
+                                portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                    ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                                spaKey = spaKey.ifBlank { null },
+                                spaKeyBase64 = spaKeyBase64,
+                                spaHmacKey = spaHmacKey.ifBlank { null },
+                                spaHmacKeyBase64 = spaHmacKeyBase64,
+                                spaAccessSpec = spaAccessSpec.ifBlank { null },
+                                spaAllowMode = spaAllowMode,
+                                spaExplicitIp = spaExplicitIp.ifBlank { null },
+                                spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                    ?: SpaConfig.DEFAULT_SPA_PORT,
+                            ).withRoutingSelection(
+                                proxyType = if (aiRouteMode == "NONE") proxyType else null,
+                                proxyHost = proxyHost,
+                                proxyPort = proxyPort,
+                                proxyUser = proxyUser,
+                                proxyPassword = proxyPassword,
+                                tunnelConfigId = if (aiRouteMode == "NONE") tunnelConfigId else null,
+                            ).copy(
+                                // One (type, carrier) pair, self-exclusive: a
+                                // saved profile can never carry two carriers.
+                                aiRouteType = aiRouteTypeForSave(aiRouteMode),
+                                aiRouteProfileId = aiRouteCarrierForSave(aiRouteMode, aiRouteCarrierId),
+                            )
+                        } else if (connectionType == "SMB") {
+                            val smbPortInt = port.toIntOrNull() ?: 445
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = host,
+                                username = username,
+                            )).copy(
+                                label = label.ifBlank { "SMB: \\\\$host\\$smbShare" },
+                                host = host,
+                                port = smbPortInt,
+                                username = username,
+                                connectionType = "SMB",
+                                smbPort = smbPortInt,
+                                smbShare = smbShare.ifBlank { null },
+                                smbPassword = smbPassword.ifBlank { null },
+                                smbDomain = smbDomain.ifBlank { null },
+                                smbSshForward = smbSshForward,
+                                smbSshProfileId = tunnelCarrierForSave(smbSshForward, smbSshProfileId),
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                                portKnockSequence = portKnockSequence.ifBlank { null },
+                                portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                    ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                                spaKey = spaKey.ifBlank { null },
+                                spaKeyBase64 = spaKeyBase64,
+                                spaHmacKey = spaHmacKey.ifBlank { null },
+                                spaHmacKeyBase64 = spaHmacKeyBase64,
+                                spaAccessSpec = spaAccessSpec.ifBlank { null },
+                                spaAllowMode = spaAllowMode,
+                                spaExplicitIp = spaExplicitIp.ifBlank { null },
+                                spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                    ?: SpaConfig.DEFAULT_SPA_PORT,
+                            ).withRoutingSelection(
+                                proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
+                            )
+                        } else if (connectionType == "SSH") {
+                            // CF tunnel transport forces port 22 (the tunnel
+                            // dial ignores port; this keeps downstream consumers
+                            // that read `profile.port` sensible).
+                            val portInt = if (useCloudflareTunnel) 22 else (port.toIntOrNull() ?: 22)
+                            // Saved VNC settings round-trip: if the section was
+                            // visible and the user didn't hit "Clear", persist the
+                            // edited values; if they cleared it, null everything
+                            // out so the quick-dialog reprompts next time.
+                            val vncPortInt = if (vncSettingsStored) vncSavedPort.toIntOrNull() else null
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = host,
+                                port = portInt,
+                                username = username,
+                            )).copy(
+                                label = label.ifBlank { "$username@$host" },
+                                host = host,
+                                port = portInt,
+                                username = username,
+                                connectionType = "SSH",
+                                destinationHash = null,
+                                jumpProfileId = jumpProfileId,
+                                proxyType = if (useCloudflareTunnel) null else proxyType,
+                                proxyHost = if (useCloudflareTunnel) null else proxyHost.ifBlank { null },
+                                proxyPort = proxyPort.toIntOrNull() ?: 1080,
+                                proxyUser = if (useCloudflareTunnel || proxyType == null) null
+                                    else proxyUser.ifBlank { null },
+                                proxyPassword = if (useCloudflareTunnel || proxyType == null || proxyType == "SOCKS4") null
+                                    else proxyPassword.ifBlank { null },
+                                // #166: persist the ordered method list, and keep
+                                // the legacy authType/keyId in sync with the
+                                // primary (first) method so code paths that still
+                                // read them (list_connections, audit labels) stay
+                                // correct.
+                                authMethods = authMethodsText,
+                                // Reflect a key in the legacy authType when ANY method
+                                // is a key (not just the first) — a [Password, Key]
+                                // chain previously reported authType=PASSWORD/keyId=null,
+                                // hiding the pinned key from list_connections and the
+                                // legacy resolve path.
+                                authType = if (ConnectionProfile.AuthMethodSpec.parseList(authMethodsText)
+                                        .any { it is ConnectionProfile.AuthMethodSpec.Key }
+                                ) ConnectionProfile.AuthType.KEY else ConnectionProfile.AuthType.PASSWORD,
+                                keyId = ConnectionProfile.AuthMethodSpec.parseList(authMethodsText)
+                                    .filterIsInstance<ConnectionProfile.AuthMethodSpec.Key>()
+                                    .firstOrNull()?.keyId,
+                                totpConfirmBeforeSend = totpConfirmBeforeSend,
+                                ignoreSavedKeys = ignoreSavedKeys,
+                                // tunnelConfigId is owned by the ViewModel save
+                                // helper when the user picks the inline CF
+                                // transport — it overwrites this with the
+                                // upserted embedded tunnel id. Anything else
+                                // (shared standalone tunnel) is persisted as-is.
+                                tunnelConfigId = if (useCloudflareTunnel) null else tunnelConfigId,
+                                sshOptions = sshOptions.ifBlank { null },
+                                moshServerCommand = moshServerCommand.ifBlank { null },
+                                postLoginCommand = postLoginCommand.ifBlank { null },
+                                postLoginBeforeSessionManager = postLoginBeforeSessionManager,
+                                remoteCommand = remoteCommand.ifBlank { null },
+                                requestPty = requestPty,
+                                sessionCommandOverride = sessionCommandOverride.ifBlank { null },
+                                usbForwardVidPid = usbForwardVidPid,
+                                disableAltScreen = disableAltScreen,
+                                terminalColorScheme = terminalColorScheme,
+                                terminalBackgroundOpacity = terminalBackgroundOpacity,
+                                useAndroidShell = useAndroidShell,
+                                prootDistroId = if (useAndroidShell) null else prootDistroId,
+                                forwardAgent = forwardAgent,
+                                addressFamily = addressFamily,
+                                bindAddress = bindAddress.ifBlank { null },
+                                autoReconnect = autoReconnect,
+                                reconnectMaxAttempts = reconnectMaxAttempts.toIntOrNull()?.coerceAtLeast(0) ?: 5,
+                                reconnectOnNetworkChange = reconnectOnNetworkChange,
+                                tunnelOnly = tunnelOnly,
+                                mcpEnabled = mcpEnabled,
+                                sessionManager = selectedSessionManager,
+                                useMosh = selectedTransport == "MOSH",
+                                useEternalTerminal = selectedTransport == "ET",
+                                etPort = etPortInt,
+                                fileTransport = fileTransport,
+                                vncPort = vncPortInt,
+                                vncUsername = if (vncSettingsStored) vncUsername.ifBlank { null } else null,
+                                vncPassword = if (vncSettingsStored) vncPassword.ifBlank { null } else null,
+                                vncSshForward = if (vncSettingsStored) vncSavedSshForward else true,
+                                vncColorDepth = if (vncSettingsStored) vncColorDepth else "BPP_24_TRUE",
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                                portKnockSequence = portKnockSequence.ifBlank { null },
+                                portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                    ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                                spaKey = spaKey.ifBlank { null },
+                                spaKeyBase64 = spaKeyBase64,
+                                spaHmacKey = spaHmacKey.ifBlank { null },
+                                spaHmacKeyBase64 = spaHmacKeyBase64,
+                                spaAccessSpec = spaAccessSpec.ifBlank { null },
+                                spaAllowMode = spaAllowMode,
+                                spaExplicitIp = spaExplicitIp.ifBlank { null },
+                                spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                    ?: SpaConfig.DEFAULT_SPA_PORT,
+                            )
+                        } else {
+                            val savedHost = if (localSideband) "127.0.0.1" else rnsHost
+                            val savedPort = if (localSideband) 37428 else (rnsPort.toIntOrNull() ?: 4242)
+                            (existing ?: ConnectionProfile(
+                                label = label,
+                                host = "",
+                                port = 0,
+                                username = "",
+                            )).copy(
+                                label = label.ifBlank { "RNS:${destinationHash.take(12)}" },
+                                host = "",
+                                port = 0,
+                                username = "",
+                                connectionType = "RETICULUM",
+                                destinationHash = destinationHash.lowercase(),
+                                reticulumHost = savedHost,
+                                reticulumPort = savedPort,
+                                reticulumNetworkName = rnsNetworkName.ifBlank { null },
+                                reticulumPassphrase = rnsPassphrase.ifBlank { null },
+                                postLoginCommand = postLoginCommand.ifBlank { null },
+                                postLoginBeforeSessionManager = postLoginBeforeSessionManager,
+                                colorTag = colorTag,
+                                groupId = groupId,
+                                identityId = identityId,
+                            )
+                        }
+                return profile
+            }
+            Row(horizontalArrangement = Arrangement.End) {
+                // #751: a new connection can be dialed as a one-off without
+                // ever being written. Only for the add/prefill dialog — an
+                // edited profile already exists, so "without saving" is
+                // meaningless there.
+                if (onQuickConnect != null && existing == null) {
+                    TextButton(
+                        onClick = { onQuickConnect(buildProfile().also { it.ephemeral = true }) },
+                        enabled = canSave,
+                    ) {
+                        Text(stringResource(R.string.connections_connect_without_saving))
                     }
-                    // Embedded Cloudflare Tunnel transport input — only
-                    // non-null for SSH profiles that opted in via the
-                    // route-through dropdown. Hostname mirrors the SSH
-                    // host field; the ViewModel save helper trims/normalises.
-                    val cfInput = if (useCloudflareTunnel && connectionType == "SSH") {
-                        EmbeddedCloudflareTunnelInput(
-                            hostname = host,
-                            teamDomain = cfTeamDomain,
-                            jwt = cfJwt,
-                            jwtExpiresAt = cfExpiresAt,
-                            jumpDestination = cfJumpDestination,
-                        )
-                    } else null
-                    // MCP reverse tunnel only applies to plain SSH, and only
-                    // when inbound MCP is allowed for this connection (the
-                    // toggle is gated on mcpEnabled). For other transports or
-                    // when MCP is off, report false so the screen tears down
-                    // any stale rule.
-                    onSave(profile, cfInput, mcpReverseTunnel && mcpEnabled && selectedTransport == "SSH")
-                },
-                enabled = canSave,
-            ) {
-                Text(stringResource(R.string.common_save))
+                }
+                TextButton(
+                    onClick = {
+                        val profile = buildProfile()
+                        // Embedded Cloudflare Tunnel transport input — only
+                        // non-null for SSH profiles that opted in via the
+                        // route-through dropdown. Hostname mirrors the SSH
+                        // host field; the ViewModel save helper trims/normalises.
+                        val cfInput = if (useCloudflareTunnel && connectionType == "SSH") {
+                            EmbeddedCloudflareTunnelInput(
+                                hostname = host,
+                                teamDomain = cfTeamDomain,
+                                jwt = cfJwt,
+                                jwtExpiresAt = cfExpiresAt,
+                                jumpDestination = cfJumpDestination,
+                            )
+                        } else null
+                        // MCP reverse tunnel only applies to plain SSH, and only
+                        // when inbound MCP is allowed for this connection (the
+                        // toggle is gated on mcpEnabled). For other transports or
+                        // when MCP is off, report false so the screen tears down
+                        // any stale rule.
+                        onSave(profile, cfInput, mcpReverseTunnel && mcpEnabled && selectedTransport == "SSH")
+                    },
+                    enabled = canSave,
+                ) {
+                    Text(stringResource(R.string.common_save))
+                }
             }
         },
         dismissButton = {

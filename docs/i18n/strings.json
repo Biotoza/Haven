@@ -8941,6 +8941,26 @@
      }
     },
     {
+     "name": "connections_connect_without_saving",
+     "en": "Connect without saving",
+     "comment": "Common",
+     "args": [],
+     "t": {
+      "ar": "الاتصال دون حفظ",
+      "bn": "সংরক্ষণ না করে সংযোগ করুন",
+      "de": "Ohne Speichern verbinden",
+      "es": "Conectar sin guardar",
+      "fr": "Connecter sans enregistrer",
+      "hi": "सहेजे बिना कनेक्ट करें",
+      "ja": "保存せずに接続",
+      "ko": "저장 없이 연결",
+      "pt": "Conectar sem salvar",
+      "ru": "Подключиться без сохранения",
+      "sr": "Повези без чувања",
+      "zh": "不保存并连接"
+     }
+    },
+    {
      "name": "common_disconnect",
      "en": "Disconnect",
      "comment": "Common",

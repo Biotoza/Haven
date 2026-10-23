@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **Connect straight from a link without saving anything (#751).** Tapping an `ssh://`, `rdp://` or `vnc://` link (or a `haven://connect` one) that matches no saved profile now offers **Connect without saving** in the pre-filled editor: Haven dials the host as a one-off session and never writes the profile to your connections list — the password prompt drops its Remember tick, since there is nothing to remember into. The quick-connect bar works the same way: it connects what you typed instead of silently saving it first.
+
 ## v5.89.49
 
 - **Choose how ambiguous-width characters are measured (#744).** East-Asian and other "ambiwidth" codepoints are 1 cell wide in some fonts and 2 in others, and when Haven's assumption disagrees with the remote program's, columns drift. A new Settings → Terminal row offers four modes — Narrow, Auto+Narrow (default), Wide, Auto+Wide — the Auto modes measure the font itself and fall back to the fixed width. Changing it re-syncs every open session.

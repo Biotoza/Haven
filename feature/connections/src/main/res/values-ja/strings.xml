@@ -11,6 +11,7 @@
     <string name="common_rename">名前変更</string>
     <string name="common_create">作成</string>
     <string name="common_connect">接続</string>
+    <string name="connections_connect_without_saving">保存せずに接続</string>
     <string name="common_disconnect">切断</string>
     <string name="common_copy">コピー</string>
     <string name="common_paste">貼り付け</string>

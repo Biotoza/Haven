@@ -11,6 +11,7 @@
     <string name="common_rename">नाम बदलें</string>
     <string name="common_create">बनाएँ</string>
     <string name="common_connect">कनेक्ट करें</string>
+    <string name="connections_connect_without_saving">सहेजे बिना कनेक्ट करें</string>
     <string name="common_disconnect">डिस्कनेक्ट करें</string>
     <string name="common_copy">कॉपी करें</string>
     <string name="common_paste">पेस्ट करें</string>

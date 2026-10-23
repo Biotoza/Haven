@@ -311,6 +311,44 @@ class ConnectDeepLinkTest {
         assertTrue(!ConnectDeepLink.matchesTransport(profile(type = "SSH"), "vnc"))
     }
 
+    // --- ephemeralProfile (#751 part 2) ---
+
+    @Test
+    fun `ephemeralProfile maps an ssh link with an explicit port`() {
+        val p = ConnectDeepLink.parseStandardScheme("ssh", "ops", "srv.example.com", 2222)!!
+        val prof = ConnectDeepLink.ephemeralProfile(p)
+        assertEquals("SSH", prof.connectionType)
+        assertEquals(2222, prof.port)
+        assertEquals("ops", prof.username)
+        assertEquals("srv.example.com", prof.host)
+        assertEquals("srv.example.com", prof.label)
+        assertTrue(prof.ephemeral)
+    }
+
+    @Test
+    fun `ephemeralProfile fills the transport default port when the link omitted one`() {
+        val ssh = ConnectDeepLink.ephemeralProfile(ConnectDeepLink.parseStandardScheme("ssh", null, "h", null)!!)
+        assertEquals(22, ssh.port)
+        assertEquals("", ssh.username)
+        val rdp = ConnectDeepLink.ephemeralProfile(ConnectDeepLink.parseStandardScheme("rdp", null, "h", null)!!)
+        assertEquals("RDP", rdp.connectionType)
+        assertEquals(3389, rdp.port)
+        val vnc = ConnectDeepLink.ephemeralProfile(ConnectDeepLink.parseStandardScheme("vnc", null, "h", null)!!)
+        assertEquals("VNC", vnc.connectionType)
+        assertEquals(5900, vnc.port)
+    }
+
+    @Test
+    fun `ephemeralProfile carries a haven connect link's session and transport`() {
+        val p = ConnectDeepLink.parse(query("host" to "box", "user" to "u", "port" to "2022", "transport" to "et"))!!
+        val prof = ConnectDeepLink.ephemeralProfile(p)
+        assertEquals("SSH", prof.connectionType)
+        assertEquals(2022, prof.port)
+        assertEquals("u", prof.username)
+        assertEquals("box", prof.host)
+        assertTrue(prof.ephemeral)
+    }
+
     @Test
     fun `resolve prefills an rdp draft for an unmatched rdp link`() {
         val p = ConnectDeepLink.parseStandardScheme("rdp", "admin", "newpc", 3390)!!

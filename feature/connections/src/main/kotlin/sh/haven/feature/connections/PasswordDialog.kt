@@ -180,7 +180,9 @@ fun PasswordDialog(
                     onImeAction = submit,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (profile.isSsh || profile.isSmb) {
+                // An ephemeral one-off (#751) has no saved profile to remember
+                // into — offering the tick would promise a save that never lands.
+                if (!profile.ephemeral && (profile.isSsh || profile.isSmb)) {
                     Row(
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth(),

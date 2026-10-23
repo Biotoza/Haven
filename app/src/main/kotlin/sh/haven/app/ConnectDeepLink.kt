@@ -86,6 +86,36 @@ object ConnectDeepLink {
         )
     }
 
+    /**
+     * Build an unsaved, [ConnectionProfile.ephemeral] profile from [p] — the
+     * "connect without saving" target (#751 part 2). The id is a fresh random
+     * UUID that never enters the database; the transport picks the profile
+     * type and the default port when the link omitted one (a link must dial
+     * the port its scheme implies, unlike saved-profile matching where a null
+     * port stays permissive). Credentials are absent by construction — a deep
+     * link can't carry them — so the connect path prompts as it would for any
+     * password-only host.
+     */
+    fun ephemeralProfile(p: Params): ConnectionProfile {
+        val type = when (p.transport) {
+            "rdp" -> "RDP"
+            "vnc" -> "VNC"
+            else -> "SSH"
+        }
+        val defaultPort = when (type) {
+            "RDP" -> 3389
+            "VNC" -> 5900
+            else -> 22
+        }
+        return ConnectionProfile(
+            label = p.host,
+            host = p.host,
+            port = p.port ?: defaultPort,
+            username = p.username ?: "",
+            connectionType = type,
+        ).also { it.ephemeral = true }
+    }
+
     /** Saved profiles whose host (and any supplied user/port/transport) match [p]. */
     fun matches(profiles: List<ConnectionProfile>, p: Params): List<ConnectionProfile> {
         if (p.id != null) {

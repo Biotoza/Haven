@@ -577,6 +577,16 @@ fun ConnectionsScreen(
                 showAddDialog = false
                 prefillDraft = null
             },
+            onQuickConnect = { profile ->
+                showAddDialog = false
+                prefillDraft = null
+                val ephemeral = profile.copy().also { it.ephemeral = true }
+                if (ephemeral.isSsh && sshKeys.isNotEmpty()) {
+                    viewModel.connectWithKey(ephemeral)
+                } else {
+                    viewModel.connectEphemeral(ephemeral)
+                }
+            },
         )
     }
 
@@ -778,7 +788,8 @@ fun ConnectionsScreen(
                 viewModel.connect(
                     profile,
                     password,
-                    rememberPassword = rememberPassword,
+                    // Ephemeral one-offs (#751) have no row to remember into.
+                    rememberPassword = if (profile.ephemeral) null else rememberPassword,
                     usernameOverride = username,
                 )
                 connectingProfile = null
@@ -1591,12 +1602,14 @@ private fun quickConnectAction(
         viewModel.showError(errorMessage)
         return
     }
-    viewModel.saveConnection(profile)
     clearInput()
+    // #751: the quick-connect bar is a one-off by design — dial it ephemeral
+    // instead of saving a profile the user never asked to keep.
+    val ephemeral = profile.copy().also { it.ephemeral = true }
     if (sshKeys.isNotEmpty()) {
-        viewModel.connectWithKey(profile)
+        viewModel.connectWithKey(ephemeral)
     } else {
-        showPasswordDialog(profile)
+        showPasswordDialog(ephemeral)
     }
 }
 

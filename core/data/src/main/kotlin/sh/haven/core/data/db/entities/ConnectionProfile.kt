@@ -414,6 +414,20 @@ data class ConnectionProfile(
      */
     val usbDriveSerial: String? = null,
 ) {
+    /**
+     * Runtime-only marker (#751): this profile was dialed as a one-off
+     * "connect without saving" — it was never written to the database and
+     * must not be written by any connect-path save (remember-password,
+     * lastSessionName). Room ignores it, so there is no schema column; a
+     * profile read back from the database is always false. It lives in the
+     * class body rather than the constructor because [androidx.Ignore] cannot
+     * target a constructor parameter, and [copy] does not carry it — set it
+     * with `.also { it.ephemeral = true }` after copying. The PasswordDialog
+     * hides its Remember tick for these, and answerPasswordFallback passes a
+     * null rememberPassword so the persist helpers no-op.
+     */
+    @androidx.room.Ignore
+    var ephemeral: Boolean = false
     enum class AuthType {
         PASSWORD,
         KEY,

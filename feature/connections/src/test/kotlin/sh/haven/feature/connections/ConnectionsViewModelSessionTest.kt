@@ -876,4 +876,93 @@ class ConnectionsViewModelSessionTest {
             viewModel.error.value.orEmpty().contains("jump", ignoreCase = true),
         )
     }
+
+    /**
+     * #751 part 2: "connect without saving". An ephemeral profile is a
+     * runtime-only throwaway (never written to the database), so a successful
+     * connect must navigate to the terminal AND must not upsert the profile —
+     * repository.save() INSERTs unknown ids, which would silently persist the
+     * one-off host into the connections list.
+     */
+    private fun ephemeralSshProfile(id: String, username: String) = ConnectionProfile(
+        id = id, label = "box", host = "box.example.invalid", username = username,
+        connectionType = "SSH", authMethods = "PASSWORD",
+    ).also { it.ephemeral = true }
+
+    @Test
+    fun `an ephemeral connect reaches the terminal without saving the profile`() = runTest {
+        every { sshSessionManager.registerSession("eph-1", any(), any()) } returns "eph-sess"
+        every { sshSessionManager.isClientShared(any()) } returns true
+        every { sshSessionManager.getSession(any()) } returns null
+        // finishConnect reads this for the auth-method log label; a relaxed
+        // Pair mock's .first is a bare Object and the ConnectionConfig cast
+        // throws, failing the connect.
+        every { sshSessionManager.getConnectionConfigForProfile(any()) } returns null
+        coEvery { sshSessionManager.openShellAndAwaitReady(any(), any(), any()) } returns
+            sh.haven.core.ssh.ShellOutcome.Ready("eph-sess")
+        viewModel.clientFactory = { _ ->
+            mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any()) } returns null
+            }
+        }
+
+        viewModel.connectEphemeral(ephemeralSshProfile("eph-1", username = "u"))
+        // finishConnect awaits the shell on Dispatchers.IO, so a single
+        // advanceUntilIdle isn't enough — pump like awaitError() until the
+        // navigate (or an error) lands.
+        val deadline = System.currentTimeMillis() + 10_000
+        while (viewModel.navigateToTerminal.value == null &&
+            viewModel.error.value == null &&
+            System.currentTimeMillis() < deadline
+        ) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+
+        assertNull("error was: ${viewModel.error.value}", viewModel.error.value)
+        assertEquals("eph-1", viewModel.navigateToTerminal.value)
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun `answering the ephemeral password prompt with Remember ticked still saves nothing`() = runTest {
+        // Blank username raises the fallback up front (connectInner pre-check),
+        // carrying the ephemeral marker so the dialog can hide its tick.
+        viewModel.connectEphemeral(ephemeralSshProfile("eph-2", username = ""))
+        testDispatcher.scheduler.advanceUntilIdle()
+        awaitPasswordFallback(settled = true)
+        assertNotNull(viewModel.passwordFallback.value)
+        assertTrue("the fallback must carry the ephemeral marker",
+            viewModel.passwordFallback.value!!.ephemeral)
+
+        every { sshSessionManager.registerSession("eph-2", any(), any()) } returns "eph-sess"
+        viewModel.clientFactory = { _ ->
+            mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any()) } throws
+                    com.jcraft.jsch.JSchException("Auth fail for methods 'password'")
+            }
+        }
+        // The dialog's onConnect passes rememberPassword=true; the VM must
+        // downgrade it to null for an ephemeral profile so the persist
+        // helpers no-op instead of upserting the throwaway row.
+        viewModel.answerPasswordFallback(password = "pw", username = "u", rememberPassword = true)
+        awaitError()
+
+        assertNotNull(viewModel.error.value)
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun `an ephemeral RDP connect navigates without saving the profile`() = runTest {
+        val rdp = ConnectionProfile(
+            id = "eph-3", label = "desk", host = "desk.example.invalid",
+            username = "", connectionType = "RDP", rdpUsername = "u",
+        ).also { it.ephemeral = true }
+        viewModel.connectEphemeral(rdp)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.navigateToRdp.value)
+        assertEquals("desk.example.invalid", viewModel.navigateToRdp.value!!.host)
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
 }

@@ -10,6 +10,7 @@
     <string name="common_rename">Преименуј</string>
     <string name="common_create">Креирај</string>
     <string name="common_connect">Повежи</string>
+    <string name="connections_connect_without_saving">Повези без чувања</string>
     <string name="common_disconnect">Прекини везу</string>
     <string name="common_copy">Копирај</string>
     <string name="common_paste">Налепи</string>

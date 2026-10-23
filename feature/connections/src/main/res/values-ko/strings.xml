@@ -11,6 +11,7 @@
     <string name="common_rename">이름 변경</string>
     <string name="common_create">생성</string>
     <string name="common_connect">연결</string>
+    <string name="connections_connect_without_saving">저장 없이 연결</string>
     <string name="common_disconnect">연결 해제</string>
     <string name="common_copy">복사</string>
     <string name="common_paste">붙여넣기</string>
