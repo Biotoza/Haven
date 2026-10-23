@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -41,7 +42,7 @@ type xmlConfigAuth struct {
 type xmlAuth struct {
 	ID       string        `xml:"id,attr"`
 	Title    string        `xml:"title"`
-	Message  string        `xml:"message"`
+	Message  xmlMessage    `xml:"message"`
 	Error    *xmlAuthError `xml:"error"`
 	Form     *xmlForm      `xml:"form"`
 	SSOLogin string        `xml:"sso-v2-login"`
@@ -55,10 +56,36 @@ type xmlAuthError struct {
 }
 
 func (e *xmlAuthError) message() string {
-	msg := strings.TrimSpace(e.Text)
-	msg = strings.Replace(msg, "%s", e.Param1, 1)
-	msg = strings.Replace(msg, "%s", e.Param2, 1)
-	return msg
+	return fillParams(e.Text, e.Param1, e.Param2)
+}
+
+// xmlMessage is <message>, which, like <error>, can be a template: an ASA
+// relaying a RADIUS challenge sends <message param1="Enter the code we sent
+// by SMS">%s</message> (#750, where the dialog showed a bare "%s").
+type xmlMessage struct {
+	Param1 string `xml:"param1,attr"`
+	Param2 string `xml:"param2,attr"`
+	Text   string `xml:",chardata"`
+}
+
+func (m xmlMessage) text() string {
+	return fillParams(m.Text, m.Param1, m.Param2)
+}
+
+// fillParams substitutes param1 and param2 for the first two "%s" in text,
+// as openconnect does for <message>, <banner> and <error> (auth.c,
+// xmlnode_msg). A placeholder left unfilled is dropped rather than shown,
+// and whitespace (including the line breaks gateways put in) is collapsed.
+func fillParams(text, p1, p2 string) string {
+	for _, p := range []string{p1, p2} {
+		i := strings.Index(text, "%s")
+		if i < 0 {
+			break
+		}
+		text = text[:i] + p + text[i+2:]
+	}
+	text = strings.ReplaceAll(text, "%s", "")
+	return strings.Join(strings.Fields(text), " ")
 }
 
 type xmlForm struct {
@@ -115,6 +142,12 @@ func newAuthClient(cfg *Config, base *url.URL, tlsConf *tls.Config) *authClient 
 		DialContext:         (&net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
 		TLSClientConfig:     tlsConf,
 		TLSHandshakeTimeout: 15 * time.Second,
+		// Don't reuse a connection that sat idle for long: a gateway or a
+		// NAT on the way can drop it without a FIN, and a POST written into
+		// it then waits for an answer that never comes (Go doesn't retry
+		// POSTs). See also ask(), which drops idle connections after every
+		// prompt, since reading an SMS takes longer than this.
+		IdleConnTimeout: 15 * time.Second,
 		// The gateways speak HTTP/1.1 only; never negotiate h2.
 		TLSNextProto: map[string]func(string, *tls.Conn) http.RoundTripper{},
 		Proxy:        nil,
@@ -125,7 +158,7 @@ func newAuthClient(cfg *Config, base *url.URL, tlsConf *tls.Config) *authClient 
 		client: &http.Client{
 			Transport: tr,
 			Jar:       jar,
-			Timeout:   30 * time.Second,
+			Timeout:   requestTimeout(),
 			// Redirects are followed by hand: Go would downgrade the POST to
 			// a GET, but the gateway expects the same XML body re-POSTed.
 			CheckRedirect: func(*http.Request, []*http.Request) error {
@@ -251,10 +284,10 @@ func (a *authClient) authenticate(ctx context.Context) (string, error) {
 		}
 		// ocserv reports a failed attempt in <message> ("Login failed.") and
 		// re-shows the form, rather than using <error> like an ASA.
-		if msg := strings.TrimSpace(ca.Auth.Message); looksLikeFailure(msg) {
-			return "", rejected("login failed: %s", strings.Join(strings.Fields(msg), " "))
+		if msg := ca.Auth.Message.text(); looksLikeFailure(msg) {
+			return "", rejected("login failed: %s", msg)
 		}
-		st.serverMessage = strings.TrimSpace(ca.Auth.Message)
+		st.serverMessage = ca.Auth.Message.text()
 		st.serverTitle = strings.TrimSpace(ca.Auth.Title)
 		if ca.ClientCertRequest != nil {
 			// Many ASAs ask every client for a certificate first and fall
@@ -272,7 +305,7 @@ func (a *authClient) authenticate(ctx context.Context) (string, error) {
 			return "", rejected("gateway requires SAML/SSO browser login, which Haven's AnyConnect tunnel does not support yet")
 		}
 		if ca.Auth.Form == nil {
-			msg := strings.TrimSpace(ca.Auth.Message)
+			msg := ca.Auth.Message.text()
 			if msg == "" {
 				msg = "no login form"
 			}
@@ -303,6 +336,22 @@ func (a *authClient) cookie(name string) string {
 		}
 	}
 	return ""
+}
+
+// authRequestTimeout bounds one sign-in request. Not short: after a second
+// factor, the gateway checks it with its authentication server before it
+// answers, and for push approvals (Duo "push") it holds the request until
+// the user taps Approve on their phone. openconnect waits indefinitely.
+// Atomic so tests can shorten it while background logouts read it.
+var authRequestTimeout atomic.Int64 // nanoseconds; 0 means the default
+
+const defaultAuthRequestTimeout = 90 * time.Second
+
+func requestTimeout() time.Duration {
+	if d := time.Duration(authRequestTimeout.Load()); d > 0 {
+		return d
+	}
+	return defaultAuthRequestTimeout
 }
 
 // authOverallTimeout bounds a whole sign-in. Generous because a person may
@@ -403,7 +452,11 @@ func (a *authClient) buildReply(form *xmlForm, opaque string, st *authState) (st
 				if pw == "" {
 					// No stored password: ask, so users who'd rather not keep
 					// it on the phone can still use the tunnel.
-					if v, ok := a.ask(in, st, true); ok {
+					// The gateway's text describes its whole form ("Please
+					// enter your username and password."), but Haven filled
+					// the username itself and asks only for the password;
+					// the dialog names the account instead (#750).
+					if v, ok := a.ask(in, st, true, false); ok {
 						if v == "" {
 							return "", rejected("sign-in cancelled")
 						}
@@ -472,7 +525,7 @@ func (a *authClient) secondFactor(in xmlInput, st *authState) (string, error) {
 	}
 	// An SMS / e-mail / hardware-token code: only the user has it.
 	// Not masked — it's single-use, and easier to type when visible.
-	if v, ok := a.ask(in, st, false); ok {
+	if v, ok := a.ask(in, st, false, true); ok {
 		if strings.TrimSpace(v) == "" {
 			return "", rejected("sign-in cancelled")
 		}
@@ -493,6 +546,24 @@ func promptName(in xmlInput) string {
 	return in.Name
 }
 
+// replyFieldName maps a form field to the element the gateway expects in the
+// XML reply, exactly as openconnect does (auth.c, xmlpost_append_form_opts).
+// A Cisco ASA's challenge round (RADIUS challenge: SMS / token code, new PIN,
+// password change) shows a field named "answer" (or "whichpin",
+// "new_password") but reads the response only from <password>; the
+// confirmation fields "verify_pin" / "verify_password" are not sent at all.
+// Sending <answer> left the gateway without the code: the reporter's sign-in
+// then hung until Haven's request timeout (#740). "" means "omit".
+func replyFieldName(name string) string {
+	switch name {
+	case "answer", "whichpin", "new_password":
+		return "password"
+	case "verify_pin", "verify_password":
+		return ""
+	}
+	return name
+}
+
 func replyXML(opaque string, fields [][2]string, groupSelect string) string {
 	var b bytes.Buffer
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
@@ -503,12 +574,13 @@ func replyXML(opaque string, fields [][2]string, groupSelect string) string {
 	b.WriteString(opaque)
 	b.WriteString(`<auth>`)
 	for _, f := range fields {
-		if !validXMLName(f[0]) {
+		name := replyFieldName(f[0])
+		if name == "" || !validXMLName(name) {
 			continue
 		}
-		b.WriteString("<" + f[0] + ">")
+		b.WriteString("<" + name + ">")
 		xml.EscapeText(&b, []byte(f[1]))
-		b.WriteString("</" + f[0] + ">")
+		b.WriteString("</" + name + ">")
 	}
 	b.WriteString(`</auth>`)
 	if groupSelect != "" {

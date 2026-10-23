@@ -47,6 +47,7 @@ class AnyConnectTunnel internal constructor(
             override fun prompt(title: String?, message: String?, label: String?, secret: Boolean): String =
                 broker.promptBlocking(
                     tunnelLabel = this@AnyConnectTunnel.label,
+                    account = config.username,
                     title = title.orEmpty(),
                     message = message.orEmpty(),
                     fieldLabel = label.orEmpty(),

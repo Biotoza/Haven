@@ -70,13 +70,16 @@ class TunnelAuthBroker @Inject constructor(
         message: String,
         fieldLabel: String,
         secret: Boolean,
+        /** The account being signed in, shown so a bare "Password" field
+         *  says whose password it wants (#750). */
+        account: String = "",
     ): String? = runBlocking {
         turn.withLock {
             val answer = CompletableDeferred<String?>()
             val request = Request(
                 id = ids.incrementAndGet(),
                 challenge = KeyboardInteractiveChallenge(
-                    destination = tunnelLabel.ifBlank { "VPN" },
+                    destination = destinationLine(account, tunnelLabel),
                     name = title,
                     instruction = message,
                     prompts = listOf(
@@ -97,6 +100,12 @@ class TunnelAuthBroker @Inject constructor(
                 cancelNotification()
             }
         }
+    }
+
+    /** "alice @ Corp VPN", like SSH's user@host context line. */
+    internal fun destinationLine(account: String, tunnelLabel: String): String {
+        val tunnel = tunnelLabel.ifBlank { "VPN" }
+        return if (account.isBlank()) tunnel else "${account.trim()} @ $tunnel"
     }
 
     private fun postNotification(tunnelLabel: String, message: String, secret: Boolean) {

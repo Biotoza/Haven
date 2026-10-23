@@ -16,7 +16,9 @@ type Prompter interface {
 }
 
 // ask routes one question to the prompter, or reports that none can answer.
-func (a *authClient) ask(in xmlInput, st *authState, secret bool) (string, bool) {
+// withMessage passes the gateway's message for this round along; leave it
+// out when that message describes fields Haven answered itself.
+func (a *authClient) ask(in xmlInput, st *authState, secret, withMessage bool) (string, bool) {
 	if a.prompter == nil {
 		return "", false
 	}
@@ -24,6 +26,15 @@ func (a *authClient) ask(in xmlInput, st *authState, secret bool) (string, bool)
 	if title == "" {
 		title = "VPN sign-in"
 	}
-	msg := strings.Join(strings.Fields(st.serverMessage), " ")
-	return a.prompter.Prompt(title, msg, promptName(in), secret), true
+	msg := ""
+	if withMessage {
+		msg = st.serverMessage
+	}
+	answer := a.prompter.Prompt(title, msg, promptName(in), secret)
+	// The user may have spent a minute fetching an SMS; the connection that
+	// carried the question may be dead by now, silently. Send the answer on
+	// a fresh one rather than risk it vanishing into the old one. Sign-in
+	// state lives in cookies and the opaque block, not the connection.
+	a.client.CloseIdleConnections()
+	return answer, true
 }

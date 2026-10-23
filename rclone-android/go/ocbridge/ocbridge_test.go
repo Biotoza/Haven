@@ -165,6 +165,70 @@ type fakeGateway struct {
 	// <client-cert-fail/>, as one that truly requires one would.
 	asaCertRequired atomic.Bool
 	asaPaths        []string // request paths seen in ASA mode, for the 404 message test
+
+	lis *blackholeListener
+}
+
+// blackholeListener lets a test silently kill every connection open so far:
+// from then on the server neither receives nor answers anything on them,
+// and nothing is closed — what a dropped NAT mapping or a gateway that
+// forgot an idle keep-alive connection looks like to the client.
+type blackholeListener struct {
+	net.Listener
+	mu    sync.Mutex
+	conns []*blackholeConn
+}
+
+func (l *blackholeListener) Accept() (net.Conn, error) {
+	c, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	bc := &blackholeConn{Conn: c, dead: make(chan struct{})}
+	l.mu.Lock()
+	l.conns = append(l.conns, bc)
+	l.mu.Unlock()
+	return bc, nil
+}
+
+func (l *blackholeListener) killAll() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for _, c := range l.conns {
+		c.once.Do(func() { close(c.dead) })
+	}
+}
+
+type blackholeConn struct {
+	net.Conn
+	dead chan struct{}
+	once sync.Once
+}
+
+func (c *blackholeConn) isDead() bool {
+	select {
+	case <-c.dead:
+		return true
+	default:
+		return false
+	}
+}
+
+func (c *blackholeConn) Read(p []byte) (int, error) {
+	for {
+		n, err := c.Conn.Read(p)
+		if err != nil || !c.isDead() {
+			return n, err
+		}
+		// dead: swallow what the client sent and keep waiting
+	}
+}
+
+func (c *blackholeConn) Write(p []byte) (int, error) {
+	if c.isDead() {
+		return len(p), nil
+	}
+	return c.Conn.Write(p)
 }
 
 func newFakeGateway(t *testing.T) *fakeGateway {
@@ -188,7 +252,10 @@ func newFakeGateway(t *testing.T) *fakeGateway {
 		}
 	}()
 	go g.pumpDown()
-	g.srv = httptest.NewTLSServer(http.HandlerFunc(g.handle))
+	g.srv = httptest.NewUnstartedServer(http.HandlerFunc(g.handle))
+	g.lis = &blackholeListener{Listener: g.srv.Listener}
+	g.srv.Listener = g.lis
+	g.srv.StartTLS()
 	t.Cleanup(func() {
 		g.srv.Close()
 		g.sdev.Close()
@@ -257,6 +324,16 @@ func (g *fakeGateway) handle(w http.ResponseWriter, r *http.Request) {
 // asaCode is the SMS code the ASA-mode gateway "sent".
 const asaCode = "481516"
 
+// asaHang is how long the ASA-mode gateway sits on a challenge reply it
+// can't use; tests shorten authRequestTimeout below it.
+const asaHang = 3 * time.Second
+
+// withShortAuthTimeout makes a hung sign-in request fail in seconds.
+func withShortAuthTimeout(t *testing.T) {
+	authRequestTimeout.Store(int64(time.Second + asaHang/2))
+	t.Cleanup(func() { authRequestTimeout.Store(0) })
+}
+
 func (g *fakeGateway) handleASA(w http.ResponseWriter, r *http.Request, s string) {
 	g.mu.Lock()
 	g.asaPaths = append(g.asaPaths, r.URL.Path)
@@ -298,14 +375,21 @@ func (g *fakeGateway) handleASA(w http.ResponseWriter, r *http.Request, s string
 		fmt.Fprint(w, head+opaque+`
 <auth id="challenge">
 <title>Login</title>
-<message>Enter the code sent to your phone by SMS.</message>
+<message param1="Enter the code sent to your phone by SMS." param2="">%s</message>
 <form>
 <input type="password" name="answer" label="Response:"></input>
 <input type="submit" name="Continue" label="continue"></input>
 </form>
 </auth>
 </config-auth>`)
-	case strings.Contains(s, "<answer>"+asaCode+"</answer>"):
+	case strings.Contains(s, "<answer>"):
+		// A real ASA reads a challenge response only from <password>
+		// (openconnect auth.c renames "answer" accordingly). With <answer>
+		// it has no code to check and the reply never comes: the reported
+		// "Client.Timeout exceeded while awaiting headers".
+		time.Sleep(asaHang)
+		fmt.Fprint(w, head+`<auth id="main"><error id="3">Timed out.</error></auth></config-auth>`)
+	case strings.Contains(s, "<password>"+asaCode+"</password>"):
 		n := g.issued.Add(1)
 		fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
 <config-auth client="vpn" type="complete" aggregate-auth-version="2">
@@ -846,6 +930,109 @@ func TestASA_XMLContentTypeAndClientCertRetry(t *testing.T) {
 	}
 	echo(t, c, "through the ASA")
 	c.Close()
+}
+
+func TestASA_ChallengeAnswerSentAsPassword(t *testing.T) {
+	// The reporter's sign-in reached the SMS step and then hung: Haven sent
+	// the code as <answer>, which the ASA ignores. It must go in <password>.
+	g := newFakeGateway(t)
+	g.asa.Store(true)
+	withShortAuthTimeout(t)
+	h, err := StartTunnelWithPrompter(asaConfig(g), promptFunc(func(_, _, _ string, _ bool) string {
+		return asaCode
+	}))
+	if err != nil {
+		t.Fatalf("sign-in failed (the reported hang if it says Client.Timeout): %v", err)
+	}
+	defer h.Logout()
+	g.mu.Lock()
+	last := g.authRounds[len(g.authRounds)-1]
+	g.mu.Unlock()
+	if !strings.Contains(last, "<password>"+asaCode+"</password>") || strings.Contains(last, "<answer>") {
+		t.Errorf("challenge reply should carry the code as <password>: %s", last)
+	}
+	if strings.Contains(last, "Continue") {
+		t.Errorf("the submit button must not be sent: %s", last)
+	}
+}
+
+func TestFillParams(t *testing.T) {
+	cases := []struct{ text, p1, p2, want string }{
+		{"%s", "Enter the code", "", "Enter the code"},
+		{"%s", "", "", ""}, // unfilled placeholder is dropped, never shown
+		{"User %s: %s", "alice", "locked", "User alice: locked"},
+		{"Please enter\nyour password.", "x", "y", "Please enter your password."},
+		{"%s %s %s", "a", "b", "a b"}, // a third placeholder has no param
+	}
+	for _, c := range cases {
+		if got := fillParams(c.text, c.p1, c.p2); got != c.want {
+			t.Errorf("fillParams(%q, %q, %q) = %q, want %q", c.text, c.p1, c.p2, got, c.want)
+		}
+	}
+}
+
+func TestASA_PasswordPromptOmitsUsernameMessage(t *testing.T) {
+	// The ASA's "Please enter your username and password." describes its
+	// whole form; Haven fills the username itself, so the password-only
+	// dialog must not repeat it (#750). The SMS prompt keeps its message.
+	g := newFakeGateway(t)
+	g.asa.Store(true)
+	cfg := g.config(func(c *Config) {
+		c.Server = strings.TrimPrefix(g.srv.URL, "https://")
+		c.AuthGroup = ""
+		c.OTPSecret = ""
+		c.Password = ""
+	})
+	var msgs []string
+	h, err := StartTunnelWithPrompter(cfg, promptFunc(func(_, message, label string, secret bool) string {
+		msgs = append(msgs, label+"|"+message)
+		if secret {
+			return "s3cret"
+		}
+		return asaCode
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Logout()
+	want := []string{"Password|", "Response|Enter the code sent to your phone by SMS."}
+	if strings.Join(msgs, "\n") != strings.Join(want, "\n") {
+		t.Errorf("prompts = %q, want %q", msgs, want)
+	}
+}
+
+func TestReplyFieldNamesMatchOpenconnect(t *testing.T) {
+	x := replyXML("", [][2]string{
+		{"answer", "1"}, {"whichpin", "2"}, {"new_password", "3"},
+		{"verify_pin", "4"}, {"verify_password", "5"}, {"username", "u"},
+	}, "")
+	for _, want := range []string{"<password>1</password>", "<password>2</password>", "<password>3</password>", "<username>u</username>"} {
+		if !strings.Contains(x, want) {
+			t.Errorf("missing %s in %s", want, x)
+		}
+	}
+	for _, bad := range []string{"<answer>", "<whichpin>", "<new_password>", "<verify_pin>", "<verify_password>", ">4<", ">5<"} {
+		if strings.Contains(x, bad) {
+			t.Errorf("unexpected %s in %s", bad, x)
+		}
+	}
+}
+
+func TestASA_ConnectionDiesWhileUserReadsSMS(t *testing.T) {
+	// Fetching the SMS takes a while; the keep-alive connection that carried
+	// the question can die silently meanwhile. The answer must go out on a
+	// fresh connection, not vanish into the dead one.
+	g := newFakeGateway(t)
+	g.asa.Store(true)
+	withShortAuthTimeout(t)
+	h, err := StartTunnelWithPrompter(asaConfig(g), promptFunc(func(_, _, _ string, _ bool) string {
+		g.lis.killAll()
+		return asaCode
+	}))
+	if err != nil {
+		t.Fatalf("sign-in failed after the connection died during the prompt: %v", err)
+	}
+	h.Logout()
 }
 
 func TestASA_OldUserAgentGets404(t *testing.T) {

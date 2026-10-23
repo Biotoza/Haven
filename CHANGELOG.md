@@ -8,6 +8,8 @@ compare link is appended automatically — don't add it here.
 ## Unreleased
 
 - **Connect straight from a link without saving anything (#751).** Tapping an `ssh://`, `rdp://` or `vnc://` link (or a `haven://connect` one) that matches no saved profile now offers **Connect without saving** in the pre-filled editor: Haven dials the host as a one-off session and never writes the profile to your connections list — the password prompt drops its Remember tick, since there is nothing to remember into. The quick-connect bar works the same way: it connects what you typed instead of silently saving it first.
+- **AnyConnect: the SMS / token code step completes on Cisco ASA gateways (#750).** After the password, an ASA asks for the code in a field named `answer` ("Response:") but reads the reply only from `<password>`, as openconnect does by renaming that field (also `whichpin` and `new_password`, while `verify_pin`/`verify_password` are not sent). Haven sent `<answer>`, so the gateway never got the code and sign-in hung until "Client.Timeout exceeded while awaiting headers". The answer to a sign-in prompt now also goes out on a fresh connection, and a single sign-in request may take up to 90 s, so push approvals (Duo `push`) have time to complete.
+- **AnyConnect sign-in dialogs read correctly (#750).** The SMS / token step showed a bare `%s`: Cisco gateways send the challenge text as a template (`<message param1="…">%s</message>`), which Haven now fills in as openconnect does (an unfilled placeholder is dropped, never shown). The password prompt no longer repeats the gateway's "Please enter your username and password." above a single password field; the dialog names the account instead ("alice @ Corp VPN").
 
 ## v5.89.49
 
