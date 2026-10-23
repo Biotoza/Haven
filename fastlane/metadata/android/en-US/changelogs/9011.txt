@@ -1,0 +1,1 @@
+New: tap an ssh://, rdp:// or vnc:// link and connect without saving a profile. AnyConnect: the SMS / token code step now completes on Cisco ASA gateways instead of timing out, and the sign-in dialogs show the real challenge text.
