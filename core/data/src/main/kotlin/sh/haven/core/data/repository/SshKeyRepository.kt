@@ -3,15 +3,20 @@ package sh.haven.core.data.repository
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.SshKeyDao
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.security.CredentialEncryption
+import sh.haven.core.security.HardwareKeySource
 import sh.haven.core.security.KeyEncryption
 import sh.haven.core.security.Keystore
 import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreStore
+import sh.haven.core.security.SshKeyGenerator
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,31 +27,118 @@ class SshKeyRepository @Inject constructor(
     private val sshKeyDao: SshKeyDao,
     @ApplicationContext private val context: Context,
     private val keystore: Keystore,
+    /** Hardware-key Keystore interaction; injected as an interface so JVM tests can swap in a fake (see HardwareKeySource). */
+    private val hardwareKeys: HardwareKeySource,
 ) {
+    companion object {
+        /**
+         * Keystore alias prefix for hardware-resident keys; the suffix is 8
+         * hex chars minted in [generateHardwareKey]. Public so screens and
+         * diagnostics can recognise the shape without re-spelling it.
+         */
+        const val HARDWARE_KEY_ALIAS_PREFIX = "haven-ssh-"
+
+        /** Collision-probe attempts before giving up minting a fresh alias. */
+        private const val ALIAS_MINT_ATTEMPTS = 16
+    }
+
+    /**
+     * Generate a hardware-resident SSH key and persist its row — the SSOT
+     * for the whole minting flow (the Keys screen and the MCP tool both
+     * funnel through here): alias minting with a collision probe, the row
+     * construction ([SshKey.hardwareAlias] storage convention: empty
+     * [SshKey.privateKeyBytes], [SshKey.biometricProtected] true, keyType
+     * fixed to ecdsa-sha2-nistp256), and the orphan-alias cleanup.
+     *
+     * Failure hygiene: ANY failure — chip or DB — attempts
+     * `delete(alias)` before rethrowing. [HardwareKeySource.delete] is
+     * idempotent, so "always try" is both safe and simplest: secure-chip
+     * slots are scarce, and an alias no row points at is unreachable
+     * forever.
+     */
+    suspend fun generateHardwareKey(label: String, preferStrongBox: Boolean = true): SshKey {
+        val alias = mintFreshHardwareAlias()
+        try {
+            val info = withContext(Dispatchers.Default) {
+                hardwareKeys.generate(alias, preferStrongBox)
+            }
+            val key = SshKey(
+                label = label,
+                keyType = SshKeyGenerator.EcdsaCurve.NIST_P256.sshKeyType,
+                privateKeyBytes = ByteArray(0),
+                publicKeyOpenSsh = info.publicKeyOpenSsh,
+                fingerprintSha256 = info.fingerprintSha256,
+                biometricProtected = true,
+                hardwareAlias = info.alias,
+            )
+            save(key)
+            Log.d(TAG, "hardware key minted: alias=$alias strongBox=${info.strongBoxBacked}")
+            return key
+        } catch (e: Exception) {
+            runCatching { hardwareKeys.delete(alias) }
+            throw e
+        }
+    }
+
+    /**
+     * Mint an unused Keystore alias: `haven-ssh-<uuid8>` that no existing
+     * chip key holds ([HardwareKeySource.contains] — the probe is on the
+     * interface for exactly this). 8 hex chars are 32 bits of entropy, so
+     * collisions are rare but re-minting an in-use alias would silently
+     * OVERWRITE the older chip key; fail loud rather than gamble.
+     */
+    private fun mintFreshHardwareAlias(): String {
+        repeat(ALIAS_MINT_ATTEMPTS) {
+            val candidate = HARDWARE_KEY_ALIAS_PREFIX +
+                UUID.randomUUID().toString().replace("-", "").take(8)
+            if (!hardwareKeys.contains(candidate)) return candidate
+        }
+        throw IllegalStateException(
+            "could not mint a fresh hardware key alias after $ALIAS_MINT_ATTEMPTS attempts",
+        )
+    }
     fun observeAll(): Flow<List<SshKey>> = sshKeyDao.observeAll()
 
     suspend fun getAll(): List<SshKey> = sshKeyDao.getAll()
 
     suspend fun getById(id: String): SshKey? = sshKeyDao.getById(id)
 
-    /** Save a key, encrypting the private key bytes at rest. */
+    /**
+     * Save a key, encrypting the private key bytes at rest. Empty bytes
+     * pass through unencrypted: that is the storage convention for
+     * hardware-resident keys (`hardwareAlias != null` — no local
+     * material to protect), and encrypting them would only produce
+     * misleading ciphertext that decrypts back to nothing.
+     */
     suspend fun save(key: SshKey): Unit = sshKeyDao.upsert(
-        key.copy(privateKeyBytes = KeyEncryption.encrypt(context, key.privateKeyBytes))
+        key.copy(
+            privateKeyBytes =
+                if (key.privateKeyBytes.isEmpty()) key.privateKeyBytes
+                else KeyEncryption.encrypt(context, key.privateKeyBytes)
+        )
     )
 
     /**
      * Get decrypted private key bytes, keeping a declined prompt
      * distinguishable from a missing key.
      *
-     * Routes through the unified [Keystore.fetch] so any biometric
-     * gating set on the entry (#129 stage 5) actually fires before the
-     * bytes are returned. Prefer this over [getDecryptedKeyBytes]
-     * anywhere the answer changes what happens next — above all on the
-     * SSH auth path, where a declined prompt must stop the connect
-     * rather than hand it the next credential (#559).
+     * Hardware-resident keys (`hardwareAlias != null`) short-circuit to
+     * [KeyMaterial.Hardware] — no decrypt, no keystore round-trip;
+     * their private half is in the Android Keystore and the biometric
+     * prompt belongs to the signing operation itself.
+     *
+     * Software keys route through the unified [Keystore.fetch] so any
+     * biometric gating set on the entry (#129 stage 5) actually fires
+     * before the bytes are returned. Prefer this over
+     * [getDecryptedKeyBytes] anywhere the answer changes what happens
+     * next — above all on the SSH auth path, where a declined prompt
+     * must stop the connect rather than hand it the next credential
+     * (#559).
      */
-    suspend fun fetchKeyMaterial(id: String): KeyMaterial =
-        when (val result = keystore.fetch(KeystoreStore.SSH_KEYS, id)) {
+    suspend fun fetchKeyMaterial(id: String): KeyMaterial {
+        val key = sshKeyDao.getById(id) ?: return KeyMaterial.Missing
+        key.hardwareAlias?.let { return KeyMaterial.Hardware(it) }
+        return when (val result = keystore.fetch(KeystoreStore.SSH_KEYS, id)) {
             is KeystoreFetch.Bytes -> KeyMaterial.Available(result.data)
             is KeystoreFetch.NotFound -> KeyMaterial.Missing
             is KeystoreFetch.Denied -> KeyMaterial.Declined(result.reason)
@@ -57,6 +149,7 @@ class SshKeyRepository @Inject constructor(
             // Password is the wrong shape for SSH-keys; treat as missing.
             is KeystoreFetch.Password -> KeyMaterial.Missing
         }
+    }
 
     /**
      * Get decrypted private key bytes, or null.
@@ -72,21 +165,37 @@ class SshKeyRepository @Inject constructor(
         (fetchKeyMaterial(id) as? KeyMaterial.Available)?.bytes
 
     /**
-     * Every stored key with decrypted private bytes, plus the keys the
-     * user declined to unlock.
+     * Every stored software key with decrypted private bytes, plus the
+     * keys the user declined to unlock, plus the hardware-resident rows
+     * (`hardwareAlias != null`) classified into [DecryptedKeys.hardware] —
+     * they have no local private bytes, so they must never appear in
+     * [keys] (which backs export / backup / PEM paths), but they ARE
+     * auth-usable via their Keystore alias.
      *
-     * Each row goes through [Keystore.fetch], so a biometric-protected
-     * entry prompts before its bytes are returned. Rows that are simply
-     * unreadable (missing, decrypt error) are dropped as before, since
-     * a caller walking the list cannot do anything with them. Declined
-     * rows are reported separately: dropping those silently is what
-     * turned "I said no" into "try the next key" on the auth path
+     * Each software row goes through [Keystore.fetch], so a
+     * biometric-protected entry prompts before its bytes are returned.
+     * Rows that are simply unreadable (missing, decrypt error) are dropped
+     * as before, since a caller walking the list cannot do anything with
+     * them. Declined rows are reported separately: dropping those silently
+     * is what turned "I said no" into "try the next key" on the auth path
      * (#559), and only the caller knows whether that matters.
+     *
+     * Hardware rows need no fetch and can produce no decline: their
+     * biometric ceremony is per-signature, later, inside
+     * [sh.haven.core.ssh.KeystoreSshIdentity].
      */
     suspend fun getAllDecryptedDetailed(): DecryptedKeys {
         val usable = mutableListOf<SshKey>()
         val declined = mutableListOf<KeyMaterial.Declined>()
+        val hardware = mutableListOf<SshKey>()
         for (key in sshKeyDao.getAll()) {
+            // Hardware-resident keys join auto-auth via KeystoreSshIdentity
+            // (alias + public line), not via decrypted bytes — so they land
+            // in their own pool, never the decrypted-bytes pool.
+            if (key.hardwareAlias != null) {
+                hardware += key
+                continue
+            }
             when (val r = keystore.fetch(KeystoreStore.SSH_KEYS, key.id)) {
                 is KeystoreFetch.Bytes -> usable += key.copy(privateKeyBytes = r.data)
                 is KeystoreFetch.Denied -> {
@@ -99,7 +208,7 @@ class SshKeyRepository @Inject constructor(
                 is KeystoreFetch.Password -> Unit
             }
         }
-        return DecryptedKeys(keys = usable, declined = declined)
+        return DecryptedKeys(keys = usable, declined = declined, hardware = hardware)
     }
 
     /**
@@ -112,7 +221,27 @@ class SshKeyRepository @Inject constructor(
      */
     suspend fun getAllDecrypted(): List<SshKey> = getAllDecryptedDetailed().keys
 
-    suspend fun delete(id: String) = sshKeyDao.deleteById(id)
+    /**
+     * Delete a key row, and with it every trace of the key. SSOT for the
+     * hardware-resident branch: a row with [SshKey.hardwareAlias] also has
+     * its AndroidKeyStore alias removed here, so *every* delete path — the
+     * Keys screen (single and multi-select), MCP tools, and USB-drive VM
+     * cleanup — cleans the secure chip without duplicating the logic at the
+     * call sites.
+     *
+     * Order: alias first, row second. [HardwareKeySource.delete] is
+     * idempotent, so the two steps converge on retry either way — but the
+     * failure asymmetry is not symmetric: an interrupted delete that leaves
+     * the row would show a key whose connect fails opaquely (its alias is
+     * gone), and deleting that row again repairs everything; the reverse
+     * order would strand an invisible alias in scarce secure-chip storage
+     * with no row left to retry through.
+     */
+    suspend fun delete(id: String) {
+        val key = sshKeyDao.getById(id)
+        key?.hardwareAlias?.let(hardwareKeys::delete)
+        sshKeyDao.deleteById(id)
+    }
 
     /**
      * Read the optional OpenSSH certificate bytes attached to [id]

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **SSH keys that live in the phone's security chip.** Keys → Generate can now create the keypair inside the device's secure chip (StrongBox when it has one, otherwise the TEE) instead of as a software key. The private half never leaves the chip — it can't be exported, copied, or backed up, not even by Haven — and every sign-in with it asks for your fingerprint or face, right when the server accepts the key; declining stops that connection instead of trying the next credential. These keys are always ECDSA P-256, work with OpenSSH CA certificates like any other key, and are skipped by headless paths that can't raise a biometric prompt (agent tunnels) — a factory reset or re-enrolling your biometrics destroys them, and the encrypted-backup export now says how many hardware-backed keys it left out. The `generate_ssh_key` agent tool grew a `hardwareBacked` flag, and `list_ssh_keys` reports the backing per key.
+
 ## v5.89.51
 
 - **A terminal bell notifies when you're not looking (#753).** When a program rings the bell (`^G`) while Haven is in the background — a finished build, a long command, a prompt waiting for input — Haven now posts a notification naming the tab it came from, so you can come back to the right session. Nothing appears while you're looking at the terminal (shells ring the bell for ordinary things like backspace at an empty prompt, and a toast per bell would be noise). Turn it off in Settings → Terminal → Bell notification. OSC 9 / OSC 777 notifications were already delivered this way and are unchanged. Tapping the notification brings Haven back to the front.

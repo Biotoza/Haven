@@ -16,6 +16,14 @@ sealed class KeyMaterial {
     /** Decrypted private key material. Secret — do not log or persist. */
     class Available(val bytes: ByteArray) : KeyMaterial()
 
+    /**
+     * The private key lives in the device's Android Keystore under
+     * [alias]; there are no local bytes to decrypt, ever. Callers sign
+     * by handing the alias to the Keystore-backed signing path, not by
+     * asking for material out of this branch.
+     */
+    data class Hardware(val alias: String) : KeyMaterial()
+
     /** No such key, or its bytes could not be decrypted. */
     data object Missing : KeyMaterial()
 
@@ -28,13 +36,16 @@ sealed class KeyMaterial {
 }
 
 /**
- * Keys that could be decrypted, and the ones the user declined to
- * unlock. Auth paths must not treat [declined] as absence — see
+ * Keys that could be decrypted, the ones the user declined to unlock, and
+ * the hardware-resident rows (no local bytes — auth-usable via their Keystore
+ * alias). Auth paths must not treat [declined] as absence — see
  * [KeyMaterial.Declined].
  */
 data class DecryptedKeys(
     val keys: List<SshKey>,
     val declined: List<KeyMaterial.Declined>,
+    /** Hardware-resident rows (`hardwareAlias != null`), never in [keys]. */
+    val hardware: List<SshKey> = emptyList(),
 )
 
 /**

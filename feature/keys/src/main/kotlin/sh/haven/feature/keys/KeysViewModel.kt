@@ -90,6 +90,9 @@ class KeysViewModel @Inject constructor(
     private val sshIdentityRepository: sh.haven.core.data.repository.SshIdentityRepository,
     private val barcodeDecoder: sh.haven.core.scan.BarcodeDecoder,
     private val preferencesRepository: sh.haven.core.data.preferences.UserPreferencesRepository,
+    // Strong-biometry gate for hardware key generation (m2): chip keys are
+    // per-op BIOMETRIC_STRONG; no Class 3 biometric enrolled → no key.
+    private val biometricAuthenticator: sh.haven.core.security.BiometricAuthenticator,
     agentUiCommandBus: AgentUiCommandBus,
 ) : ViewModel() {
 
@@ -371,6 +374,42 @@ class KeysViewModel @Inject constructor(
                 )
                 repository.save(entity)
             } catch (e: Exception) {
+                _error.value = e.message ?: "Key generation failed"
+            } finally {
+                _generating.value = false
+            }
+        }
+    }
+
+    /**
+     * Generate a hardware-resident SSH key: ECDSA P-256 inside the device's
+     * secure chip (StrongBox when available, TEE otherwise), private half
+     * never leaving the hardware, every signature gated by a per-op
+     * biometric prompt.
+     *
+     * Thin delegation: the minting flow itself (alias minting + collision
+     * probe, the [SshKey.hardwareAlias] row convention, orphan-alias
+     * cleanup) is the repository's SSOT — [SshKeyRepository.generateHardwareKey].
+     *
+     * Entry gate: per-op chip signing is authorized by a BIOMETRIC_STRONG
+     * CryptoObject, so a device without one enrolled can only ever produce
+     * a key whose first connect fails. Fail at the door, with the remedy
+     * in the message.
+     */
+    fun generateHardwareKey(label: String) {
+        if (!biometricAuthenticator.canAuthorizeWithStrongBiometrics()) {
+            _error.value = appContext.getString(R.string.keys_hardware_no_strong_biometrics)
+            return
+        }
+        viewModelScope.launch {
+            _generating.value = true
+            _error.value = null
+            try {
+                val key = repository.generateHardwareKey(label)
+                Log.d("KeysViewModel", "Hardware key generated: ${LogRedact.of(label)}" +
+                    ", alias=${key.hardwareAlias}")
+            } catch (e: Exception) {
+                Log.e("KeysViewModel", "Hardware key generation failed", e)
                 _error.value = e.message ?: "Key generation failed"
             } finally {
                 _generating.value = false

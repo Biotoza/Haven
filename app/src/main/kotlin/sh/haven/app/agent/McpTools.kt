@@ -139,6 +139,14 @@ internal class McpTools(
     // don't exercise it compile unchanged; McpServer always passes the real
     // Hilt singleton in production.
     private val headlessSshExec: HeadlessSshExec? = null,
+    // Secure-chip source for generate_ssh_key's hardwareBacked branch.
+    // Nullable + defaulted like headlessSshExec so manual test constructions
+    // compile unchanged; McpServer passes the Hilt-bound HardwareSshKeyManager.
+    private val hardwareKeySource: sh.haven.core.security.HardwareKeySource? = null,
+    // Strong-biometry gate for the same branch: chip keys authorize every
+    // signature with a BIOMETRIC_STRONG CryptoObject, so generation refuses
+    // when none is enrolled. Nullable + defaulted like its sibling above.
+    private val biometricAuthenticator: sh.haven.core.security.BiometricAuthenticator? = null,
     // Pending password/passphrase fallback prompt, mirrored from
     // ConnectionsViewModel so get_pending_auth_prompt / answer_auth_prompt can
     // observe and answer it without a human tap. Defaulted so tests that don't
@@ -391,6 +399,8 @@ internal class McpTools(
     private val credentialProvider = CredentialToolProvider(
         sshKeyRepository = sshKeyRepository,
         headlessSshExec = headlessSshExec,
+        hardwareKeys = hardwareKeySource,
+        biometricAuthenticator = biometricAuthenticator,
     )
 
     /** Tool registry: name → handler. */

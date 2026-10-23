@@ -22,6 +22,9 @@ class SshKeyDeclinedFetchTest {
 
     private val context: Context = mockk(relaxed = true)
 
+    /** These tests never delete; the hardware source is a required ctor param. */
+    private val noopHardwareKeys = FakeHardwareKeySource()
+
     private fun key(id: String, label: String) = SshKey(
         id = id,
         label = label,
@@ -35,10 +38,11 @@ class SshKeyDeclinedFetchTest {
     fun `a declined fetch is Declined, not Missing`() = runBlocking {
         val dao: SshKeyDao = mockk(relaxed = true)
         val keystore: Keystore = mockk(relaxed = true)
+        coEvery { dao.getById("k1") } returns key("k1", "work")
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k1") } returns
             KeystoreFetch.Denied("Authentication was declined for key \"work\".")
 
-        val result = SshKeyRepository(dao, context, keystore).fetchKeyMaterial("k1")
+        val result = SshKeyRepository(dao, context, keystore, noopHardwareKeys).fetchKeyMaterial("k1")
 
         assertTrue("got $result", result is KeyMaterial.Declined)
         assertEquals(
@@ -51,10 +55,11 @@ class SshKeyDeclinedFetchTest {
     fun `a decrypt failure is still Missing — only a human 'no' is Declined`() = runBlocking {
         val dao: SshKeyDao = mockk(relaxed = true)
         val keystore: Keystore = mockk(relaxed = true)
+        coEvery { dao.getById("k1") } returns key("k1", "work")
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k1") } returns
             KeystoreFetch.Failed("Decryption failed")
 
-        val result = SshKeyRepository(dao, context, keystore).fetchKeyMaterial("k1")
+        val result = SshKeyRepository(dao, context, keystore, noopHardwareKeys).fetchKeyMaterial("k1")
 
         assertEquals(KeyMaterial.Missing, result)
     }
@@ -65,10 +70,11 @@ class SshKeyDeclinedFetchTest {
         // getDecryptedKeyBytes is what keeps auth paths off it.
         val dao: SshKeyDao = mockk(relaxed = true)
         val keystore: Keystore = mockk(relaxed = true)
+        coEvery { dao.getById("k1") } returns key("k1", "work")
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k1") } returns
             KeystoreFetch.Denied("declined")
 
-        assertEquals(null, SshKeyRepository(dao, context, keystore).getDecryptedKeyBytes("k1"))
+        assertEquals(null, SshKeyRepository(dao, context, keystore, noopHardwareKeys).getDecryptedKeyBytes("k1"))
     }
 
     @Test
@@ -81,7 +87,7 @@ class SshKeyDeclinedFetchTest {
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k2") } returns
             KeystoreFetch.Denied("Authentication was declined for key \"protected\".")
 
-        val result = SshKeyRepository(dao, context, keystore).getAllDecryptedDetailed()
+        val result = SshKeyRepository(dao, context, keystore, noopHardwareKeys).getAllDecryptedDetailed()
 
         assertEquals(listOf("k1"), result.keys.map { it.id })
         assertEquals(1, result.declined.size)
@@ -100,7 +106,7 @@ class SshKeyDeclinedFetchTest {
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k2") } returns
             KeystoreFetch.Denied("declined")
 
-        val keys = SshKeyRepository(dao, context, keystore).getAllDecrypted()
+        val keys = SshKeyRepository(dao, context, keystore, noopHardwareKeys).getAllDecrypted()
 
         assertEquals(listOf("k1"), keys.map { it.id })
     }
