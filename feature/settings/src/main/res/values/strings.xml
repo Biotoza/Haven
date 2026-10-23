@@ -80,6 +80,8 @@
     <string name="settings_scrollback_rows_subtitle">%1$,d lines retained per tab — applies to new tabs</string>
     <string name="settings_tap_to_position_title">Tap to move cursor on supported prompts</string>
     <string name="settings_tap_to_position_subtitle">Tap inside a shell prompt to move the cursor to that column. Requires OSC 133 prompt markers (starship, fish 3.6+, recent bash/zsh shell-integration setups). No effect on shells that don\'t emit them</string>
+    <string name="settings_bell_notification_title">Bell notification</string>
+    <string name="settings_bell_notification_subtitle">When a terminal program rings the bell while Haven is in the background, post a notification naming the tab. Nothing appears while you\'re looking at the terminal</string>
     <string name="settings_swipe_arrows_title">Swipe sends arrow keys</string>
     <string name="settings_swipe_arrows_subtitle">Horizontal swipes in the terminal send ← → (hold to repeat) instead of switching tabs. The toolbar\'s Swipe key toggles the same mode</string>
     <string name="settings_swipe_arrows_exit_hint">With the app tab bar hidden and a session open, swipes keep sending arrows until the toolbar\'s Swipe key is tapped. Add the Swipe key to the toolbar so it\'s always there</string>

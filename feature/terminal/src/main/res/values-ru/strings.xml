@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">Размер: %1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">Отклонить</string>
     <string name="terminal_inline_image_always_tab">Всегда в этой вкладке</string>
+    <string name="terminal_bell_notification_title">Терминал</string>
+    <string name="terminal_bell_notification_body">Программа в терминале подала звуковой сигнал</string>
 </resources>

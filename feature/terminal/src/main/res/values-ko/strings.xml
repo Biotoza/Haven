@@ -169,4 +169,6 @@
     <string name="terminal_inline_image_dimensions">크기: %1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">거부</string>
     <string name="terminal_inline_image_always_tab">이 탭에서 항상 허용</string>
+    <string name="terminal_bell_notification_title">터미널</string>
+    <string name="terminal_bell_notification_body">터미널 프로그램이 벨을 울렸습니다</string>
 </resources>

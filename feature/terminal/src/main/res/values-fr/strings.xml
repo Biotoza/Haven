@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">Taille : %1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">Refuser</string>
     <string name="terminal_inline_image_always_tab">Toujours dans cet onglet</string>
+    <string name="terminal_bell_notification_title">Terminal</string>
+    <string name="terminal_bell_notification_body">Un programme du terminal a émis un bip</string>
 </resources>

@@ -535,4 +535,6 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_ambiwidth_mode_wide_desc">हमेशा 2 सेल (पारंपरिक CJK ambiwidth)</string>
     <string name="settings_ambiwidth_mode_auto_wide">ऑटो + चौड़ा</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">सक्रिय फ़ॉन्ट प्रोफाइल करें; फ़ॉलबैक 2 सेल (CJK)</string>
+    <string name="settings_bell_notification_title">घंटी सूचना</string>
+    <string name="settings_bell_notification_subtitle">जब Haven पृष्ठभूमि में हो और कोई टर्मिनल प्रोग्राम घंटी बजाए, तो टैब का नाम बताते हुए एक सूचना भेजी जाती है। जब आप टर्मिनल देख रहे हों तो कुछ नहीं दिखता।</string>
 </resources>

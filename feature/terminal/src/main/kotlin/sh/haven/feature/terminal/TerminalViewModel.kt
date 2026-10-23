@@ -694,6 +694,16 @@ class TerminalViewModel @Inject constructor(
                 UserPreferencesRepository.TerminalInlineImages.ASK,
             )
 
+    /** #753: BEL → background notification. Read at emulator creation. */
+    private val terminalBellNotification: StateFlow<Boolean> =
+        preferencesRepository.terminalBellNotification
+            .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** #753: BEL callback shared by every emulator this VM creates. */
+    private fun bellCallback(tabLabel: String): () -> Unit = {
+        if (terminalBellNotification.value) showBellNotification(appContext, tabLabel)
+    }
+
     /** Ambiwidth mode for East Asian Ambiguous characters (#719). */
     val terminalAmbiwidthMode: StateFlow<UserPreferencesRepository.TerminalAmbiwidthMode> =
         preferencesRepository.terminalAmbiwidthMode
@@ -1375,6 +1385,7 @@ class TerminalViewModel @Inject constructor(
                     maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
                 xtversion = XtversionIdentity.of(appContext),
                 )
                 // The guest console runs opencode, whose Ink renderer diffs
@@ -1473,6 +1484,7 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
             )
             // Guest console: disable grow backfill — Ink's line-diff repaint
             // strands popped scrollback in skipped rows (GrowBackfillDiffRenderTest).
@@ -1775,6 +1787,7 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
             )
 
             rnsSession.start()
@@ -1857,6 +1870,7 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
             )
 
             currentTabs.add(
@@ -1936,6 +1950,7 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
             )
 
             currentTabs.add(
@@ -2015,6 +2030,7 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
             )
 
             currentTabs.add(
@@ -2120,6 +2136,7 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
             )
 
             moshSession.start()
@@ -2226,6 +2243,7 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
             )
 
             etSession.start()

@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">Tamanho: %1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">Negar</string>
     <string name="terminal_inline_image_always_tab">Sempre nesta aba</string>
+    <string name="terminal_bell_notification_title">Terminal</string>
+    <string name="terminal_bell_notification_body">Um programa do terminal tocou a campainha</string>
 </resources>

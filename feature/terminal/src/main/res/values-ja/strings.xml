@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">サイズ: %1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">拒否</string>
     <string name="terminal_inline_image_always_tab">このタブでは常に許可</string>
+    <string name="terminal_bell_notification_title">ターミナル</string>
+    <string name="terminal_bell_notification_body">ターミナルのプログラムがベルを鳴らしました</string>
 </resources>

@@ -29534,6 +29534,44 @@
      }
     },
     {
+     "name": "settings_bell_notification_title",
+     "en": "Bell notification",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "إشعار الرنين",
+      "bn": "ঘণ্টির বিজ্ঞপ্তি",
+      "de": "Glocken-Benachrichtigung",
+      "es": "Notificación de campana",
+      "fr": "Notification de sonnerie",
+      "hi": "घंटी सूचना",
+      "ja": "ベル通知",
+      "ko": "벨 알림",
+      "pt": "Notificação de campainha",
+      "ru": "Уведомление о звонке",
+      "zh": "铃声通知"
+     }
+    },
+    {
+     "name": "settings_bell_notification_subtitle",
+     "en": "When a terminal program rings the bell while Haven is in the background, post a notification naming the tab. Nothing appears while you\\'re looking at the terminal",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "عندما يرنّ برنامج طرفية بينما Haven في الخلفية، تُنشر إشعارات تسمّي التبويب. لا يظهر شيء أثناء نظرك إلى الطرفية.",
+      "bn": "Haven পটভূমিতে থাকার সময় কোনো টার্মিনাল প্রোগ্রাম ঘণ্টি বাজালে ট্যাবের নাম উল্লেখ করে একটি বিজ্ঞপ্তি পাঠানো হয়। আপনি টার্মিনাল দেখার সময় কিছু দেখানো হয় না।",
+      "de": "Wenn ein Terminalprogramm klingelt, während Haven im Hintergrund ist, wird eine Benachrichtigung mit dem Tab-Namen gesendet. Während du das Terminal siehst, erscheint nichts.",
+      "es": "Cuando un programa de terminal hace sonar la campana mientras Haven está en segundo plano, se publica una notificación con el nombre de la pestaña. No aparece nada mientras miras la terminal.",
+      "fr": "Quand un programme du terminal émet un bip pendant qu\\'Haven est en arrière-plan, une notification nommant l\\'onglet est affichée. Rien n\\'apparaît pendant que vous regardez le terminal.",
+      "hi": "जब Haven पृष्ठभूमि में हो और कोई टर्मिनल प्रोग्राम घंटी बजाए, तो टैब का नाम बताते हुए एक सूचना भेजी जाती है। जब आप टर्मिनल देख रहे हों तो कुछ नहीं दिखता।",
+      "ja": "Haven がバックグラウンドにある間にターミナルのプログラムがベルを鳴らすと、タブ名を記した通知を表示します。ターミナルを見ている間は何も表示されません。",
+      "ko": "Haven이 백그라운드에 있는 동안 터미널 프로그램이 벨을 울리면 탭 이름을 알리는 알림을 게시합니다. 터미널을 보고 있는 동안에는 아무것도 표시되지 않습니다.",
+      "pt": "Quando um programa do terminal toca a campainha enquanto o Haven está em segundo plano, é publicada uma notificação com o nome do separador. Nada aparece enquanto está a ver o terminal.",
+      "ru": "Когда программа в терминале подаёт звуковой сигнал, пока Haven в фоновом режиме, приходит уведомление с названием вкладки. Пока вы смотрите в терминал, ничего не появляется.",
+      "zh": "当终端程序在 Haven 后台响铃时，发送一条注明标签页名称的通知。查看终端时不会显示任何内容。"
+     }
+    },
+    {
      "name": "settings_swipe_arrows_title",
      "en": "Swipe sends arrow keys",
      "comment": "Terminal section",
@@ -45963,6 +46001,44 @@
       "ru": "Всегда в этой вкладке",
       "sr": "Увек у овој картици",
       "zh": "此标签页内总是允许"
+     }
+    },
+    {
+     "name": "terminal_bell_notification_title",
+     "en": "Terminal",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "الطرفية",
+      "bn": "টার্মিনাল",
+      "de": "Terminal",
+      "es": "Terminal",
+      "fr": "Terminal",
+      "hi": "टर्मिनल",
+      "ja": "ターミナル",
+      "ko": "터미널",
+      "pt": "Terminal",
+      "ru": "Терминал",
+      "zh": "终端"
+     }
+    },
+    {
+     "name": "terminal_bell_notification_body",
+     "en": "A terminal program rang the bell",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "رنّ برنامج طرفية",
+      "bn": "একটি টার্মিনাল প্রোগ্রাম ঘণ্টি বাজিয়েছে",
+      "de": "Ein Terminalprogramm hat die Glocke geläutet",
+      "es": "Un programa de terminal hizo sonar la campana",
+      "fr": "Un programme du terminal a émis un bip",
+      "hi": "किसी टर्मिनल प्रोग्राम ने घंटी बजाई",
+      "ja": "ターミナルのプログラムがベルを鳴らしました",
+      "ko": "터미널 프로그램이 벨을 울렸습니다",
+      "pt": "Um programa do terminal tocou a campainha",
+      "ru": "Программа в терминале подала звуковой сигнал",
+      "zh": "终端程序响铃了"
      }
     }
    ]

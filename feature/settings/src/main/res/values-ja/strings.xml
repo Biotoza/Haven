@@ -534,4 +534,6 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_ambiwidth_mode_wide_desc">常に2セル（従来のCJK曖昧幅）</string>
     <string name="settings_ambiwidth_mode_auto_wide">Auto + Wide</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">フォント幅を自動計測、未判定時は2セル (CJK)</string>
+    <string name="settings_bell_notification_title">ベル通知</string>
+    <string name="settings_bell_notification_subtitle">Haven がバックグラウンドにある間にターミナルのプログラムがベルを鳴らすと、タブ名を記した通知を表示します。ターミナルを見ている間は何も表示されません。</string>
 </resources>

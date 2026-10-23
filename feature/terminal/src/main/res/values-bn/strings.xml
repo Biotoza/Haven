@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">আকার: %1$d × %2$d পিক্সেল</string>
     <string name="terminal_inline_image_deny">প্রত্যাখ্যান</string>
     <string name="terminal_inline_image_always_tab">এই ট্যাবে সবসময়</string>
+    <string name="terminal_bell_notification_title">টার্মিনাল</string>
+    <string name="terminal_bell_notification_body">একটি টার্মিনাল প্রোগ্রাম ঘণ্টি বাজিয়েছে</string>
 </resources>

@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">尺寸：%1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">拒绝</string>
     <string name="terminal_inline_image_always_tab">此标签页内总是允许</string>
+    <string name="terminal_bell_notification_title">终端</string>
+    <string name="terminal_bell_notification_body">终端程序响铃了</string>
 </resources>

@@ -534,4 +534,6 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_ambiwidth_mode_wide_desc">모든 모호 폭 문자를 항상 2셀로 렌더링</string>
     <string name="settings_ambiwidth_mode_auto_wide">Auto + Wide</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">현재 폰트 자동 측정, 미측정(PUA 등)은 2셀</string>
+    <string name="settings_bell_notification_title">벨 알림</string>
+    <string name="settings_bell_notification_subtitle">Haven이 백그라운드에 있는 동안 터미널 프로그램이 벨을 울리면 탭 이름을 알리는 알림을 게시합니다. 터미널을 보고 있는 동안에는 아무것도 표시되지 않습니다.</string>
 </resources>

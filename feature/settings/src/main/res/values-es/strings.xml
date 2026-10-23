@@ -535,4 +535,6 @@ Cada clave privada ya almacenada en Haven deberá importarse o generarse de nuev
     <string name="settings_ambiwidth_mode_wide_desc">Siempre 2 celdas (ambiwidth CJK heredado)</string>
     <string name="settings_ambiwidth_mode_auto_wide">Automático + Ancho</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">Medir la fuente activa; reserva en 2 celdas (CJK)</string>
+    <string name="settings_bell_notification_title">Notificación de campana</string>
+    <string name="settings_bell_notification_subtitle">Cuando un programa de terminal hace sonar la campana mientras Haven está en segundo plano, se publica una notificación con el nombre de la pestaña. No aparece nada mientras miras la terminal.</string>
 </resources>

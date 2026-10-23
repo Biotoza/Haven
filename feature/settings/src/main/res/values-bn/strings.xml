@@ -535,4 +535,6 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_ambiwidth_mode_wide_desc">সর্বদা ২টি ঘর (ঐতিহ্যবাহী CJK ambiwidth)</string>
     <string name="settings_ambiwidth_mode_auto_wide">অটো + প্রশস্ত</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">সক্রিয় ফন্ট পরিমাপ করুন; অন্যথায় ২টি ঘর (CJK)</string>
+    <string name="settings_bell_notification_title">ঘণ্টির বিজ্ঞপ্তি</string>
+    <string name="settings_bell_notification_subtitle">Haven পটভূমিতে থাকার সময় কোনো টার্মিনাল প্রোগ্রাম ঘণ্টি বাজালে ট্যাবের নাম উল্লেখ করে একটি বিজ্ঞপ্তি পাঠানো হয়। আপনি টার্মিনাল দেখার সময় কিছু দেখানো হয় না।</string>
 </resources>

@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">आकार: %1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">अस्वीकार करें</string>
     <string name="terminal_inline_image_always_tab">इस टैब में हमेशा</string>
+    <string name="terminal_bell_notification_title">टर्मिनल</string>
+    <string name="terminal_bell_notification_body">किसी टर्मिनल प्रोग्राम ने घंटी बजाई</string>
 </resources>

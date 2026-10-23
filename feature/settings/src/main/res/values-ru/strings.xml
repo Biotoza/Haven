@@ -537,4 +537,6 @@
     <string name="settings_ambiwidth_mode_wide_desc">Всегда 2 ячейки (классический CJK ambiwidth)</string>
     <string name="settings_ambiwidth_mode_auto_wide">Авто + Широкий</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">Замерять активный шрифт; при сбое 2 ячейки (CJK)</string>
+    <string name="settings_bell_notification_title">Уведомление о звонке</string>
+    <string name="settings_bell_notification_subtitle">Когда программа в терминале подаёт звуковой сигнал, пока Haven в фоновом режиме, приходит уведомление с названием вкладки. Пока вы смотрите в терминал, ничего не появляется.</string>
 </resources>

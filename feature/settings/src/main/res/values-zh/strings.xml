@@ -533,4 +533,6 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_ambiwidth_mode_wide_desc">始终占 2 列（传统 CJK 宽度）</string>
     <string name="settings_ambiwidth_mode_auto_wide">自动 + 宽字符</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">分析当前字体；回退至 2 列 (CJK)</string>
+    <string name="settings_bell_notification_title">铃声通知</string>
+    <string name="settings_bell_notification_subtitle">当终端程序在 Haven 后台响铃时，发送一条注明标签页名称的通知。查看终端时不会显示任何内容。</string>
 </resources>

@@ -652,6 +652,9 @@ class SettingsViewModel @Inject constructor(
     val terminalTapToPositionCursor: StateFlow<Boolean> = preferencesRepository.terminalTapToPositionCursor
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val terminalBellNotification: StateFlow<Boolean> = preferencesRepository.terminalBellNotification
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val terminalSwipeArrows: StateFlow<Boolean> = preferencesRepository.swipeArrowsMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -1030,6 +1033,12 @@ class SettingsViewModel @Inject constructor(
     fun setTerminalTapToPositionCursor(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setTerminalTapToPositionCursor(enabled)
+        }
+    }
+
+    fun setTerminalBellNotification(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalBellNotification(enabled)
         }
     }
 

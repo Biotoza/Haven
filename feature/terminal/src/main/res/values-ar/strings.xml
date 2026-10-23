@@ -168,4 +168,6 @@
     <string name="terminal_inline_image_dimensions">الأبعاد: %1$d × %2$d بكسل</string>
     <string name="terminal_inline_image_deny">رفض</string>
     <string name="terminal_inline_image_always_tab">دائمًا في هذا التبويب</string>
+    <string name="terminal_bell_notification_title">الطرفية</string>
+    <string name="terminal_bell_notification_body">رنّ برنامج طرفية</string>
 </resources>

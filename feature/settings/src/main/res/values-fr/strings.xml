@@ -535,4 +535,6 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_ambiwidth_mode_wide_desc">Toujours 2 cellules (largeur CJK héritée)</string>
     <string name="settings_ambiwidth_mode_auto_wide">Auto + Large</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">Mesurer la police active ; secours à 2 cellules (CJK)</string>
+    <string name="settings_bell_notification_title">Notification de sonnerie</string>
+    <string name="settings_bell_notification_subtitle">Quand un programme du terminal émet un bip pendant qu\'Haven est en arrière-plan, une notification nommant l\'onglet est affichée. Rien n\'apparaît pendant que vous regardez le terminal.</string>
 </resources>

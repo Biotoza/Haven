@@ -99,10 +99,11 @@ class SshTerminalEmulatorOwner @Inject constructor(
             inlineImages: InlineImages,
             onKeyboardInput: (ByteArray) -> Unit,
             onResize: (TerminalDimensions) -> Unit,
+            onBell: () -> Unit,
         ): TerminalEmulator
     }
 
-    internal var emulatorFactory: EmulatorFactory = EmulatorFactory { fg, bg, alt, scrollback, inlineImages, oki, ors ->
+    internal var emulatorFactory: EmulatorFactory = EmulatorFactory { fg, bg, alt, scrollback, inlineImages, oki, ors, bell ->
         TerminalEmulatorFactory.create(
             autoDetectUrls = true,
             initialRows = 24,
@@ -112,6 +113,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             enableAltScreen = alt,
             onKeyboardInput = oki,
             onResize = ors,
+            onBell = bell,
             maxScrollbackLines = scrollback,
             inlineImages = inlineImages,
             ambiwidthMode = when (ambiwidthMode) {
@@ -135,6 +137,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
     @Volatile private var verboseLogging = false
     @Volatile private var scrollbackRows = UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS
     @Volatile private var globalScheme = UserPreferencesRepository.TerminalColorScheme.HAVEN
+    @Volatile private var bellNotification = true
     @Volatile private var inlineImagesMode = UserPreferencesRepository.TerminalInlineImages.ASK
     @Volatile private var ambiwidthMode = UserPreferencesRepository.TerminalAmbiwidthMode.NARROW
 
@@ -146,6 +149,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
         scope.launch { preferencesRepository.verboseLoggingEnabled.collect { verboseLogging = it } }
         scope.launch { preferencesRepository.terminalScrollbackRows.collect { scrollbackRows = it } }
         scope.launch { preferencesRepository.terminalColorScheme.collect { globalScheme = it } }
+        scope.launch { preferencesRepository.terminalBellNotification.collect { bellNotification = it } }
         scope.launch {
             preferencesRepository.terminalInlineImages.collect { mode ->
                 inlineImagesMode = mode
@@ -236,6 +240,12 @@ class SshTerminalEmulatorOwner @Inject constructor(
             inlineImages = inlineImagesPolicy(inlineImagesMode, inlineImageConsent.state(sessionId)),
             onKeyboardInput = { data -> bundle.inputSink(data) },
             onResize = { dims -> bundle.resizeSink(dims) },
+            // #753: BEL → background notification naming the tab. Gated on
+            // the setting; showBellNotification itself skips when Haven is
+            // foreground.
+            onBell = {
+                if (bellNotification) showBellNotification(appContext, bundle.label ?: "")
+            },
         )
         bundle.emulator = emulator
         bundles[sessionId] = bundle

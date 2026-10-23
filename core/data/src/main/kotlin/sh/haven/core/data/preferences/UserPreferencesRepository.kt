@@ -35,6 +35,10 @@ class UserPreferencesRepository @Inject constructor(
     private val rdpDesktopWidthKey = intPreferencesKey("rdp_desktop_width")
     private val rdpDesktopHeightKey = intPreferencesKey("rdp_desktop_height")
     private val terminalTapToPositionCursorKey = booleanPreferencesKey("terminal_tap_to_position_cursor")
+    // #753: raise a system notification when a terminal rings BEL while Haven
+    // is backgrounded. Default on — the request's whole point is being told
+    // about a finished build when you're not looking at the terminal.
+    private val terminalBellNotificationKey = booleanPreferencesKey("terminal_bell_notification")
     // #418 debug: enable RemoteFX-Progressive WBT_TILE_UPGRADE refinement
     // decoding for RDP. Off by default while the upgrade path is verified.
     private val rdpProgressiveUpgradeKey = booleanPreferencesKey("rdp_progressive_upgrade")
@@ -1613,6 +1617,23 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setTerminalTapToPositionCursor(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[terminalTapToPositionCursorKey] = enabled
+        }
+    }
+
+    /**
+     * #753: when a terminal program rings BEL (0x07) and Haven is in the
+     * background, post a system notification naming the tab. Foreground BEL
+     * stays silent either way — shells ring BEL for ordinary things
+     * (backspace at an empty prompt, ambiguous completion) and a toast per
+     * bell would be noise. Default on.
+     */
+    val terminalBellNotification: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[terminalBellNotificationKey] ?: true
+    }
+
+    suspend fun setTerminalBellNotification(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[terminalBellNotificationKey] = enabled
         }
     }
 

@@ -232,6 +232,7 @@ fun SettingsScreen(
     val terminalSwipeArrows by viewModel.terminalSwipeArrows.collectAsState()
     val swipeArrowsExitHintVisible by viewModel.swipeArrowsExitHintVisible.collectAsState()
     val tapToPositionCursorOnPrompt by viewModel.terminalTapToPositionCursor.collectAsState()
+    val bellNotification by viewModel.terminalBellNotification.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
     val rawKeyboardMode by viewModel.rawKeyboardMode.collectAsState()
     val keyboardCustomMode by viewModel.keyboardCustomMode.collectAsState()
@@ -790,6 +791,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_tap_to_position_subtitle),
             checked = tapToPositionCursorOnPrompt,
             onCheckedChange = viewModel::setTerminalTapToPositionCursor,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.VolumeUp,
+            title = stringResource(R.string.settings_bell_notification_title),
+            subtitle = stringResource(R.string.settings_bell_notification_subtitle),
+            checked = bellNotification,
+            onCheckedChange = viewModel::setTerminalBellNotification,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Terminal,
