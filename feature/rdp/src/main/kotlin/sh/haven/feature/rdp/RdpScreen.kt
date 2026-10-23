@@ -1089,9 +1089,10 @@ private fun RdpViewer(
                 }
 
                 // Direct/trackpad input-mode toggle + speed button — #183/#696.
-                InputModeToggle(inputMode, onSetInputMode, onSetTouchpadSensitivity) {
-                    showSensitivityDialog = true
-                }
+                InputModeToggle(
+                    inputMode, onSetInputMode, onSetTouchpadSensitivity,
+                    onOpenSensitivity = { showSensitivityDialog = true },
+                )
                 // Two-finger drag: viewport pan vs remote scroll — #286.
                 ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
 
@@ -1223,9 +1224,10 @@ private fun RdpViewer(
                         Icon(orientationMode.icon, contentDescription = orientationDesc)
                     }
                     // Direct/trackpad input-mode toggle + speed button — #183/#696.
-                    InputModeToggle(inputMode, onSetInputMode, onSetTouchpadSensitivity) {
-                        showSensitivityDialog = true
-                    }
+                    InputModeToggle(
+                        inputMode, onSetInputMode, onSetTouchpadSensitivity, vertical = true,
+                        onOpenSensitivity = { showSensitivityDialog = true },
+                    )
                     // Two-finger drag: viewport pan vs remote scroll — #286.
                     ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
@@ -1273,10 +1275,14 @@ private fun InputModeToggle(
     onSetInputMode: ((String) -> Unit)?,
     onSetTouchpadSensitivity: ((Float) -> Unit)?,
     onOpenSensitivity: () -> Unit,
+    vertical: Boolean = false,
 ) {
     if (onSetInputMode == null) return
     val touchpad = inputMode == "TOUCHPAD"
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    // #696 reporter follow-up: in the corner-docked fullscreen overlay the
+    // toggle sits inside a vertical panel — stacking here keeps the strip's
+    // width at one button instead of widening it for a horizontal row.
+    val content: @Composable () -> Unit = {
         FilledIconToggleButton(
             checked = touchpad,
             onCheckedChange = { onSetInputMode(if (touchpad) "DIRECT" else "TOUCHPAD") },
@@ -1296,6 +1302,11 @@ private fun InputModeToggle(
                 Icon(Icons.Default.Speed, contentDescription = speedDesc)
             }
         }
+    }
+    if (vertical) {
+        Column { content() }
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically) { content() }
     }
 }
 

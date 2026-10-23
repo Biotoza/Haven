@@ -18,7 +18,6 @@ import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.db.entities.typeEnum
 import sh.haven.core.data.repository.TunnelConfigRepository
-import sh.haven.rclone.binding.wgbridge.Wgbridge
 import java.io.IOException
 
 /**

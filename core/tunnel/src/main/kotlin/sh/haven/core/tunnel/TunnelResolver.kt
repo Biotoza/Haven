@@ -4,6 +4,7 @@ import android.util.Log
 import com.jcraft.jsch.ProxyHTTP
 import com.jcraft.jsch.ProxySOCKS4
 import com.jcraft.jsch.ProxySOCKS5
+import sh.haven.core.redact.LogRedact
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.ssh.HavenProxy
 import java.net.InetSocketAddress
@@ -57,7 +58,7 @@ class TunnelResolver @Inject constructor(
     ): TunneledConnection? {
         tunnelFor(profile)?.let { return it.dial(host, port, timeoutMs) }
         if (profile.tunnelConfigId != null) {
-            Log.i(TAG, "tunnel ${profile.tunnelConfigId} unavailable — dialling $host:$port directly (rides any system VPN routing)")
+            Log.i(TAG, "tunnel ${profile.tunnelConfigId} unavailable — dialling ${LogRedact.host(host, port)} directly (rides any system VPN routing)")
             // Expected case: the tunnel bring-up was refused because the
             // config's address is held by an active system VPN (same config
             // in a VPN app). Direct dial is then the RIGHT path: the system
