@@ -2,7 +2,9 @@ package sh.haven.feature.terminal
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -76,10 +78,27 @@ private fun postSystemNotification(context: Context, title: String, body: String
             notificationManager.createNotificationChannel(channel)
         }
 
+        // Tapping brings Haven to the front — the OSC 9/BEL notifications had
+        // no contentIntent, so taps did nothing (#753 reporter follow-up).
+        // feature:terminal can't name MainActivity (app module), so launch via
+        // the package launcher intent; CLEAR_TOP + SINGLE_TOP reorders the
+        // existing task instead of spawning a duplicate.
+        val contentIntent = context.packageManager
+            .getLaunchIntentForPackage(context.packageName)
+            ?.let { launch ->
+                PendingIntent.getActivity(
+                    context,
+                    0,
+                    launch.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            }
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
+            .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .build()
 
