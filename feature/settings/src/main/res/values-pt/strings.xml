@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — impede a exibição do IME em tela cheia no modo paisagem.</string>
     <string name="settings_ime_flag_no_learning_title">Bloquear aprendizado do IME</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — privacidade: o banco de palavras do IME ignora o texto digitado. Forte o suficiente no Gboard para também ocultar o microfone.</string>
+    <string name="settings_mcp_tools_title">Ferramentas MCP</string>
+    <string name="settings_mcp_tools_subtitle">Desative ferramentas individuais do agente para reduzir o que ele vê</string>
+    <string name="settings_mcp_tools_screen_title">Ferramentas MCP</string>
+    <string name="settings_mcp_tools_empty">A lista de ferramentas aparece quando o endpoint do agente é iniciado.</string>
+    <string name="settings_mcp_tools_intro">Ferramentas desativadas saem completamente da lista de ferramentas do agente: modelos menores veem menos poluição e cada chamada custa menos tokens. O interruptor do endpoint, o pareamento e os pedidos de consentimento continuam valendo.</string>
+    <string name="settings_mcp_tools_consent_every_call">Pergunta a cada chamada</string>
+    <string name="settings_mcp_tools_consent_once">Pergunta uma vez por sessão</string>
+    <string name="settings_mcp_tools_consent_never">Sem solicitação por chamada</string>
     <string name="settings_paired_clients_title">Clientes MCP pareados</string>
     <string name="settings_paired_clients_subtitle">Revise os clientes pareados, ignore solicitações por cliente ou desfaça o pareamento</string>
     <string name="settings_paired_clients_screen_title">Clientes MCP pareados</string>

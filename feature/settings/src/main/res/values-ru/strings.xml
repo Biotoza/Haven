@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — предотвращает показ полноэкранного IME в альбомной ориентации.</string>
     <string name="settings_ime_flag_no_learning_title">Запретить IME обучаться</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — конфиденциальность: словарь IME игнорирует введённый текст. Достаточно сильно, чтобы скрыть микрофон в Gboard.</string>
+    <string name="settings_mcp_tools_title">Инструменты MCP</string>
+    <string name="settings_mcp_tools_subtitle">Отключайте отдельные инструменты агента, чтобы уменьшить то, что он видит</string>
+    <string name="settings_mcp_tools_screen_title">Инструменты MCP</string>
+    <string name="settings_mcp_tools_empty">Список инструментов появится после запуска конечной точки агента.</string>
+    <string name="settings_mcp_tools_intro">Отключённые инструменты полностью исчезают из списка инструментов агента: маленькие модели видят меньше лишнего, и каждый вызов стоит меньше токенов. Переключатель конечной точки, сопряжение и запросы согласия продолжают действовать.</string>
+    <string name="settings_mcp_tools_consent_every_call">Спрашивает при каждом вызове</string>
+    <string name="settings_mcp_tools_consent_once">Спрашивает один раз за сессию</string>
+    <string name="settings_mcp_tools_consent_never">Без запроса на вызов</string>
     <string name="settings_paired_clients_title">Сопряжённые клиенты MCP</string>
     <string name="settings_paired_clients_subtitle">Просмотр сопряжённых клиентов, пропуск запросов по клиенту или разрыв сопряжения</string>
     <string name="settings_paired_clients_screen_title">Сопряжённые клиенты MCP</string>

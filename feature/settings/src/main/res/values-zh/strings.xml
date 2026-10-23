@@ -405,6 +405,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — 阻止横屏时全屏输入法 UI 显示。</string>
     <string name="settings_ime_flag_no_learning_title">阻止输入法学习</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — 隐私：输入法词库忽略输入文本。对 Gboard 效果足够强，同时也会隐藏麦克风。</string>
+    <string name="settings_mcp_tools_title">MCP 工具</string>
+    <string name="settings_mcp_tools_subtitle">关闭单个代理工具以减少代理看到的内容</string>
+    <string name="settings_mcp_tools_screen_title">MCP 工具</string>
+    <string name="settings_mcp_tools_empty">代理端点启动后会出现工具列表。</string>
+    <string name="settings_mcp_tools_intro">关闭的工具会完全从代理的工具列表中移除——小模型看到的干扰更少，每次调用消耗的令牌也更少。端点开关、配对和同意提示仍然有效。</string>
+    <string name="settings_mcp_tools_consent_every_call">每次调用都询问</string>
+    <string name="settings_mcp_tools_consent_once">每个会话询问一次</string>
+    <string name="settings_mcp_tools_consent_never">调用不询问</string>
     <string name="settings_paired_clients_title">已配对的 MCP 客户端</string>
     <string name="settings_paired_clients_subtitle">查看已配对的客户端，按客户端跳过提示，或取消配对</string>
     <string name="settings_paired_clients_screen_title">已配对的 MCP 客户端</string>

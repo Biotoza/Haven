@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — 가로 모드의 전체 화면 IME UI가 표시되지 않습니다.</string>
     <string name="settings_ime_flag_no_learning_title">IME 학습 차단</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — 개인정보 보호: IME 단어 저장소가 입력된 텍스트를 무시합니다. Gboard에서 마이크도 숨길 만큼 강력합니다.</string>
+    <string name="settings_mcp_tools_title">MCP 도구</string>
+    <string name="settings_mcp_tools_subtitle">에이전트가 보는 내용을 줄이려면 개별 도구를 끄세요</string>
+    <string name="settings_mcp_tools_screen_title">MCP 도구</string>
+    <string name="settings_mcp_tools_empty">도구 목록은 에이전트 엔드포인트가 시작되면 표시됩니다.</string>
+    <string name="settings_mcp_tools_intro">끄는 도구는 에이전트의 도구 목록에서 완전히 제거됩니다 — 작은 모델은 혼란이 줄어들고 모든 호출의 토큸 비용이 낮아집니다. 엔드포인트 스위치, 페어링, 동의 프롬프트는 계속 적용됩니다.</string>
+    <string name="settings_mcp_tools_consent_every_call">맨 호출마다 확인</string>
+    <string name="settings_mcp_tools_consent_once">세션당 한 번 확인</string>
+    <string name="settings_mcp_tools_consent_never">호출별 확인 없음</string>
     <string name="settings_paired_clients_title">페어링된 MCP 클라이언트</string>
     <string name="settings_paired_clients_subtitle">페어링된 클라이언트 검토, 클라이언트별 확인 건너뛰기 또는 페어링 해제</string>
     <string name="settings_paired_clients_screen_title">페어링된 MCP 클라이언트</string>

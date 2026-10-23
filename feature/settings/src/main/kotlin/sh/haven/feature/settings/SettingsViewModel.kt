@@ -54,6 +54,7 @@ class SettingsViewModel @Inject constructor(
     private val biometricGate: sh.haven.core.data.keystore.BiometricGate,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     private val updateChecker: UpdateChecker,
+    private val mcpToolCatalog: sh.haven.core.data.agent.McpToolCatalog,
 ) : ViewModel() {
     // --- Credential storage health + recovery (#579) ---
 
@@ -294,6 +295,19 @@ class SettingsViewModel @Inject constructor(
     /** Remove a client from the allowlist; it must re-pair to reconnect. */
     fun unpairMcpClient(name: String) {
         viewModelScope.launch { preferencesRepository.removeMcpAllowedClient(name) }
+    }
+
+    // --- Per-tool MCP switches (#755) ---
+
+    /** The live tool registry as published by the MCP server (empty until it starts). */
+    val mcpTools: StateFlow<List<sh.haven.core.data.agent.McpToolInfo>> = mcpToolCatalog.tools
+
+    /** Tool names the user switched off; those leave tools/list and calls fail. */
+    val mcpDisabledTools: StateFlow<Set<String>> = mcpToolCatalog.disabledTools
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    fun setMcpToolEnabled(name: String, enabled: Boolean) {
+        viewModelScope.launch { mcpToolCatalog.setToolEnabled(name, enabled) }
     }
 
     val biometricAvailable: Boolean =

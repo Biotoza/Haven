@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — landscape-এর fullscreen IME UI দেখানো বন্ধ করে।</string>
     <string name="settings_ime_flag_no_learning_title">IME-কে শেখা থেকে বিরত রাখুন</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — গোপনীয়তা: IME-এর word bank টাইপ করা টেক্সট উপেক্ষা করে। Gboard-এ mic লুকাতেও যথেষ্ট শক্তিশালী।</string>
+    <string name="settings_mcp_tools_title">MCP টুল</string>
+    <string name="settings_mcp_tools_subtitle">এজেন্ট যা দেখে তা কমাতে পৃথক এজেন্ট টুল বন্ধ করুন</string>
+    <string name="settings_mcp_tools_screen_title">MCP টুল</string>
+    <string name="settings_mcp_tools_empty">এজেন্ট এন্ডপয়েন্ট চালু হলে টুলের তালিকা দেখা যাবে।</string>
+    <string name="settings_mcp_tools_intro">বন্ধ করা টুল এজেন্টের টুল তালিকা থেকে সম্পূর্ণ মুছে যায় — ছোট মডেল কম বিশৃঙ্খলা দেখে এবং প্রতিটি কল কম টোকেন খরচ করে। এন্ডপয়েন্ট সুইচ, পেয়ারিং ও সম্মতি প্রম্প্ট প্রযোজ্য থাকে।</string>
+    <string name="settings_mcp_tools_consent_every_call">প্রতিটি কলে জিজ্ঞাসা করে</string>
+    <string name="settings_mcp_tools_consent_once">প্রতি সেশনে একবার জিজ্ঞাসা করে</string>
+    <string name="settings_mcp_tools_consent_never">প্রতি-কলে কোনো প্রম্প্ট নেই</string>
     <string name="settings_paired_clients_title">পেয়ার করা MCP ক্লায়েন্ট</string>
     <string name="settings_paired_clients_subtitle">পেয়ার করা ক্লায়েন্ট দেখুন, ক্লায়েন্ট অনুযায়ী প্রম্পট এড়িয়ে যান, বা আনপেয়ার করুন</string>
     <string name="settings_paired_clients_screen_title">পেয়ার করা MCP ক্লায়েন্ট</string>

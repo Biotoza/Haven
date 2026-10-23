@@ -256,6 +256,10 @@ class McpServer @Inject constructor(
     // writes the session-manager picker state to.
     private val sessionSelectionHolder: sh.haven.core.data.agent.SessionSelectionHolder =
         sh.haven.core.data.agent.SessionSelectionHolder(),
+    // Per-tool on/off switches (#755): defaulted for the manual test
+    // constructions; Hilt injects the real @Singleton, which Settings also
+    // observes, so the phone-side toggle list and the dispatcher share one store.
+    private val toolCatalog: sh.haven.core.data.agent.McpToolCatalog? = null,
 ) : Closeable {
 
     /**
@@ -517,6 +521,7 @@ class McpServer @Inject constructor(
         pendingAuthPromptHolder = pendingAuthPromptHolder,
         sessionSelectionHolder = sessionSelectionHolder,
         agentConsentManager = consentManager,
+        toolCatalog = toolCatalog,
         mcpPortProvider = { port },
     )
 

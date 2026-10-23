@@ -535,6 +535,14 @@
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — privacy: IME\'s word bank ignores typed text. Strong enough on Gboard to also hide the mic.</string>
 
     <!-- Paired MCP clients (#210) -->
+    <string name="settings_mcp_tools_title">MCP tools</string>
+    <string name="settings_mcp_tools_subtitle">Switch individual agent tools off to shrink what they see</string>
+    <string name="settings_mcp_tools_screen_title">MCP tools</string>
+    <string name="settings_mcp_tools_empty">The tool list appears once the agent endpoint has started.</string>
+    <string name="settings_mcp_tools_intro">Off tools leave the agent\'s tool list entirely — small models get less clutter and every call costs fewer tokens. The endpoint switch, pairing and consent prompts still apply.</string>
+    <string name="settings_mcp_tools_consent_every_call">Asks every call</string>
+    <string name="settings_mcp_tools_consent_once">Asks once per session</string>
+    <string name="settings_mcp_tools_consent_never">No per-call prompt</string>
     <string name="settings_paired_clients_title">Paired MCP clients</string>
     <string name="settings_paired_clients_subtitle">Review paired clients, skip prompts per client, or un-pair</string>
     <string name="settings_paired_clients_screen_title">Paired MCP clients</string>

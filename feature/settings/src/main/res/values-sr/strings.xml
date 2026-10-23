@@ -421,6 +421,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — спречава приказивање IME КИ у положеном пуном екрану.</string>
     <string name="settings_ime_flag_no_learning_title">Спречи да IME учи</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — приватност: IME-ова банка речи игнорише откуцани текст. Довољне је јачине на Gboard тако да сакрива и микрофон.</string>
+    <string name="settings_mcp_tools_title">MCP алати</string>
+    <string name="settings_mcp_tools_subtitle">Искључите појединачне алате агента да смањите шта види</string>
+    <string name="settings_mcp_tools_screen_title">MCP алати</string>
+    <string name="settings_mcp_tools_empty">Листа алата се појављује када се агентски крај покрене.</string>
+    <string name="settings_mcp_tools_intro">Искључени алати потпуно нестају из листе алата агента — мањи модели виде мање сувишног и сваки позив кошта мање токена. Прекидач краја, упаривање и захтеви за сагласност и даље важе.</string>
+    <string name="settings_mcp_tools_consent_every_call">Пита при сваком позиву</string>
+    <string name="settings_mcp_tools_consent_once">Пита једном по сесији</string>
+    <string name="settings_mcp_tools_consent_never">Без захтева по позиву</string>
     <string name="settings_paired_clients_title">Упарени MCP клијенти</string>
     <string name="settings_paired_clients_subtitle">Прегледајте упарене клијенте, прескочите упите по клијентима, или обришите упаривање</string>
     <string name="settings_paired_clients_screen_title">Упарени MCP клијенти</string>

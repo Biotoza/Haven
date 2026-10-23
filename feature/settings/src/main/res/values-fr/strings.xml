@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — empêche l\'interface IME plein écran en paysage de s\'afficher.</string>
     <string name="settings_ime_flag_no_learning_title">Bloquer l\'apprentissage de l\'IME</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — confidentialité : la banque de mots de l\'IME ignore le texte saisi. Suffisamment fort sur Gboard pour masquer aussi le micro.</string>
+    <string name="settings_mcp_tools_title">Outils MCP</string>
+    <string name="settings_mcp_tools_subtitle">Désactivez des outils individuels de l\'agent pour réduire ce qu\'il voit</string>
+    <string name="settings_mcp_tools_screen_title">Outils MCP</string>
+    <string name="settings_mcp_tools_empty">La liste des outils apparaît une fois le point de terminaison de l\'agent démarré.</string>
+    <string name="settings_mcp_tools_intro">Les outils désactivés quittent entièrement la liste d\'outils de l\'agent : les petits modèles voient moins d\'encombrement et chaque appel coûte moins de jetons. L\'interrupteur du point de terminaison, le jumelage et les demandes de consentement s\'appliquent toujours.</string>
+    <string name="settings_mcp_tools_consent_every_call">Demande à chaque appel</string>
+    <string name="settings_mcp_tools_consent_once">Demande une fois par session</string>
+    <string name="settings_mcp_tools_consent_never">Pas de demande par appel</string>
     <string name="settings_paired_clients_title">Clients MCP associés</string>
     <string name="settings_paired_clients_subtitle">Vérifiez les clients associés, ignorez les invites par client ou dissociez</string>
     <string name="settings_paired_clients_screen_title">Clients MCP associés</string>

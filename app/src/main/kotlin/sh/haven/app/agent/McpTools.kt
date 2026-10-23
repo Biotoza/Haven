@@ -153,6 +153,12 @@ internal class McpTools(
     // exercise those verbs construct McpTools without supplying it.
     private val pendingAuthPromptHolder: sh.haven.core.data.agent.PendingAuthPromptHolder =
         sh.haven.core.data.agent.PendingAuthPromptHolder(),
+    // Per-tool on/off switches (#755). Nullable + defaulted like the holders
+    // above so manual test constructions compile unchanged; McpServer passes
+    // the Hilt singleton. When present, the registry publishes its tool list
+    // here (Settings lists it) and disabled tools leave definitions() and
+    // fail callTyped().
+    private val toolCatalog: sh.haven.core.data.agent.McpToolCatalog? = null,
     // Pending session-manager picker, mirrored from ConnectionsViewModel so
     // get_pending_session_picker / answer_session_picker can observe and answer
     // it without a human tap. Defaulted like the auth-prompt holder above.
@@ -417,6 +423,26 @@ internal class McpTools(
                 serialBridgeProvider.tools() +
             sensesProvider.tools() + gpsProvider.tools() + notificationProvider.tools() + reflexProvider.tools() +
             crossProtocolProvider.tools() + credentialProvider.tools()
+
+    // #755: the disabled-tool set is a Flow, but definitions() (tools/list)
+    // is not suspend, so keep a volatile snapshot the collector below keeps
+    // current. It starts empty (nothing disabled) and converges on the
+    // persisted set within a DataStore read of startup; callTyped() reads the
+    // catalog directly (it is suspend) so a call is gated on the authoritative
+    // set even before the snapshot lands.
+    @Volatile
+    private var disabledToolSnapshot: Set<String> = emptySet()
+
+    init {
+        toolCatalog?.let { catalog ->
+            catalog.publish(tools.map { (name, h) ->
+                sh.haven.core.data.agent.McpToolInfo(name, h.consentLevel)
+            })
+            presentScope.launch {
+                catalog.disabledTools.collect { disabledToolSnapshot = it }
+            }
+        }
+    }
 
     private fun toolsPart1(): Map<String, ToolHandler> = linkedMapOf(
         "get_app_info" to ToolHandler(
@@ -1975,7 +2001,11 @@ internal class McpTools(
     }
 
     fun definitions(): List<JSONObject> {
-        val local = tools.map { (name, handler) ->
+        // #755: tools the user switched off leave the advertised surface
+        // entirely — the context saving is the point, so a disabled tool must
+        // not appear in tools/list at all, not merely fail when called.
+        val disabled = disabledToolSnapshot
+        val local = tools.filterNot { (name, _) -> name in disabled }.map { (name, handler) ->
             JSONObject().apply {
                 put("name", name)
                 put("description", handler.description)
@@ -2096,6 +2126,14 @@ internal class McpTools(
                 throw McpError(-32603, "MCP is disabled for this connection — re-enable it from its MCP icon on the Connections screen.")
             }
             agentActivityHolder.touch(profileId)
+        }
+        // #755 per-tool switch: a tool the user disabled is off the surface —
+        // a direct call fails with a Settings-pointing error, like the
+        // capability gates, and holds regardless of loopback auto-trust
+        // (it is a feature toggle, not consent). Guest-proxied tools are not
+        // individually switchable (they come and go with the guest service).
+        if (toolCatalog?.isDisabled(name) == true) {
+            throw McpError(-32011, "'$name' is disabled — re-enable it in Settings → Agent endpoint → MCP tools")
         }
         tools[name]?.let { return it.handle(arguments) }
 

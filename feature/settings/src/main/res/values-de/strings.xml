@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — verhindert die Vollbild-IME-Oberfläche im Querformat.</string>
     <string name="settings_ime_flag_no_learning_title">IME-Lernfunktion sperren</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — Datenschutz: Die Wortdatenbank der IME ignoriert eingetippten Text. Auf Gboard stark genug, um auch das Mikrofon auszublenden.</string>
+    <string name="settings_mcp_tools_title">MCP-Tools</string>
+    <string name="settings_mcp_tools_subtitle">Einzelne Agent-Tools deaktivieren, um das Sichtfeld zu verkleinern</string>
+    <string name="settings_mcp_tools_screen_title">MCP-Tools</string>
+    <string name="settings_mcp_tools_empty">Die Tool-Liste erscheint, sobald der Agent-Endpunkt gestartet wurde.</string>
+    <string name="settings_mcp_tools_intro">Deaktivierte Tools verschwinden vollständig aus der Tool-Liste des Agenten – kleinere Modelle sehen weniger und jeder Aufruf kostet weniger Tokens. Endpunkt-Schalter, Pairing und Zustimmungsabfragen gelten weiterhin.</string>
+    <string name="settings_mcp_tools_consent_every_call">Fragt bei jedem Aufruf</string>
+    <string name="settings_mcp_tools_consent_once">Fragt einmal pro Sitzung</string>
+    <string name="settings_mcp_tools_consent_never">Keine Abfrage pro Aufruf</string>
     <string name="settings_paired_clients_title">Gekoppelte MCP-Clients</string>
     <string name="settings_paired_clients_subtitle">Gekoppelte Clients prüfen, Abfragen je Client überspringen oder Kopplung aufheben</string>
     <string name="settings_paired_clients_screen_title">Gekoppelte MCP-Clients</string>

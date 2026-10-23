@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — يمنع ظهور واجهة IME ملء الشاشة في الوضع الأفقي.</string>
     <string name="settings_ime_flag_no_learning_title">منع IME من التعلم</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — خصوصية: يتجاهل مستودع كلمات IME ما يُكتب. قوي بما يكفي على Gboard لإخفاء الميكروفون أيضًا.</string>
+    <string name="settings_mcp_tools_title">أدوات MCP</string>
+    <string name="settings_mcp_tools_subtitle">أوقف أدوات الوكيل الفردية لتقليل ما يراه</string>
+    <string name="settings_mcp_tools_screen_title">أدوات MCP</string>
+    <string name="settings_mcp_tools_empty">تظهر قائمة الأدوات بعد تشغيل نقطة نهاية الوكيل.</string>
+    <string name="settings_mcp_tools_intro">الأدوات المتوقفة تختفى تمامًا من قائمة أدوات الوكيل — النماذج الصغيرة ترى فوضًا أقل وكل استدعاء يكلّف رموزًا أقل. لا يزال مفتاح نقطة النهاية والاقتران ورسائل الموافقة سارية.</string>
+    <string name="settings_mcp_tools_consent_every_call">يسأل عند كل استدعاء</string>
+    <string name="settings_mcp_tools_consent_once">يسأل مرة واحدة لكل جلسة</string>
+    <string name="settings_mcp_tools_consent_never">لا طلب عند الاستدعاء</string>
     <string name="settings_paired_clients_title">عملاء MCP المقترنون</string>
     <string name="settings_paired_clients_subtitle">راجع العملاء المقترنين، وتخطَّ المطالبات لكل عميل، أو ألغِ الاقتران</string>
     <string name="settings_paired_clients_screen_title">عملاء MCP المقترنون</string>

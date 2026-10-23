@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — landscape का fullscreen IME UI दिखने से रोकता है।</string>
     <string name="settings_ime_flag_no_learning_title">IME को सीखने से रोकें</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — privacy: IME का word bank typed text नज़रअंदाज़ करता है। Gboard पर mic भी छुपाने के लिए पर्याप्त।</string>
+    <string name="settings_mcp_tools_title">MCP टूल्स</string>
+    <string name="settings_mcp_tools_subtitle">एजेंट को कम दिखाने के लिए व्यक्तिगत टूल्स बंद करें</string>
+    <string name="settings_mcp_tools_screen_title">MCP टूल्स</string>
+    <string name="settings_mcp_tools_empty">टूल सूची एजेंट एंडपॉइंट शुरू होने पर दिखाई देगी।</string>
+    <string name="settings_mcp_tools_intro">बंद टूल एजेंट की टूल सूची से पूरी तरह हट जाते हैं — छोटे मॉडल को कम अव्यवस्था दिखती है और हर कॉल में कम टोकन खर्च होते हैं। एंडपॉइंट स्विच, पेएरिंग और सहमति संकेत लागू रहते हैं।</string>
+    <string name="settings_mcp_tools_consent_every_call">हर कॉल पर पूछता है</string>
+    <string name="settings_mcp_tools_consent_once">प्रति सत्र एक बार पूछता है</string>
+    <string name="settings_mcp_tools_consent_never">प्रति-कॉल कोई संकेत नहीं</string>
     <string name="settings_paired_clients_title">युग्मित MCP क्लाइंट</string>
     <string name="settings_paired_clients_subtitle">युग्मित क्लाइंट देखें, प्रति क्लाइंट प्रॉम्प्ट छोड़ें, या युग्मन हटाएँ</string>
     <string name="settings_paired_clients_screen_title">युग्मित MCP क्लाइंट</string>

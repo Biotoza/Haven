@@ -37143,6 +37143,166 @@
      }
     },
     {
+     "name": "settings_mcp_tools_title",
+     "en": "MCP tools",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "أدوات MCP",
+      "bn": "MCP টুল",
+      "de": "MCP-Tools",
+      "es": "Herramientas MCP",
+      "fr": "Outils MCP",
+      "hi": "MCP टूल्स",
+      "ja": "MCPツール",
+      "ko": "MCP 도구",
+      "pt": "Ferramentas MCP",
+      "ru": "Инструменты MCP",
+      "sr": "MCP алати",
+      "zh": "MCP 工具"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_subtitle",
+     "en": "Switch individual agent tools off to shrink what they see",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "أوقف أدوات الوكيل الفردية لتقليل ما يراه",
+      "bn": "এজেন্ট যা দেখে তা কমাতে পৃথক এজেন্ট টুল বন্ধ করুন",
+      "de": "Einzelne Agent-Tools deaktivieren, um das Sichtfeld zu verkleinern",
+      "es": "Desactiva herramientas individuales del agente para reducir lo que ven",
+      "fr": "Désactivez des outils individuels de l\\'agent pour réduire ce qu\\'il voit",
+      "hi": "एजेंट को कम दिखाने के लिए व्यक्तिगत टूल्स बंद करें",
+      "ja": "エージェントに表示される内容を減らすため、個々のツールをオフにします",
+      "ko": "에이전트가 보는 내용을 줄이려면 개별 도구를 끄세요",
+      "pt": "Desative ferramentas individuais do agente para reduzir o que ele vê",
+      "ru": "Отключайте отдельные инструменты агента, чтобы уменьшить то, что он видит",
+      "sr": "Искључите појединачне алате агента да смањите шта види",
+      "zh": "关闭单个代理工具以减少代理看到的内容"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_screen_title",
+     "en": "MCP tools",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "أدوات MCP",
+      "bn": "MCP টুল",
+      "de": "MCP-Tools",
+      "es": "Herramientas MCP",
+      "fr": "Outils MCP",
+      "hi": "MCP टूल्स",
+      "ja": "MCPツール",
+      "ko": "MCP 도구",
+      "pt": "Ferramentas MCP",
+      "ru": "Инструменты MCP",
+      "sr": "MCP алати",
+      "zh": "MCP 工具"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_empty",
+     "en": "The tool list appears once the agent endpoint has started.",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "تظهر قائمة الأدوات بعد تشغيل نقطة نهاية الوكيل.",
+      "bn": "এজেন্ট এন্ডপয়েন্ট চালু হলে টুলের তালিকা দেখা যাবে।",
+      "de": "Die Tool-Liste erscheint, sobald der Agent-Endpunkt gestartet wurde.",
+      "es": "La lista de herramientas aparece cuando el endpoint del agente se ha iniciado.",
+      "fr": "La liste des outils apparaît une fois le point de terminaison de l\\'agent démarré.",
+      "hi": "टूल सूची एजेंट एंडपॉइंट शुरू होने पर दिखाई देगी।",
+      "ja": "ツール一覧はエージェントエンドポイントの起動後に表示されます。",
+      "ko": "도구 목록은 에이전트 엔드포인트가 시작되면 표시됩니다.",
+      "pt": "A lista de ferramentas aparece quando o endpoint do agente é iniciado.",
+      "ru": "Список инструментов появится после запуска конечной точки агента.",
+      "sr": "Листа алата се појављује када се агентски крај покрене.",
+      "zh": "代理端点启动后会出现工具列表。"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_intro",
+     "en": "Off tools leave the agent\\'s tool list entirely — small models get less clutter and every call costs fewer tokens. The endpoint switch, pairing and consent prompts still apply.",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "الأدوات المتوقفة تختفى تمامًا من قائمة أدوات الوكيل — النماذج الصغيرة ترى فوضًا أقل وكل استدعاء يكلّف رموزًا أقل. لا يزال مفتاح نقطة النهاية والاقتران ورسائل الموافقة سارية.",
+      "bn": "বন্ধ করা টুল এজেন্টের টুল তালিকা থেকে সম্পূর্ণ মুছে যায় — ছোট মডেল কম বিশৃঙ্খলা দেখে এবং প্রতিটি কল কম টোকেন খরচ করে। এন্ডপয়েন্ট সুইচ, পেয়ারিং ও সম্মতি প্রম্প্ট প্রযোজ্য থাকে।",
+      "de": "Deaktivierte Tools verschwinden vollständig aus der Tool-Liste des Agenten – kleinere Modelle sehen weniger und jeder Aufruf kostet weniger Tokens. Endpunkt-Schalter, Pairing und Zustimmungsabfragen gelten weiterhin.",
+      "es": "Las herramientas desactivadas salen por completo de la lista del agente: los modelos pequeños ven menos y cada llamada cuesta menos tokens. El interruptor del endpoint, el emparejamiento y los permisos siguen aplicando.",
+      "fr": "Les outils désactivés quittent entièrement la liste d\\'outils de l\\'agent : les petits modèles voient moins d\\'encombrement et chaque appel coûte moins de jetons. L\\'interrupteur du point de terminaison, le jumelage et les demandes de consentement s\\'appliquent toujours.",
+      "hi": "बंद टूल एजेंट की टूल सूची से पूरी तरह हट जाते हैं — छोटे मॉडल को कम अव्यवस्था दिखती है और हर कॉल में कम टोकन खर्च होते हैं। एंडपॉइंट स्विच, पेएरिंग और सहमति संकेत लागू रहते हैं।",
+      "ja": "オフにしたツールはエージェントのツール一覧から完全に削除されます — 小さなモデルはノイズが減り、すべての呼び出しのトークン数が少なくなります。エンドポイントスイッチ、ペアリング、同意プロンプトは引き続き適用されます。",
+      "ko": "끄는 도구는 에이전트의 도구 목록에서 완전히 제거됩니다 — 작은 모델은 혼란이 줄어들고 모든 호출의 토큸 비용이 낮아집니다. 엔드포인트 스위치, 페어링, 동의 프롬프트는 계속 적용됩니다.",
+      "pt": "Ferramentas desativadas saem completamente da lista de ferramentas do agente: modelos menores veem menos poluição e cada chamada custa menos tokens. O interruptor do endpoint, o pareamento e os pedidos de consentimento continuam valendo.",
+      "ru": "Отключённые инструменты полностью исчезают из списка инструментов агента: маленькие модели видят меньше лишнего, и каждый вызов стоит меньше токенов. Переключатель конечной точки, сопряжение и запросы согласия продолжают действовать.",
+      "sr": "Искључени алати потпуно нестају из листе алата агента — мањи модели виде мање сувишног и сваки позив кошта мање токена. Прекидач краја, упаривање и захтеви за сагласност и даље важе.",
+      "zh": "关闭的工具会完全从代理的工具列表中移除——小模型看到的干扰更少，每次调用消耗的令牌也更少。端点开关、配对和同意提示仍然有效。"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_consent_every_call",
+     "en": "Asks every call",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "يسأل عند كل استدعاء",
+      "bn": "প্রতিটি কলে জিজ্ঞাসা করে",
+      "de": "Fragt bei jedem Aufruf",
+      "es": "Pide en cada llamada",
+      "fr": "Demande à chaque appel",
+      "hi": "हर कॉल पर पूछता है",
+      "ja": "呼び出しごとに確認",
+      "ko": "맨 호출마다 확인",
+      "pt": "Pergunta a cada chamada",
+      "ru": "Спрашивает при каждом вызове",
+      "sr": "Пита при сваком позиву",
+      "zh": "每次调用都询问"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_consent_once",
+     "en": "Asks once per session",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "يسأل مرة واحدة لكل جلسة",
+      "bn": "প্রতি সেশনে একবার জিজ্ঞাসা করে",
+      "de": "Fragt einmal pro Sitzung",
+      "es": "Pide una vez por sesión",
+      "fr": "Demande une fois par session",
+      "hi": "प्रति सत्र एक बार पूछता है",
+      "ja": "セッションごとに1回確認",
+      "ko": "세션당 한 번 확인",
+      "pt": "Pergunta uma vez por sessão",
+      "ru": "Спрашивает один раз за сессию",
+      "sr": "Пита једном по сесији",
+      "zh": "每个会话询问一次"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_consent_never",
+     "en": "No per-call prompt",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "لا طلب عند الاستدعاء",
+      "bn": "প্রতি-কলে কোনো প্রম্প্ট নেই",
+      "de": "Keine Abfrage pro Aufruf",
+      "es": "Sin solicitud por llamada",
+      "fr": "Pas de demande par appel",
+      "hi": "प्रति-कॉल कोई संकेत नहीं",
+      "ja": "呼び出しごとの確認なし",
+      "ko": "호출별 확인 없음",
+      "pt": "Sem solicitação por chamada",
+      "ru": "Без запроса на вызов",
+      "sr": "Без захтева по позиву",
+      "zh": "调用不询问"
+     }
+    },
+    {
      "name": "settings_paired_clients_title",
      "en": "Paired MCP clients",
      "comment": "Paired MCP clients (#210)",

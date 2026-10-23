@@ -406,6 +406,14 @@
     <string name="settings_ime_flag_no_extract_ui_detail">IME_FLAG_NO_EXTRACT_UI — 横向き時の全画面 IME UI を非表示にします。</string>
     <string name="settings_ime_flag_no_learning_title">IME の学習をブロック</string>
     <string name="settings_ime_flag_no_learning_detail">IME_FLAG_NO_PERSONALIZED_LEARNING — プライバシー: IME の単語バンクが入力テキストを無視します。Gboard ではマイクも非表示になるほど強力です。</string>
+    <string name="settings_mcp_tools_title">MCPツール</string>
+    <string name="settings_mcp_tools_subtitle">エージェントに表示される内容を減らすため、個々のツールをオフにします</string>
+    <string name="settings_mcp_tools_screen_title">MCPツール</string>
+    <string name="settings_mcp_tools_empty">ツール一覧はエージェントエンドポイントの起動後に表示されます。</string>
+    <string name="settings_mcp_tools_intro">オフにしたツールはエージェントのツール一覧から完全に削除されます — 小さなモデルはノイズが減り、すべての呼び出しのトークン数が少なくなります。エンドポイントスイッチ、ペアリング、同意プロンプトは引き続き適用されます。</string>
+    <string name="settings_mcp_tools_consent_every_call">呼び出しごとに確認</string>
+    <string name="settings_mcp_tools_consent_once">セッションごとに1回確認</string>
+    <string name="settings_mcp_tools_consent_never">呼び出しごとの確認なし</string>
     <string name="settings_paired_clients_title">ペアリング済み MCP クライアント</string>
     <string name="settings_paired_clients_subtitle">ペアリング済みクライアントの確認、クライアントごとの確認のスキップ、ペアリング解除</string>
     <string name="settings_paired_clients_screen_title">ペアリング済み MCP クライアント</string>
