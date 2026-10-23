@@ -607,4 +607,7 @@
     <string name="connections_identity_not_an_identity">该文件不是 Reticulum 身份。未做任何更改。</string>
     <string name="connections_identity_install_failed">无法安装该身份：%1$s。原有身份仍然保留。</string>
     <string name="connections_identity_unreadable">无法读取该文件。</string>
+    <string name="connections_section_glkvm">GLKVM 设置</string>
+    <string name="connections_field_glkvm_layout">目标键盘布局</string>
+    <string name="connections_helper_glkvm">GLKVM（基于 HTTPS 的 PiKVM 式 KVM）— 直接操控目标机的物理鼠标和键盘。TLS 使用首次信任；录入的字符由目标机的键盘布局决定。通过 SSH 隧道或 WireGuard/Tailscale 配置文件即可从局域网之外访问。</string>
 </resources>

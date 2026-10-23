@@ -609,4 +609,7 @@
     <string name="connections_identity_not_an_identity">यह फ़ाइल Reticulum पहचान नहीं है। कुछ भी नहीं बदला गया।</string>
     <string name="connections_identity_install_failed">पहचान इंस्टॉल नहीं की जा सकी: %1$s। पिछली पहचान यथावत है।</string>
     <string name="connections_identity_unreadable">यह फ़ाइल पढ़ी नहीं जा सकी।</string>
+    <string name="connections_section_glkvm">GLKVM सेटिंग्स</string>
+    <string name="connections_field_glkvm_layout">लक्ष्य कीबोर्ड लेआउट</string>
+    <string name="connections_helper_glkvm">GLKVM (HTTPS पर PiKVM-शैली KVM) — लक्ष्य मशीन के भौतिक माउस और कीबोर्ड को संचालित करता है। TLS trust-on-first-use का उपयोग करता है; टाइप किए गए अक्षर लक्ष्य के कीबोर्ड लेआउट से तय होते हैं। LAN के बाहर पहुँचने के लिए SSH टनल या WireGuard/Tailscale प्रोफ़ाइल से रूट करें।</string>
 </resources>

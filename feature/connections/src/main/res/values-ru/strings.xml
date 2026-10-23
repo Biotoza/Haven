@@ -609,4 +609,7 @@
     <string name="connections_identity_not_an_identity">Этот файл не является идентичностью Reticulum. Ничего не изменено.</string>
     <string name="connections_identity_install_failed">Не удалось установить идентичность: %1$s. Прежняя осталась на месте.</string>
     <string name="connections_identity_unreadable">Не удалось прочитать этот файл.</string>
+    <string name="connections_section_glkvm">Настройки GLKVM</string>
+    <string name="connections_field_glkvm_layout">Раскладка клавиатуры цели</string>
+    <string name="connections_helper_glkvm">GLKVM (KVM в стиле PiKVM через HTTPS) — управляет физической мышью и клавиатурой целевой машины. TLS использует доверие при первом использовании; раскладка клавиатуры цели определяет вводимые символы. Через SSH-туннель или профиль WireGuard/Tailscale доступен и из-за пределами LAN.</string>
 </resources>

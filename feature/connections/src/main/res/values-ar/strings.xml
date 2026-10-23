@@ -609,4 +609,7 @@
     <string name="connections_identity_not_an_identity">هذا الملف ليس هوية Reticulum. لم يتم تغيير أي شيء.</string>
     <string name="connections_identity_install_failed">تعذّر تثبيت الهوية: %1$s. الهوية السابقة ما زالت في مكانها.</string>
     <string name="connections_identity_unreadable">تعذّرت قراءة هذا الملف.</string>
+    <string name="connections_section_glkvm">إعدادات GLKVM</string>
+    <string name="connections_field_glkvm_layout">أهداف تخطيط لوحة المفاتيح</string>
+    <string name="connections_helper_glkvm">GLKVM (نظام PiKVM-style عبر HTTPS) — يعمل على لوحة مفاتيح الجهاز وفأرته الماديّتين مباشرة. يستخدم TLS بثقة أول استخدام، وتخطيط لوحة مفاتيح الجهاز هو ما يحدد الأحرف عند الكتابة. مرر عبر نفق SSH أو ملف تعريف WireGuard/Tailscale للوصول إليه من خارج الشبكة المحلية.</string>
 </resources>

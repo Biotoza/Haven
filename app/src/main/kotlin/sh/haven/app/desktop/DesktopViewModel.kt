@@ -41,6 +41,9 @@ import sh.haven.core.local.LocalSessionManager
 import sh.haven.core.local.ProotManager
 import sh.haven.core.local.proot.Distro
 import sh.haven.core.mosh.MoshSessionManager
+import sh.haven.core.glkvm.GlkvmClient
+import sh.haven.core.glkvm.GlkvmScancodes
+import sh.haven.core.glkvm.GlkvmTrust
 import sh.haven.core.rdp.RdpSession
 import sh.haven.core.spice.SpiceSession
 import sh.haven.core.ssh.SshClient
@@ -88,6 +91,7 @@ class DesktopViewModel @Inject constructor(
     private val umlRecoveryManager: sh.haven.app.usb.UmlRecoveryManager,
     private val systemVmManager: sh.haven.core.local.SystemVmManager,
     private val umlDesktopManager: sh.haven.core.local.uml.UmlDesktopManager,
+    private val tlsCertVerifier: sh.haven.core.data.agent.TlsCertVerifier,
 ) : ViewModel() {
 
     // --- Distro / DE management (issue #162 Phase 3c) ---
@@ -982,9 +986,27 @@ class DesktopViewModel @Inject constructor(
                         profileId = profile.id,
                     )
                 }
+                profile.isGlkvm -> {
+                    val sshSessionId =
+                        if (profile.glkvmSshForward && profile.glkvmSshProfileId != null) {
+                            sshSessionManager.getSessionsForProfile(profile.glkvmSshProfileId!!)
+                                .firstOrNull { it.status.name == "CONNECTED" }
+                                ?.sessionId
+                        } else null
+                    addGlkvmSession(
+                        host = profile.host,
+                        port = profile.glkvmPort ?: 443,
+                        user = profile.username,
+                        password = profile.glkvmPassword,
+                        targetLayout = profile.glkvmTargetLayout,
+                        sshForward = profile.glkvmSshForward,
+                        sshSessionId = sshSessionId,
+                        profileId = profile.id,
+                    )
+                }
                 else -> Log.w(
                     TAG,
-                    "OpenRemoteDesktop: ${profile.label} is ${profile.connectionType}, not VNC/RDP/SPICE",
+                    "OpenRemoteDesktop: ${profile.label} is ${profile.connectionType}, not VNC/RDP/SPICE/GLKVM",
                 )
             }
         }
@@ -1599,6 +1621,8 @@ class DesktopViewModel @Inject constructor(
             is DesktopTab.Vnc -> tab.profileId
             is DesktopTab.Rdp -> tab.profileId
             is DesktopTab.Spice -> tab.profileId
+            is DesktopTab.Glkvm -> tab.profileId
+            is DesktopTab.Glkvm -> tab.profileId
             else -> null
         }
         if (profileId != null) {
@@ -1666,6 +1690,7 @@ class DesktopViewModel @Inject constructor(
                     is DesktopTab.Vnc -> tab.profileId == profileId
                     is DesktopTab.Rdp -> tab.profileId == profileId
                     is DesktopTab.Spice -> tab.profileId == profileId
+                    is DesktopTab.Glkvm -> tab.profileId == profileId
                     else -> false
                 }
             }
@@ -1679,6 +1704,8 @@ class DesktopViewModel @Inject constructor(
                 protocol == "RDP" && tab is DesktopTab.Rdp && tab.profileId == null ->
                     tab.label == "$host:$port"
                 protocol == "SPICE" && tab is DesktopTab.Spice && tab.profileId == null ->
+                    tab.label == "$host:$port"
+                protocol == "GLKVM" && tab is DesktopTab.Glkvm && tab.profileId == null ->
                     tab.label == "$host:$port"
                 else -> false
             }
@@ -2408,6 +2435,262 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    // --- GLKVM sessions ---
+
+    /**
+     * GLKVM (kvmd HTTPS API) viewer: snapshot-poll framebuffer + HID send.
+     * Tunnel/topology mirrors [addSpiceSession]; TLS trust is TOFU pinned
+     * through [tlsCertVerifier] keyed on the ORIGINAL host:port even when
+     * dialling the SSH-forward loopback.
+     */
+    fun addGlkvmSession(
+        host: String,
+        port: Int,
+        user: String?,
+        password: String?,
+        targetLayout: String? = null,
+        sshForward: Boolean = false,
+        sshSessionId: String? = null,
+        profileId: String? = null,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val existingIdx = findExistingTab(profileId, host, port, "GLKVM")
+            if (existingIdx >= 0) {
+                val existing = _tabs.value[existingIdx]
+                if (existing.connected.value) {
+                    pauseAllExcept(existingIdx)
+                    _activeTabIndex.value = existingIdx
+                    return@launch
+                }
+                closeTab(existing.id)
+            }
+
+            val label = resolveLabel(profileId) ?: "$host:$port"
+            val colorTag = resolveColorTag(profileId)
+            val tabId = UUID.randomUUID().toString()
+            // Declared outside try: the catch path builds the error tab from them.
+            val connected = MutableStateFlow(false)
+            val frame = MutableStateFlow<Bitmap?>(null)
+            val error = MutableStateFlow<String?>(null)
+            val pointerPos = MutableStateFlow(0 to 0)
+
+            var tunnelLease: SshSessionManager.TunnelLease? = null
+            var routeSocketFactory: javax.net.SocketFactory? = null
+            try {
+                val actualHost: String
+                val actualPort: Int
+                if (sshForward && sshSessionId != null) {
+                    val sshClient = findSshClient(sshSessionId)
+                        ?: throw IllegalStateException("SSH session not found")
+                    val lp = sshClient.setPortForwardingL("127.0.0.1", 0, host, port)
+                    actualHost = "127.0.0.1"
+                    actualPort = lp
+                    Log.d(TAG, "GLKVM SSH tunnel: localhost:$lp -> ${LogRedact.host(host, port)}")
+                    if (profileId != null) {
+                        tunnelLease = sshSessionManager.acquireTunnelLease(
+                            sessionId = sshSessionId,
+                            dependentProfileId = profileId,
+                            localForwardPort = lp,
+                        ) { viewModelScope.launch { closeTab(tabId) } }
+                    }
+                } else {
+                    actualHost = host
+                    actualPort = port
+                }
+
+                // TLS: pinned cert (or first-use pin) for the original host:port.
+                // Like the VNC/RDP policy, the newly observed cert is recorded
+                // only AFTER the connection actually works — a pin observed
+                // during a failing session is never trusted into the store.
+                val pinned = if (profileId != null) {
+                    runCatching { tlsCertVerifier.pinnedFingerprint(host, port) }.getOrNull()
+                } else null
+                val pinObserved = java.util.concurrent.atomic.AtomicReference<String?>(null)
+                val (sslFactory, tm) = GlkvmTrust.tofu(pinned) { sha -> pinObserved.set(sha) }
+
+                val client = GlkvmClient.Builder().apply {
+                    this.host = host
+                    this.port = port
+                    this.user = user?.ifBlank { "admin" } ?: "admin"
+                    this.password = password.orEmpty()
+                    sslSocketFactory = sslFactory
+                    trustManager = tm
+                    baseUrlOverride = "https://$actualHost:$actualPort"
+                    plainSocketFactory = routeSocketFactory
+                }.build()
+
+                val session = GlkvmDesktopSession(
+                    client = client,
+                    targetLayout = targetLayout,
+                    onFrame = { bitmap ->
+                        frame.value = bitmap
+                        // Keep the tab's mirrored pointer inside bounds on a
+                        // resolution switch (mode change rotates the target).
+                        val (px, py) = pointerPos.value
+                        if (px > bitmap.width || py > bitmap.height) {
+                            pointerPos.value = px.coerceAtMost(bitmap.width) to py.coerceAtMost(bitmap.height)
+                        }
+                    },
+                    onConnected = {
+                        connected.value = true
+                        desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTED)
+                        val observed = pinObserved.get()
+                        if (profileId != null && observed != null) {
+                            viewModelScope.launch(Dispatchers.IO) {
+                                connectionLogRepository.logEvent(profileId, ConnectionLog.Status.CONNECTED)
+                                runCatching { tlsCertVerifier.accept(host, port, observed) }
+                                    .onFailure { t -> Log.w(TAG, "GLKVM cert pin store failed: ${t.message}") }
+                            }
+                        }
+                    },
+                    onError = { e ->
+                        Log.e(TAG, "GLKVM error on tab $tabId", e)
+                        error.value = describeGlkvmError(e, host, port)
+                        connected.value = false
+                        desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
+                        if (profileId != null) {
+                            viewModelScope.launch(Dispatchers.IO) {
+                                connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                            }
+                        }
+                        tunnelLease?.close()
+                        releaseSshTunnelDependent(profileId)
+                    },
+                    onDisconnected = {
+                        if (_tabs.value.any { it.id == tabId }) {
+                            connected.value = false
+                            desktopSessionRegistry.setStatus(profileId, DesktopStatus.DISCONNECTED)
+                            if (profileId != null) {
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    connectionLogRepository.logEvent(
+                                        profileId,
+                                        ConnectionLog.Status.DISCONNECTED,
+                                        details = "GLKVM snapshot stream ended",
+                                    )
+                                }
+                            }
+                        }
+                    },
+                )
+
+                // Tab exists before the first poll lands, so the Desktop screen
+                // shows "Connecting" until the frame callback flips connected.
+                val tab = DesktopTab.Glkvm(
+                    id = tabId,
+                    label = label,
+                    colorTag = colorTag,
+                    session = session,
+                    _connected = connected,
+                    _frame = frame,
+                    _error = error,
+                    _pointerPos = pointerPos,
+                    tunnelLease = tunnelLease,
+                    profileId = profileId,
+                )
+                _tabs.value = _tabs.value.toMutableList().apply { add(tab) }
+                _activeTabIndex.value = _tabs.value.size - 1
+                pauseAllExcept(_tabs.value.size - 1)
+                desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTING)
+                desktopSessionRegistry.registerFrameHandle(
+                    profileId,
+                    DesktopFrameHandle(
+                        protocol = "GLKVM",
+                        frame = { frame.value },
+                        cursor = { null },
+                        pointer = { pointerPos.value },
+                    ),
+                )
+                desktopSessionRegistry.registerInputHandle(
+                    profileId,
+                    DesktopInputHandle(
+                        protocol = "GLKVM",
+                        mouseMove = { x, y -> tab.remoteDesktop.sendMouseMove(x, y) },
+                        mouseClick = { x, y, button -> tab.remoteDesktop.sendMouseClick(x, y, button) },
+                        mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
+                        clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                    ),
+                )
+                desktopSessionRegistry.registerCloseHandle(profileId) {
+                    viewModelScope.launch { closeTab(tabId) }
+                }
+
+                // Knock only on the direct path (SSH-forward knocked at SSH connect).
+                if (!sshForward && profileId != null) {
+                    runVncKnockIfConfigured(profileId, actualHost)
+                }
+
+                session.start()
+            } catch (e: Exception) {
+                Log.e(TAG, "GLKVM connect failed", e)
+                error.value = describeGlkvmError(e, host, port)
+                if (profileId != null) {
+                    connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                }
+                tunnelLease?.close()
+                releaseSshTunnelDependent(profileId)
+                desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
+                // Tab with the error visible even when the client build fails.
+                if (_tabs.value.none { it.id == tabId }) {
+                    _tabs.value = _tabs.value.toMutableList().apply {
+                        add(
+                            DesktopTab.Glkvm(
+                                id = tabId,
+                                label = label,
+                                colorTag = colorTag,
+                                session = GlkvmDesktopSession(
+                                    client = GlkvmClient.Builder().apply {
+                                        this.host = host; this.port = port
+                                        this.user = user?.ifBlank { "admin" } ?: "admin"
+                                        this.password = password.orEmpty()
+                                        baseUrlOverride = "https://$host:$port"
+                                    }.build(),
+                                    onFrame = {}, onConnected = {},
+                                    onError = { }, onDisconnected = { },
+                                ),
+                                _connected = MutableStateFlow(false),
+                                _frame = frame,
+                                _error = error,
+                                _pointerPos = MutableStateFlow(0 to 0),
+                                tunnelLease = null,
+                                profileId = profileId,
+                            ),
+                        )
+                    }
+                    _activeTabIndex.value = _tabs.value.size - 1
+                }
+            }
+        }
+    }
+
+    private fun describeGlkvmError(e: Throwable, host: String, port: Int): String = when {
+        e is sh.haven.core.glkvm.GlkvmCertMismatch -> e.message ?: "TLS certificate changed"
+        e.message?.contains("login failed") == true -> "GLKVM login failed (check web UI password). ${e.message}"
+        else -> "GLKVM connection to $host:$port failed: ${e.message}"
+    }
+
+    fun sendGlkvmKey(scancode: Int, pressed: Boolean) {
+        val session = (activeTab.value as? DesktopTab.Glkvm)?.session ?: return
+        val code = GlkvmScancodes.codeFor(scancode)
+        if (code != null) {
+            inputLane.submit { session.sendKey(code, pressed) }
+        }
+    }
+
+    fun typeGlkvmChar(ch: Char, targetLayout: String?) {
+        val session = (activeTab.value as? DesktopTab.Glkvm)?.session ?: return
+        val seq = sh.haven.core.glkvm.GlkvmLayout.keySequenceFor(ch, targetLayout) ?: return
+        // Sequence layout: optional ShiftLeft down, the key tap, optional
+        // ShiftLeft up — positional access, not a first-match scan.
+        val withShift = seq.size == 3
+        val tapCode = seq.first { it.first != "ShiftLeft" }.first
+        inputLane.submit {
+            if (withShift) session.sendKey("ShiftLeft", true)
+            session.sendKey(tapCode, true)
+            session.sendKey(tapCode, false)
+            if (withShift) session.sendKey("ShiftLeft", false)
+        }
+    }
+
     // --- Wayland ---
 
     fun addWaylandTab() {
@@ -2469,6 +2752,7 @@ class DesktopViewModel @Inject constructor(
             is DesktopTab.Vnc -> tab._pointerPos.value = x to y
             is DesktopTab.Rdp -> tab._pointerPos.value = x to y
             is DesktopTab.Spice -> tab._pointerPos.value = x to y
+            is DesktopTab.Glkvm -> tab._pointerPos.value = x to y
             else -> {}
         }
     }
@@ -2659,6 +2943,15 @@ class DesktopViewModel @Inject constructor(
                         val verboseLog = tab.session.drainVerboseLog()
                         connectionLogRepository.logEvent(tab.profileId, ConnectionLog.Status.DISCONNECTED, verboseLog = verboseLog)
                     }
+                    tab.session.close()
+                    tab.tunnelLease?.close()
+                    releaseSshTunnelDependent(tab.profileId)
+                    desktopSessionRegistry.clear(tab.profileId)
+                    desktopSessionRegistry.clearFrameHandle(tab.profileId)
+                    desktopSessionRegistry.clearInputHandle(tab.profileId)
+                    desktopSessionRegistry.clearCloseHandle(tab.profileId)
+                }
+                is DesktopTab.Glkvm -> {
                     tab.session.close()
                     tab.tunnelLease?.close()
                     releaseSshTunnelDependent(tab.profileId)

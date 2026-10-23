@@ -118,6 +118,14 @@ data class ConnectionProfile(
     val spicePassword: String? = null,
     val spiceSshForward: Boolean = false,
     val spiceSshProfileId: String? = null,
+    // GLKVM (PiKVM kvmd fork, #GLKVM). Auth is web-UI user + password; TLS is
+    // TOFU-pinned via the shared known_tls_certs store so no cert column exists.
+    val glkvmPort: Int? = null,
+    val glkvmPassword: String? = null,
+    // Target machine's OS keyboard layout the layout table types against ("uk"/"us").
+    val glkvmTargetLayout: String? = null,
+    val glkvmSshForward: Boolean = false,
+    val glkvmSshProfileId: String? = null,
     val smbPort: Int = 445,
     val smbShare: String? = null,
     val smbDomain: String? = null,
@@ -548,6 +556,8 @@ data class ConnectionProfile(
     val isVnc: Boolean get() = connectionType == "VNC"
     val isRdp: Boolean get() = connectionType == "RDP"
     val isSpice: Boolean get() = connectionType == "SPICE"
+    /** GLKVM (PiKVM-style KVM over the kvmd HTTPS API) — desktop viewer tab. */
+    val isGlkvm: Boolean get() = connectionType == "GLKVM"
     val isSmb: Boolean get() = connectionType == "SMB"
     val isLocal: Boolean get() = connectionType == "LOCAL"
 
@@ -617,6 +627,6 @@ data class ConnectionProfile(
      */
     val usbSerialConfig: String? get() = sshOptions
 
-    val isDesktop: Boolean get() = isVnc || isRdp || isSpice
+    val isDesktop: Boolean get() = isVnc || isRdp || isSpice || isGlkvm
     val isTerminal: Boolean get() = !isDesktop && !isSmb && !isRclone && !isEmail && !isSaf && !isOpenai
 }

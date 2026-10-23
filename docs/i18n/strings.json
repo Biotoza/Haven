@@ -16676,6 +16676,25 @@
      }
     },
     {
+     "name": "connections_section_glkvm",
+     "en": "GLKVM settings",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "إعدادات GLKVM",
+      "bn": "GLKVM সেটিংস",
+      "de": "GLKVM-Einstellungen",
+      "es": "Ajustes de GLKVM",
+      "fr": "Réglages GLKVM",
+      "hi": "GLKVM सेटिंग्स",
+      "ja": "GLKVM 設定",
+      "ko": "GLKVM 설정",
+      "pt": "Configurações de GLKVM",
+      "ru": "Настройки GLKVM",
+      "zh": "GLKVM 设置"
+     }
+    },
+    {
      "name": "connections_section_openai",
      "en": "AI endpoint",
      "comment": "Import rclone.conf (#251)",
@@ -18159,6 +18178,44 @@
       "ru": "SPICE использует один необязательный тикет/пароль. Оставьте пустым для сервера без тикета.",
       "sr": "SPICE користи један необавезни тикет/лозинку. Оставите празно у случају сервера који не користи тикете.",
       "zh": "SPICE 使用单个可选的票据/密码。服务器未启用票据时请留空。"
+     }
+    },
+    {
+     "name": "connections_field_glkvm_layout",
+     "en": "Target keyboard layout",
+     "comment": "Connection edit dialog: remaining field labels, toggles and helper text.",
+     "args": [],
+     "t": {
+      "ar": "أهداف تخطيط لوحة المفاتيح",
+      "bn": "লক্ষ্য কীবোর্ড লেআউট",
+      "de": "Tastaturlayout des Ziels",
+      "es": "Distribución de teclado del destino",
+      "fr": "Disposition du clavier de la cible",
+      "hi": "लक्ष्य कीबोर्ड लेआउट",
+      "ja": "ターゲットのキーボードレイアウト",
+      "ko": "대상 키보드 레이아웃",
+      "pt": "Layout de teclado do alvo",
+      "ru": "Раскладка клавиатуры цели",
+      "zh": "目标键盘布局"
+     }
+    },
+    {
+     "name": "connections_helper_glkvm",
+     "en": "GLKVM (PiKVM-style KVM over HTTPS) — drives the target\\'s physical mouse and keyboard. TLS uses trust-on-first-use and the target\\'s keyboard layout controls typed characters. Route through an SSH tunnel or a WireGuard/Tailscale profile to reach it from outside the LAN.",
+     "comment": "Connection edit dialog: remaining field labels, toggles and helper text.",
+     "args": [],
+     "t": {
+      "ar": "GLKVM (نظام PiKVM-style عبر HTTPS) — يعمل على لوحة مفاتيح الجهاز وفأرته الماديّتين مباشرة. يستخدم TLS بثقة أول استخدام، وتخطيط لوحة مفاتيح الجهاز هو ما يحدد الأحرف عند الكتابة. مرر عبر نفق SSH أو ملف تعريف WireGuard/Tailscale للوصول إليه من خارج الشبكة المحلية.",
+      "bn": "GLKVM (PiKVM-স্টাইল HTTPS KVM) — লক্ষ্য মেশিনের ফিজিক্যাল মাউস ও কীবোর্ড নিয়ন্ত্রণ করে। TLS ব্যবহার করে trust-on-first-use, এবং টাইপ করা অক্ষর নির্ধারণ করে লক্ষ্য মেশিনের কীবোর্ড লেআউট। SSH টানেল বা WireGuard/Tailscale প্রোফাইলের মাধ্যমে LAN-এর বাইরে থেকে পৌঁছান।",
+      "de": "GLKVM (PiKVM-artiges KVM über HTTPS) — steuert die physische Maus und Tastatur des Ziels. TLS nutzt Trust-on-first-use; das Tastaturlayout des Ziels bestimmt die getippten Zeichen. Über einen SSH-Tunnel oder ein WireGuard/Tailscale-Profil auch von außerhalb des LANs erreichbar.",
+      "es": "GLKVM (KVM estilo PiKVM sobre HTTPS) — controla el ratón y el teclado físicos del destino. TLS usa confianza en el primer uso; la distribución del teclado del destino determina los caracteres al teclear. Conéctalo a través de un túnel SSH o un perfil WireGuard/Tailscale para alcanzarlo fuera de la LAN.",
+      "fr": "GLKVM (KVM style PiKVM via HTTPS) — pilote la souris et le clavier physiques de la cible. TLS utilise une confiance au premier usage ; la disposition du clavier de la cible détermine les caractères tapés. Passez par un tunnel SSH ou un profil WireGuard/Tailscale pour l\\'atteindre hors LAN.",
+      "hi": "GLKVM (HTTPS पर PiKVM-शैली KVM) — लक्ष्य मशीन के भौतिक माउस और कीबोर्ड को संचालित करता है। TLS trust-on-first-use का उपयोग करता है; टाइप किए गए अक्षर लक्ष्य के कीबोर्ड लेआउट से तय होते हैं। LAN के बाहर पहुँचने के लिए SSH टनल या WireGuard/Tailscale प्रोफ़ाइल से रूट करें।",
+      "ja": "GLKVM（HTTPS 経由の PiKVM 風 KVM）— ターゲット機の物理マウスとキーボードを操作します。TLS は trust-on-first-use、タイピングされる文字はターゲット機のキーボードレイアウトで決まります。SSH トンネルか WireGuard/Tailscale プロファイル経由なら LAN の外からも届きます。",
+      "ko": "GLKVM (HTTPS 기반 PiKVM 방식 KVM) — 대상 장비의 실제 마우스와 키보드를 직접 제어합니다. TLS는 trust-on-first-use를 사용하며 입력되는 문자는 대상 장비의 키보드 레이아웃을 따릅니다. SSH 터널이나 WireGuard/Tailscale 프로필로 LAN 밖에서도 접근할 수 있습니다.",
+      "pt": "GLKVM (KVM no estilo PiKVM via HTTPS) — controla o teclado e o mouse físicos da máquina alvo. O TLS usa confiança no primeiro uso; o layout do teclado do alvo define os caracteres digitados. Use um túnel SSH ou um perfil WireGuard/Tailscale para alcançá-lo fora da LAN.",
+      "ru": "GLKVM (KVM в стиле PiKVM через HTTPS) — управляет физической мышью и клавиатурой целевой машины. TLS использует доверие при первом использовании; раскладка клавиатуры цели определяет вводимые символы. Через SSH-туннель или профиль WireGuard/Tailscale доступен и из-за пределами LAN.",
+      "zh": "GLKVM（基于 HTTPS 的 PiKVM 式 KVM）— 直接操控目标机的物理鼠标和键盘。TLS 使用首次信任；录入的字符由目标机的键盘布局决定。通过 SSH 隧道或 WireGuard/Tailscale 配置文件即可从局域网之外访问。"
      }
     },
     {

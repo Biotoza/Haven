@@ -1128,6 +1128,19 @@ class ConnectionsViewModel @Inject constructor(
     private val _navigateToSpice = MutableStateFlow<SpiceNavigation?>(null)
     val navigateToSpice: StateFlow<SpiceNavigation?> = _navigateToSpice.asStateFlow()
 
+    /** Emitted to open the GLKVM viewer tab (PiKVM-style kvmd API). */
+    data class GlkvmNavigation(
+        val host: String,
+        val port: Int,
+        val user: String?,
+        val password: String?,
+        val sshForward: Boolean = false,
+        val sshSessionId: String? = null,
+        val profileId: String? = null,
+    )
+    private val _navigateToGlkvm = MutableStateFlow<GlkvmNavigation?>(null)
+    val navigateToGlkvm: StateFlow<GlkvmNavigation?> = _navigateToGlkvm.asStateFlow()
+
     /** Emitted to navigate to Files tab for an SMB connection. */
     private val _navigateToSmb = MutableStateFlow<String?>(null)
     val navigateToSmb: StateFlow<String?> = _navigateToSmb.asStateFlow()
@@ -2499,6 +2512,10 @@ class ConnectionsViewModel @Inject constructor(
             connectSpice(profile)
             return
         }
+        if (profile.isGlkvm) {
+            connectGlkvm(profile, profile.username, profile.glkvmPassword)
+            return
+        }
         if (profile.isSmb) {
             connectSmb(profile, password)
             return
@@ -2684,6 +2701,46 @@ class ConnectionsViewModel @Inject constructor(
                 _navigateToSpice.value = SpiceNavigation(
                     host, port, password,
                     sshForward = profile.spiceSshForward,
+                    profileId = profile.id,
+                )
+            }
+        }
+    }
+
+    private fun connectGlkvm(profile: ConnectionProfile, user: String?, password: String?) {
+        val host = profile.host
+        val port = profile.glkvmPort ?: 443
+        viewModelScope.launch {
+            repository.markConnected(profile.id)
+            val sshProfileId = profile.glkvmSshProfileId
+            if (profile.glkvmSshForward && sshProfileId != null) {
+                val needsPrompt = jumpHostNeedsPasswordPrompt(sshProfileId)
+                if (needsPrompt != null) {
+                    _pendingTunnelDependent.value = profile
+                    _passwordFallback.value = needsPrompt
+                    return@launch
+                }
+                try {
+                    _connectingProfileId.value = profile.id
+                    val (sshSessionId, _) = connectJumpHost(
+                        sshProfileId, "", tunnelOwnerProfileId = profile.id,
+                    )
+                    _navigateToGlkvm.value = GlkvmNavigation(
+                        host, port, user, password,
+                        sshForward = true,
+                        sshSessionId = sshSessionId,
+                        profileId = profile.id,
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to connect SSH tunnel host for GLKVM", e)
+                    handleTunnelJumpFailure(e, profile, sshProfileId)
+                } finally {
+                    _connectingProfileId.value = null
+                }
+            } else {
+                _navigateToGlkvm.value = GlkvmNavigation(
+                    host, port, user, password,
+                    sshForward = profile.glkvmSshForward,
                     profileId = profile.id,
                 )
             }

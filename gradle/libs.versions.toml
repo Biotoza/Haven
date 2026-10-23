@@ -29,6 +29,10 @@ androidx-browser = "1.10.0"
 androidx-work = "2.9.0"
 androidx-hilt-work = "1.4.0"
 okhttp = "5.5.0"
+# Real org.json for JVM unit tests: the mockable android.jar stub (returnDefaultValues)
+# makes JSONObject every method return defaults — clients parsing server JSON in tests
+# need the real artifact. Runtime code keeps android.jar's org.json.
+orgjson = "20240303"
 # QR / barcode + on-device OCR for the terminal's Scan/Recognize attach options.
 # ZXing core is pure Java (Apache 2.0). Tesseract4Android is the adaptech-cz
 # maintained fork that wraps Tesseract 5.x via JNI (Apache 2.0).
@@ -100,6 +104,7 @@ smbj = { group = "com.hierynomus", name = "smbj", version.ref = "smbj" }
 # OkHttp — WebSocket client for the Cloudflare Access SSH gateway (#154)
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
+orgjson = { group = "org.json", name = "json", version.ref = "orgjson" }
 
 # Terminal
 termlib = { group = "org.connectbot", name = "termlib", version.ref = "termlib" }

@@ -609,4 +609,7 @@
     <string name="connections_identity_not_an_identity">এই ফাইলটি Reticulum পরিচয় নয়। কিছুই পরিবর্তন হয়নি।</string>
     <string name="connections_identity_install_failed">পরিচয় ইনস্টল করা যায়নি: %1$s। আগেরটি বহাল আছে।</string>
     <string name="connections_identity_unreadable">এই ফাইলটি পড়া যায়নি।</string>
+    <string name="connections_section_glkvm">GLKVM সেটিংস</string>
+    <string name="connections_field_glkvm_layout">লক্ষ্য কীবোর্ড লেআউট</string>
+    <string name="connections_helper_glkvm">GLKVM (PiKVM-স্টাইল HTTPS KVM) — লক্ষ্য মেশিনের ফিজিক্যাল মাউস ও কীবোর্ড নিয়ন্ত্রণ করে। TLS ব্যবহার করে trust-on-first-use, এবং টাইপ করা অক্ষর নির্ধারণ করে লক্ষ্য মেশিনের কীবোর্ড লেআউট। SSH টানেল বা WireGuard/Tailscale প্রোফাইলের মাধ্যমে LAN-এর বাইরে থেকে পৌঁছান।</string>
 </resources>

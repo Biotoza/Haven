@@ -609,4 +609,7 @@
     <string name="connections_identity_not_an_identity">Esse arquivo não é uma identidade Reticulum. Nada foi alterado.</string>
     <string name="connections_identity_install_failed">Não foi possível instalar a identidade: %1$s. A anterior continua no lugar.</string>
     <string name="connections_identity_unreadable">Não foi possível ler esse arquivo.</string>
+    <string name="connections_section_glkvm">Configurações de GLKVM</string>
+    <string name="connections_field_glkvm_layout">Layout de teclado do alvo</string>
+    <string name="connections_helper_glkvm">GLKVM (KVM no estilo PiKVM via HTTPS) — controla o teclado e o mouse físicos da máquina alvo. O TLS usa confiança no primeiro uso; o layout do teclado do alvo define os caracteres digitados. Use um túnel SSH ou um perfil WireGuard/Tailscale para alcançá-lo fora da LAN.</string>
 </resources>

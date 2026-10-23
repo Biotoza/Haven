@@ -83,6 +83,7 @@ class DesktopViewModelVncTypingTest {
             umlRecoveryManager = mockk<sh.haven.app.usb.UmlRecoveryManager>(relaxed = true),
             systemVmManager = mockk<SystemVmManager>(relaxed = true),
             umlDesktopManager = umlDesktopManager,
+            tlsCertVerifier = mockk(relaxed = true),
         )
     }
 

@@ -260,6 +260,7 @@ dependencies {
     implementation(project(":core:rdp"))
     implementation(project(":core:prns"))
     implementation(project(":core:spice"))
+    implementation(project(":core:glkvm"))
     implementation(project(":core:smb"))
     implementation(project(":core:rclone"))
     implementation(project(":core:ffmpeg"))

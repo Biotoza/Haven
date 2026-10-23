@@ -199,7 +199,7 @@ internal class DesktopToolProvider(
         ) { args -> captureDesktop(args) },
 
         "capture_desktop_tab" to ToolHandler(
-            description = "Capture what a remote-desktop VIEWER tab (RDP, VNC, or SPICE) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.",
+            description = "Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
                 integer("maxWidth", "Downscale so the image is at most this many pixels wide. Default 1280 (clamped 160–4096).")
@@ -214,7 +214,7 @@ internal class DesktopToolProvider(
         ) { args -> captureDesktopTab(args) },
 
         "tap_desktop_tab" to ToolHandler(
-            description = "Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab reports: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Keyboard typing is not yet supported (the session abstraction has no key verb). Returns { profileId, protocol, x, y, button }.",
+            description = "Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab reports: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Keyboard typing is not yet supported (the session abstraction has no key verb). Returns { profileId, protocol, x, y, button }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
                 integer("x", "Remote framebuffer X (0..width from capture_desktop_tab).", required = true)
@@ -230,7 +230,7 @@ internal class DesktopToolProvider(
         ) { args -> tapDesktopTab(args) },
 
         "scroll_desktop_tab" to ToolHandler(
-            description = "Scroll a remote-desktop VIEWER tab (RDP/VNC/SPICE) by injecting mouse-wheel notches into the remote server. deltaY > 0 scrolls down, < 0 scrolls up; magnitude is the number of notches. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, deltaY }.",
+            description = "Scroll a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) by injecting mouse-wheel notches into the remote server. deltaY > 0 scrolls down, < 0 scrolls up; magnitude is the number of notches. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, deltaY }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id (from list_desktop_sessions). Omit when exactly one is open.")
                 integer("deltaY", "Wheel notches: >0 scrolls down, <0 scrolls up.", required = true)

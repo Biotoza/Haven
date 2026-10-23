@@ -377,6 +377,49 @@ fun DesktopScreen(
                             onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
                         )
 
+                        // GLKVM reuses the RDP content renderer: bitmap canvas
+                        // + PC set-1 scancode key lane, which the kvmd HID
+                        // accepts as KeyboardEvent.code positions (translated
+                        // in core/glkvm). kvmd pushes no cursor shape, so no
+                        // cursor flow.
+                        is DesktopTab.Glkvm -> RdpSessionContent(
+                            connected = tab.connected,
+                            frame = tab.frame,
+                            error = tab.error,
+                            toolbarLayout = toolbarLayout,
+                            chipAnchor = rdpChipAnchor,
+                            onChipAnchorChange = onRdpChipAnchorChange,
+                            onTap = { x, y -> desktopViewModel.sendClick(x, y) },
+                            onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
+                            onDragStart = { x, y ->
+                                desktopViewModel.sendPointer(x, y)
+                                desktopViewModel.pressButton(1)
+                            },
+                            onDrag = { x, y -> desktopViewModel.sendPointer(x, y) },
+                            onDragEnd = { desktopViewModel.releaseButton(1) },
+                            onScrollUp = { desktopViewModel.scrollUp() },
+                            onScrollDown = { desktopViewModel.scrollDown() },
+                            onTypeChar = { ch ->
+                                // Position-code typing: the TARGET applies its
+                                // own layout; unmapped chars have no key and
+                                // drop (kvmd /hid/print is the phase-2 fallback).
+                                desktopViewModel.typeGlkvmChar(ch, tab.session.targetLayout)
+                            },
+                            onKeyDown = { scancode -> desktopViewModel.sendGlkvmKey(scancode, true) },
+                            onKeyUp = { scancode -> desktopViewModel.sendGlkvmKey(scancode, false) },
+                            onDisconnect = { desktopViewModel.closeTab(tab.id) },
+                            onFullscreenChanged = onFullscreenChanged,
+                            cursor = null,
+                            pointerPos = tab.pointerPos,
+                            inputMode = inputMode,
+                            onSetInputMode = onSetInputMode,
+                            touchpadSensitivity = touchpadSensitivity,
+                            onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+                            currentOrientation = desktopOrientation,
+                            onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
+                            onRetry = { desktopViewModel.retryTab(tab.id) },
+                        )
+
                         is DesktopTab.Wayland -> WaylandDesktopView(
                             modifier = Modifier.fillMaxSize(),
                             toolbarLayout = toolbarLayout,

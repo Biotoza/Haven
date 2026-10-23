@@ -1631,12 +1631,12 @@ internal class McpTools(
         ) { args -> setProfileRouting(args) },
 
         "create_connection" to ToolHandler(
-            description = "Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR | PSMUX — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. EMAIL: emailProvider (\"imap\" default, or \"proton\"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. OPENAI (OpenAI-compatible endpoint, e.g. llama-server or CLIProxyAPI): host = server IP/hostname (a full http:// URL also works), port = TCP port (default 80), optional password arg = the API key (sent as a Bearer token; omit for keyless servers), openaiPathPrefix = optional path inserted before /v1 (e.g. \"/api\"). Connect verifies via GET /v1/models; chat via the chat screen or openai_chat. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.",
+            description = "Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR | PSMUX — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. GLKVM (PiKVM-style KVM over HTTPS — kvmd API): username = the web-UI user (default admin when omitted), glkvmPassword = the web-UI password, glkvmPort (default 443), glkvmTargetLayout (\"uk\"/\"us\" — target OS keyboard layout for typed text, default uk), and glkvmSshForward + glkvmSshProfileId to tunnel through a saved SSH profile. TLS to the device is trust-on-first-use (self-signed by default). EMAIL: emailProvider (\"imap\" default, or \"proton\"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. OPENAI (OpenAI-compatible endpoint, e.g. llama-server or CLIProxyAPI): host = server IP/hostname (a full http:// URL also works), port = TCP port (default 80), optional password arg = the API key (sent as a Bearer token; omit for keyless servers), openaiPathPrefix = optional path inserted before /v1 (e.g. \"/api\"). Connect verifies via GET /v1/models; chat via the chat screen or openai_chat. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.",
             inputSchema = objectSchema {
                 string("label", "User-facing label.", required = true)
-                string("connectionType", "SSH | SMB | VNC | RDP | SPICE | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST.", required = true)
+                string("connectionType", "SSH | SMB | VNC | RDP | SPICE | GLKVM | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST.", required = true)
                 string("host", "Target hostname or IP. For EMAIL this is the optional tunnel ingress/bastion (SPA/knock target), NOT the mail server — leave blank for a direct IMAP connection.", required = true)
-                integer("port", "TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900. Type-specific vncPort/rdpPort/spicePort override this.")
+                integer("port", "TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900, GLKVM 443. Type-specific vncPort/rdpPort/spicePort/glkvmPort override this.")
                 string("username", "Username for SSH/SMB.")
                 string("password", "Password (stored). Optional for SSH if a key is used; some VNC/SMB setups allow guest.")
                 string("smbShare", "Share name (SMB). Required when connectionType=SMB.")
@@ -1654,6 +1654,11 @@ internal class McpTools(
                 integer("spicePort", "SPICE only: TCP port (default 5900). Overrides the generic `port`.")
                 boolean("spiceSshForward", "SPICE only: tunnel through a saved SSH profile (set spiceSshProfileId). The SPICE target is reached at 127.0.0.1:<port> from the SSH server. Default false.")
                 string("spiceSshProfileId", "SPICE only: id of the SSH profile (from list_connections) to tunnel through when spiceSshForward is true.")
+                string("glkvmPassword", "GLKVM only: the device's web-UI password (stored encrypted).")
+                integer("glkvmPort", "GLKVM only: HTTPS port (default 443). Overrides the generic `port`.")
+                string("glkvmTargetLayout", "GLKVM only: target OS keyboard layout for typed text — \"uk\" (default) or \"us\".")
+                boolean("glkvmSshForward", "GLKVM only: tunnel through a saved SSH profile (set glkvmSshProfileId). The GLKVM device is reached at 127.0.0.1:<port> from the SSH server. Default false.")
+                string("glkvmSshProfileId", "GLKVM only: id of the SSH profile (from list_connections) to tunnel through when glkvmSshForward is true.")
                 string("emailProvider", "EMAIL only: \"imap\" (generic IMAP/SMTP, default) or \"proton\".")
                 string("emailServer", "EMAIL/imap only: IMAP server hostname (required for imap). Reached through the tunnel when one is set.")
                 string("emailSmtpServer", "EMAIL/imap only: SMTP submission host, when it differs from the IMAP host (e.g. smtp.gmail.com vs imap.gmail.com). Optional — defaults to emailServer.")
@@ -1704,7 +1709,7 @@ internal class McpTools(
         ) { args -> createConnection(args) },
 
         "update_connection" to ToolHandler(
-            description = "Edit fields on an existing connection profile (load → change → save). Pass profileId (required) plus only the fields you want to change — anything omitted is left as-is. Common SSH-family fields: label, host, port, username, password (stored, mapped to the profile's transport), keyId, ignoreSavedKeys (force password-only auth), useMosh, forwardAgent, remoteCommand (SSH exec instead of a login shell; empty string clears) + requestPty, bindAddress (ssh -b; direct connections only, empty string clears). Desktop tunnels: vncSshForward + vncSshProfileId, rdpSshForward + rdpSshProfileId, spiceSshForward + spiceSshProfileId, smbSshForward + smbSshProfileId. USB/IP auto-forward: usbForwardVidPid (export a phone-attached USB device to this host on every connect). Passwords are stored encrypted and never echoed back. OPENAI: password maps to the API key (empty string clears). For routing/proxy use set_profile_routing; for port-knock/SPA use set_port_knock/set_spa. Returns the updated profile (secrets redacted).",
+            description = "Edit fields on an existing connection profile (load → change → save). Pass profileId (required) plus only the fields you want to change — anything omitted is left as-is. Common SSH-family fields: label, host, port, username, password (stored, mapped to the profile's transport), keyId, ignoreSavedKeys (force password-only auth), useMosh, forwardAgent, remoteCommand (SSH exec instead of a login shell; empty string clears) + requestPty, bindAddress (ssh -b; direct connections only, empty string clears). Desktop tunnels: vncSshForward + vncSshProfileId, rdpSshForward + rdpSshProfileId, spiceSshForward + spiceSshProfileId, smbSshForward + smbSshProfileId, glkvmSshForward + glkvmSshProfileId. USB/IP auto-forward: usbForwardVidPid (export a phone-attached USB device to this host on every connect). Passwords are stored encrypted and never echoed back. OPENAI: password maps to the API key (empty string clears). For routing/proxy use set_profile_routing; for port-knock/SPA use set_port_knock/set_spa. Returns the updated profile (secrets redacted).",
             inputSchema = objectSchema {
                 string("profileId", "Profile id from list_connections.", required = true)
                 string("label", "New user-facing label.")
@@ -1731,6 +1736,11 @@ internal class McpTools(
                 string("smbSshProfileId", "SMB only: SSH profile id to tunnel through. Empty string clears.")
                 boolean("spiceSshForward", "SPICE only: tunnel through a saved SSH profile (set spiceSshProfileId).")
                 string("spiceSshProfileId", "SPICE only: SSH profile id to tunnel through. Empty string clears.")
+                string("glkvmPassword", "GLKVM only: web-UI password (stored encrypted). Empty string clears.")
+                integer("glkvmPort", "GLKVM only: HTTPS port (default 443).")
+                string("glkvmTargetLayout", "GLKVM only: target OS keyboard layout, \"uk\" or \"us\". Empty string clears.")
+                boolean("glkvmSshForward", "GLKVM only: tunnel through a saved SSH profile (set glkvmSshProfileId).")
+                string("glkvmSshProfileId", "GLKVM only: SSH profile id to tunnel through. Empty string clears.")
                 string("moshServerCommand", "Mosh only: override the command Haven runs over SSH to start mosh-server (default 'mosh-server new -s -c 256 …'). It must print a 'MOSH CONNECT <port> <key>' line, which Haven parses to find the session — so a wrapper can point Haven at a different port (e.g. scripts/mosh-fault-rig.py bootstrap, which puts a fault-injecting relay in front). Empty string restores the default.")
                 string("usbForwardVidPid", "SSH only: VID:PID of a phone-attached USB device (e.g. '1050:0406' — see list_usb_devices) to auto-export over USB/IP whenever this profile connects. Haven opens the device, starts the usbip server on loopback, adds the remote forward, and runs `usbip attach` on the host, re-attaching after a tunnel drop. Empty string clears (no auto-forward).")
             },
@@ -6454,7 +6464,7 @@ internal class McpTools(
         if (args.has("keyId") && !newKeyId.isNullOrBlank() && sshKeyRepository.getById(newKeyId) == null) {
             throw IllegalArgumentException("key $newKeyId not found")
         }
-        for (refKey in listOf("vncSshProfileId", "rdpSshProfileId", "smbSshProfileId", "spiceSshProfileId")) {
+        for (refKey in listOf("vncSshProfileId", "rdpSshProfileId", "smbSshProfileId", "spiceSshProfileId", "glkvmSshProfileId")) {
             if (args.has(refKey)) {
                 val ref = args.optString(refKey).ifBlank { null }
                 if (ref != null && connectionRepository.getById(ref) == null) {
@@ -6528,6 +6538,11 @@ internal class McpTools(
             smbSshProfileId = str("smbSshProfileId", existing.smbSshProfileId),
             spiceSshForward = bool("spiceSshForward", existing.spiceSshForward),
             spiceSshProfileId = str("spiceSshProfileId", existing.spiceSshProfileId),
+            glkvmPort = if (portChanged && existing.connectionType == "GLKVM") newPort else existing.glkvmPort,
+            glkvmPassword = if (existing.connectionType == "GLKVM") newPassword(existing.glkvmPassword) else existing.glkvmPassword,
+            glkvmTargetLayout = str("glkvmTargetLayout", existing.glkvmTargetLayout),
+            glkvmSshForward = bool("glkvmSshForward", existing.glkvmSshForward),
+            glkvmSshProfileId = str("glkvmSshProfileId", existing.glkvmSshProfileId),
             moshServerCommand = str("moshServerCommand", existing.moshServerCommand),
             usbForwardVidPid = if (existing.connectionType == "SSH") {
                 str("usbForwardVidPid", existing.usbForwardVidPid)
@@ -6544,7 +6559,7 @@ internal class McpTools(
         val type = args.optString("connectionType").uppercase().ifBlank {
             throw IllegalArgumentException("connectionType required")
         }
-        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "EMAIL", "OPENAI", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM", "GUEST")) {
+        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "GLKVM", "EMAIL", "OPENAI", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM", "GUEST")) {
             throw IllegalArgumentException("connectionType must be SSH, SMB, VNC, RDP, SPICE, EMAIL, OPENAI, BTSERIAL, BLESERIAL, USBSERIAL, or RETICULUM (use the UI for LOCAL / RCLONE / GUEST)")
         }
         // EMAIL's host is the optional tunnel-ingress/bastion (SPA/knock target),
@@ -6572,6 +6587,7 @@ internal class McpTools(
             "VNC" -> 5900
             "RDP" -> 3389
             "SPICE" -> 5900
+            "GLKVM" -> 443
             "OPENAI" -> 0
             "EMAIL" -> 0
             "BTSERIAL" -> 0
@@ -6588,6 +6604,7 @@ internal class McpTools(
             "VNC" -> "vncPort"
             "RDP" -> "rdpPort"
             "SPICE" -> "spicePort"
+            "GLKVM" -> "glkvmPort"
             "USBSERIAL" -> "usbBaudRate" // baud lives in `port` (#408)
             else -> null
         }
@@ -6804,6 +6821,30 @@ internal class McpTools(
                     spicePassword = args.optString("spicePassword").ifBlank { null },
                     spiceSshForward = spiceSshForward,
                     spiceSshProfileId = spiceSshProfileId,
+                    tunnelConfigId = tunnelConfigId,
+                    portKnockSequence = knockSequence,
+                    portKnockDelayMs = knockDelay,
+                )
+            }
+            "GLKVM" -> {
+                val glkvmSshForward = args.optBoolean("glkvmSshForward", false)
+                val glkvmSshProfileId = args.optString("glkvmSshProfileId").ifBlank { null }
+                if (glkvmSshForward && glkvmSshProfileId != null &&
+                    connectionRepository.getById(glkvmSshProfileId) == null
+                ) {
+                    throw IllegalArgumentException("glkvmSshProfileId $glkvmSshProfileId not found")
+                }
+                ConnectionProfile(
+                    label = label,
+                    host = host,
+                    port = port,
+                    username = args.optString("username").ifBlank { "admin" },
+                    connectionType = "GLKVM",
+                    glkvmPort = port,
+                    glkvmPassword = args.optString("glkvmPassword").ifBlank { null },
+                    glkvmTargetLayout = args.optString("glkvmTargetLayout").ifBlank { null },
+                    glkvmSshForward = glkvmSshForward,
+                    glkvmSshProfileId = glkvmSshProfileId,
                     tunnelConfigId = tunnelConfigId,
                     portKnockSequence = knockSequence,
                     portKnockDelayMs = knockDelay,

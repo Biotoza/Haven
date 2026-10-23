@@ -601,4 +601,7 @@
     <string name="connections_identity_not_an_identity">이 파일은 Reticulum 아이덴티티가 아닙니다. 아무것도 변경되지 않았습니다.</string>
     <string name="connections_identity_install_failed">아이덴티티를 설치하지 못했습니다: %1$s. 이전 것이 그대로 유지됩니다.</string>
     <string name="connections_identity_unreadable">이 파일을 읽을 수 없습니다.</string>
+    <string name="connections_section_glkvm">GLKVM 설정</string>
+    <string name="connections_field_glkvm_layout">대상 키보드 레이아웃</string>
+    <string name="connections_helper_glkvm">GLKVM (HTTPS 기반 PiKVM 방식 KVM) — 대상 장비의 실제 마우스와 키보드를 직접 제어합니다. TLS는 trust-on-first-use를 사용하며 입력되는 문자는 대상 장비의 키보드 레이아웃을 따릅니다. SSH 터널이나 WireGuard/Tailscale 프로필로 LAN 밖에서도 접근할 수 있습니다.</string>
 </resources>

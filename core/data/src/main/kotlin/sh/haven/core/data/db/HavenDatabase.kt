@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 86,
+    version = 87,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1379,6 +1379,17 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_85_86 = object : Migration(85, 86) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "sessionCommandOverride", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** GLKVM connection fields (#GLKVM: PiKVM-style KVM viewer). */
+        val MIGRATION_86_87 = object : Migration(86, 87) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "glkvmPort", "INTEGER")
+                addColumnIfMissing(db, "connection_profiles", "glkvmPassword", "TEXT")
+                addColumnIfMissing(db, "connection_profiles", "glkvmTargetLayout", "TEXT")
+                addColumnIfMissing(db, "connection_profiles", "glkvmSshForward", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "connection_profiles", "glkvmSshProfileId", "TEXT")
             }
         }
 
