@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      TunnelResolver's WG-refused fallback and the system-VPN address probe
+      read networks through ConnectivityManager (WireGuardConflict.kt). Declared
+      here so lint sees it when it analyses this library in isolation; the app
+      module already requests it, so the merged permission set is unchanged.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+</manifest>
