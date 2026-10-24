@@ -5,6 +5,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -1050,10 +1051,119 @@ class ConnectionsViewModelSessionTest {
             "error was: ${viewModel.error.value}",
             viewModel.error.value.orEmpty().contains("jump", ignoreCase = true),
         )
+        coVerify { sshSessionManager.removeSession("t-sess") }
     }
 
     /**
-     * #751 part 2: "connect without saving". An ephemeral profile is a
+     * #757: an AUTH failure on the jump leg used to `return@launch` straight
+     * out of the jump-failure handler without unregistering the dependent
+     * session, which had already been registered CONNECTING. The replay
+     * re-drives connect() from scratch (a fresh registration), so the first
+     * one leaked — and the ongoing notification counts CONNECTING as active
+     * (SshSessionManager.activeSessions), while registerSession's reaper only
+     * takes DISCONNECTED/ERROR. The reporter saw the active-connection count
+     * climb per failed attempt, with the label shown for a connection that
+     * never came up.
+     */
+    @Test
+    fun `an auth failure on the jump leg unregisters the dependent session (#757)`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        val jump = jumpProfile("PASSWORD").copy(sshPassword = null)
+        coEvery { repository.getById("jump") } returns jump
+        coEvery { repository.getById("target") } returns terminalTarget()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
+        every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
+        viewModel.jumpClientFactory = { failingJumpClient() }
+
+        viewModel.connectSsh(terminalTarget(), password = "targetpw", keyOnly = false)
+        awaitPasswordFallback(settled = true)
+
+        // The prompt is up for the jump (the #729 routing holds) AND the
+        // half-registered dependent is gone — the gate that fired must
+        // actually remove it, not just intend to.
+        assertNotNull(viewModel.passwordFallback.value)
+        coVerify { sshSessionManager.updateStatus("t-sess", SshSessionManager.SessionState.Status.ERROR) }
+        coVerify { sshSessionManager.removeSession("t-sess") }
+    }
+
+    /**
+     * #729 follow-up: a jump whose encrypted key has a wrong/stale stored
+     * passphrase (e.g. after a backup restore) fails with JSch's
+     * "Incorrect passphrase provided.", thrown synchronously from
+     * addIdentity. The direct path treats that as recoverable and prompts
+     * (#292); the jump path classified only "Auth fail"-style strings, so
+     * the raw JSch message dead-ended as "Jump host: Incorrect passphrase
+     * provided." with no way in. It must open the JUMP profile's prompt
+     * instead.
+     */
+    @Test
+    fun `a wrong passphrase on the jump leg opens the jump prompt instead of dead-ending (#729)`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        val jump = jumpProfile("PASSWORD").copy(sshPassword = null)
+        coEvery { repository.getById("jump") } returns jump
+        coEvery { repository.getById("target") } returns terminalTarget()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
+        every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
+        val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
+        coEvery {
+            jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any())
+        } throws com.jcraft.jsch.JSchException("Incorrect passphrase provided.")
+        viewModel.jumpClientFactory = { jumpClient }
+
+        viewModel.connectSsh(terminalTarget(), password = "targetpw", keyOnly = false)
+        awaitPasswordFallback(settled = true)
+
+        assertSame("the prompt must be for the jump profile", jump, viewModel.passwordFallback.value)
+        assertNull("must not dead-end on the raw JSch message", viewModel.error.value)
+        coVerify { sshSessionManager.removeSession("t-sess") }
+    }
+
+    /**
+     * #729 follow-up: the terminal path must NOT hand the target's typed
+     * password to the jump leg. resolveAuthMethods reuses that value as the
+     * encrypted key's passphrase, so passing it made a key-auth jump try to
+     * decrypt its own key with the target's password — "Incorrect passphrase
+     * provided." before the jump's own credentials were ever consulted.
+     */
+    @Test
+    fun `the target password is not threaded into the jump leg's auth (#729)`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        val jump = jumpProfile("PASSWORD").copy(sshPassword = null)
+        coEvery { repository.getById("jump") } returns jump
+        coEvery { repository.getById("target") } returns terminalTarget()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
+        every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
+        val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
+        val dialedConfig = slot<sh.haven.core.ssh.ConnectionConfig>()
+        coEvery {
+            jumpClient.connect(capture(dialedConfig), any(), any(), any(), any(), any(), any(), any())
+        } throws com.jcraft.jsch.JSchException("Auth fail for methods 'password'")
+        viewModel.jumpClientFactory = { jumpClient }
+
+        viewModel.connectSsh(terminalTarget(), password = "targetpw", keyOnly = false)
+        awaitPasswordFallback(settled = true)
+
+        // The jump leg dialed with an empty caller password, so a key-auth
+        // jump resolves its own stored passphrase and a password-auth jump
+        // borrows only its OWN saved password (jumpConnectPassword) — never
+        // the dependent's credential.
+        val am = dialedConfig.captured.authMethod
+        assertTrue(
+            "jump leg auth was ${am::class.simpleName}",
+            am is sh.haven.core.ssh.ConnectionConfig.AuthMethod.Password,
+        )
+        assertEquals(
+            "the jump leg must not receive the target's password",
+            "",
+            (am as sh.haven.core.ssh.ConnectionConfig.AuthMethod.Password).password.concatToString(),
+        )
+    }
+
+    /**
+     * #751 part 2: "connect without saving", An ephemeral profile is a
      * runtime-only throwaway (never written to the database), so a successful
      * connect must navigate to the terminal AND must not upsert the profile —
      * repository.save() INSERTs unknown ids, which would silently persist the

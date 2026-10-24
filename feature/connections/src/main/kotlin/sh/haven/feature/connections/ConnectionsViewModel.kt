@@ -2410,7 +2410,14 @@ class ConnectionsViewModel @Inject constructor(
             msg.contains("Auth fail", ignoreCase = true) ||
             msg.contains("Auth cancel", ignoreCase = true) ||
             msg.contains("authentication", ignoreCase = true) ||
-            msg.contains("publickey", ignoreCase = true)
+            msg.contains("publickey", ignoreCase = true) ||
+            // #729 follow-up: JSch throws "Incorrect passphrase provided."
+            // synchronously from addIdentity when an encrypted key's stored
+            // passphrase is wrong or stale (e.g. after a backup restore). The
+            // direct path classifies it as recoverable and prompts (#292);
+            // without this the jump leg dead-ended on the raw JSch string
+            // instead of opening the jump's own prompt.
+            msg.contains("passphrase", ignoreCase = true)
         )
         val jumpProfile = if (isAuthMessage) repository.getById(sshProfileId) else null
         if (jumpProfile != null) {
@@ -4051,7 +4058,20 @@ class ConnectionsViewModel @Inject constructor(
                 val jumpProfileId = if (reuseClient == null) profile.jumpProfileId else null
                 val jumpSessionId = if (jumpProfileId != null) {
                     try {
-                        val (jid, reused) = connectJumpHost(jumpProfileId, password)
+                        // #729 follow-up: pass "", not the target's typed
+                        // password. connectJumpHost threads this value into
+                        // resolveAuthMethods, which reuses it as the KEY
+                        // passphrase too — so handing it the TARGET's password
+                        // made a key-auth jump try to decrypt its own
+                        // passphrase-protected key with the wrong secret and
+                        // fail "Incorrect passphrase provided." before the
+                        // jump's own prompt could appear (the #381 borrow rule
+                        // only applies to the jump's saved login password,
+                        // never to a dependent's credential). "" lets the jump
+                        // resolve its OWN credentials — stored key passphrase,
+                        // or its saved password for a password-auth jump — and
+                        // a failure then routes to the jump's own prompt below.
+                        val (jid, reused) = connectJumpHost(jumpProfileId, "")
                         if (!reused) autoCreatedJumpSessionId = jid
                         jid
                     } catch (e: Exception) {
@@ -4066,6 +4086,17 @@ class ConnectionsViewModel @Inject constructor(
                         // credentials (remembered there), then re-drive this
                         // dependent connect with the password already typed for
                         // it.
+                        // #757: the dependent session was already registered
+                        // (CONNECTING) above. The replay re-drives connect()
+                        // from scratch, which registers a fresh one — so this
+                        // one must be taken out here, or it leaks as a phantom
+                        // "active" session (the ongoing notification counts
+                        // CONNECTING, and registerSession's reaper only takes
+                        // DISCONNECTED/ERROR, so retries piled up). The
+                        // network-error branch already did this; the auth
+                        // branch inherited the omission from 5d682a40b.
+                        sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.ERROR)
+                        sshSessionManager.removeSession(sessionId)
                         if (!e.isSshNetworkError()) {
                             handleTunnelJumpFailure(
                                 e,
@@ -4076,8 +4107,6 @@ class ConnectionsViewModel @Inject constructor(
                                 dependentRememberPassword = rememberPassword,
                             )
                         } else {
-                            sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.ERROR)
-                            sshSessionManager.removeSession(sessionId)
                             _error.value = "Jump host: ${e.message?.ifBlank { "connection failed" }}"
                         }
                         return@launch
