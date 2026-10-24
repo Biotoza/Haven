@@ -1985,6 +1985,16 @@ fun TerminalScreen(
                                 typeface = hackTypeface,
                                 ambiwidthMode = termlibAmbiwidthMode,
                                 keyboardEnabled = true,
+                                // #756: termlib shows the IME itself whenever the
+                                // input view is created (its LaunchedEffect on
+                                // shouldShowIme), and creating one is what a
+                                // session switch does — that path never saw the
+                                // #675 setting, so the keyboard still popped with
+                                // it off. Feed the setting in so the view's own
+                                // show honours it; the toolbar keyboard key and
+                                // the double-tap raise through the insets
+                                // controller and stay deliberate either way.
+                                showSoftKeyboard = autoShowKeyboardInTerminal,
                                 // Only the active tab restores; adjacent pager
                                 // pages stay composed and must not fight over
                                 // the IME (#515).
