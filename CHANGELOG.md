@@ -5,6 +5,13 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.53
+
+- **Fixes for the terminal keyboard, the ongoing-session notification, and the keep-screen-on setting (#756, #757, #758).**
+- **The keyboard no longer ignores its setting when you switch sessions (#756).** With "Show keyboard when a terminal opens" turned off, the soft keyboard still rose every time you opened or switched to a terminal tab — the setting was only honoured on the very first terminal of an app run. It now applies every time the terminal view is created. The toolbar keyboard key and double-tap still raise the keyboard on demand, exactly as before.
+- **The ongoing notification follows sessions that end in the background (#757).** The "N active sessions" notification was rebuilt when a session started but not when one ended, so with the app closed a session that exited on its own (typed `exit`, or a dropped connection) left the notification naming sessions that had already closed. The connection service now re-posts the current set whenever any session starts, ends, or changes state. It deliberately does not tear the notification down when the set momentarily empties — a session waiting to reconnect would otherwise lose its keep-alive — so a transient drop briefly reads "Connecting…" instead of vanishing.
+- **Keep screen on applies only to the terminal tab (#758).** The flag was set on the app's one window and cleared only when the terminal screen was torn down, but the bottom navigation keeps the terminal page alive in the background when you move to another tab, so the flag stayed set and kept Settings and the other views awake too. Leaving the terminal tab now clears it; returning sets it again.
+
 ## v5.89.52
 
 - **Switch individual MCP tools off (#755).** The agent endpoint exposes many tools, and an agent pays for all of them on every call — a small model gets lost in the list and a large one burns input tokens on tools you never wanted it to use. Settings → Agent endpoint → MCP tools now lists every tool the endpoint serves, each with a switch: a tool you turn off leaves the agent's tool list entirely (not just denied — gone, which is where the saving is), and a direct call to it fails with a message pointing back at that switch. The endpoint master switch, pairing and the consent prompts all still apply on top; this only subtracts. The list appears once the endpoint has started, and each row shows what enabling the tool costs you (asks every call / once per session / no prompt).
