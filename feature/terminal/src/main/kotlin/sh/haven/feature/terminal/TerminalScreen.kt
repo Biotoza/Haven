@@ -855,13 +855,17 @@ fun TerminalScreen(
 
     // Keep the screen awake while a terminal tab is in the foreground when
     // the user has opted in (Settings → "Keep screen on in terminal", #122).
-    // DisposableEffect tied to the View ensures the flag is cleared as soon
-    // as TerminalScreen leaves composition (navigating to another tab,
-    // process death recreating). Tabs without an active session still keep
-    // the screen on — the request is "while in the terminal", not "while a
-    // shell is connected", so a deliberately quiet session doesn't blank.
-    DisposableEffect(view, keepScreenOnInTerminal) {
-        view.keepScreenOn = keepScreenOnInTerminal
+    // Gated on isActive, not just composition (#758): `view` is LocalView —
+    // the one Activity window every tab shares — and the HorizontalPager keeps
+    // the terminal page composed when you swipe to an adjacent tab, so the
+    // onDispose below never fires on that transition and the flag stayed set on
+    // the shared window, keeping OTHER views awake too. Clearing it whenever the
+    // terminal is not the settled page confines the wake-lock to the terminal.
+    // Tabs without an active session still keep the screen on — the request is
+    // "while in the terminal", not "while a shell is connected", so a
+    // deliberately quiet session doesn't blank.
+    DisposableEffect(view, keepScreenOnInTerminal, isActive) {
+        view.keepScreenOn = keepScreenOnInTerminal && isActive
         onDispose { view.keepScreenOn = false }
     }
 
