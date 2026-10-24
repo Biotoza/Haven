@@ -5,6 +5,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
+import kotlinx.coroutines.flow.map
 import sh.haven.core.rdp.RdpSessionManager
 import sh.haven.core.ssh.ForegroundSessionParticipant
 import sh.haven.core.ssh.Transport
@@ -42,6 +43,7 @@ object DesktopTransportModule {
     @Provides @IntoSet
     fun rdpForeground(m: RdpSessionManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
         override val activeSessions get() = m.activeSessions.map { SessionInfo(it.profileId, it.label) }
+        override val changes get() = m.sessions.map { }
         override fun disconnectAll() = m.disconnectAll()
     }
 }

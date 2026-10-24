@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.db.entities.typeEnum
@@ -75,6 +76,8 @@ object AnyConnectForegroundModule {
                         )
                     }
                 }
+
+            override val changes get() = manager.get().live.map { }
 
             // Leaves the gateway sessions resumable: "Disconnect All" is about
             // this phone, and signing out would cost an SMS code next time.

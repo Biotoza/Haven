@@ -23,6 +23,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import sh.haven.core.data.agent.McpStatusHolder
 import javax.inject.Inject
@@ -36,6 +37,12 @@ class SshConnectionService : Service() {
 
     @Inject
     lateinit var participants: Set<@JvmSuppressWildcards ForegroundSessionParticipant>
+
+    /** Read by [hasAnythingForeground] so the notification is not torn down
+     *  while the MCP endpoint or a lingering AnyConnect tunnel still needs
+     *  the service foreground (#757). */
+    @Inject
+    lateinit var keepAlives: Set<@JvmSuppressWildcards ForegroundKeepAlive>
 
     @Inject
     lateinit var networkMonitor: NetworkMonitor
@@ -172,7 +179,50 @@ class SshConnectionService : Service() {
                     }
                 }
         }
+        // #757: keep the ongoing notification honest when a session ENDS.
+        // The notification used to be rebuilt only at startForeground (a session
+        // starting) and on MCP activity, so a session dying on its own — typed
+        // `exit`, dropped transport — left the count and labels stale: "2 active
+        // sessions" naming one that had already closed. The teardown-on-empty
+        // path lives in ConnectionsViewModel, which is only composed while the
+        // Connections screen is open, so it never ran for the backgrounded case
+        // where the ongoing notification is the only thing the user sees. This
+        // collector runs for the service's whole life and re-posts the current
+        // active set. It deliberately does NOT stop the service when the set
+        // empties: onDestroy disconnects every participant, so stopping here
+        // would kill sessions that dropped to DISCONNECTED awaiting a background
+        // reconnect. Taking the service down stays with the explicit paths
+        // (ConnectionsViewModel, AnyConnectSessionController, Disconnect All).
+        // Debounced so a burst of session churn doesn't spam the shade; the
+        // channel is IMPORTANCE_LOW so updates are silent.
+        serviceScope.launch {
+            foregroundChangeSignal(participants, keepAlives)
+                .debounce(300)
+                .collect {
+                    val notification = notificationForCurrentSessions() ?: return@collect
+                    runCatching {
+                        getSystemService(NotificationManager::class.java)
+                            ?.notify(NOTIFICATION_ID, notification)
+                    }
+                }
+        }
     }
+
+    /**
+     * The ongoing notification reflecting the sessions active right now, or
+     * null when none are (the caller then leaves the existing notification
+     * alone — see the collector above for why it is not torn down here).
+     * Split out so the content decision is unit-testable without a Service
+     * instance (#757).
+     */
+    internal fun notificationForCurrentSessions(): Notification? =
+        if (participants.any { it.activeSessions.isNotEmpty() } ||
+            keepAlives.any { it.isActive }
+        ) {
+            buildNotification()
+        } else {
+            null
+        }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_DISCONNECT_ALL) {
@@ -288,3 +338,16 @@ class SshConnectionService : Service() {
         manager.createNotificationChannel(channel)
     }
 }
+
+/**
+ * Emits whenever any participant's or keep-alive's active set may have
+ * changed — the signal the #757 collector rides. A change on ANY contributor
+ * must reach the collector, and a contributor whose `changes` never emits
+ * (the default) must not block the others. Top-level so the wiring is
+ * unit-testable without constructing the Service.
+ */
+internal fun foregroundChangeSignal(
+    participants: Set<ForegroundSessionParticipant>,
+    keepAlives: Set<ForegroundKeepAlive>,
+): kotlinx.coroutines.flow.Flow<Unit> =
+    (participants.map { it.changes } + keepAlives.map { it.changes }).merge()

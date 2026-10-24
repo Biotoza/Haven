@@ -20,6 +20,20 @@ interface ForegroundSessionParticipant {
     /** Sessions in CONNECTED / CONNECTING / RECONNECTING state. */
     val activeSessions: List<ForegroundSessionInfo>
 
+    /**
+     * #757: emits whenever the active-session set may have changed, so the
+     * foreground notification can be re-posted when a session ENDS, not only
+     * when one starts. Before this the notification was built at startForeground
+     * and on MCP activity only, so a session ending on its own (typed `exit`,
+     * dropped transport) left the count and labels stale. Adapters back this
+     * with their manager's session StateFlow; the default never emits, so a
+     * participant that can't observe changes simply doesn't drive re-posts
+     * (the MCP endpoint participant is covered by the service's own
+     * mcpStatusHolder collection).
+     */
+    val changes: kotlinx.coroutines.flow.Flow<Unit>
+        get() = kotlinx.coroutines.flow.emptyFlow()
+
     /** Tear down all sessions; called on Disconnect All and on service destruction. */
     fun disconnectAll()
 }

@@ -16,4 +16,14 @@ package sh.haven.core.ssh
  */
 interface ForegroundKeepAlive {
     val isActive: Boolean
+
+    /**
+     * #757: emits whenever [isActive] may have changed, so the foreground
+     * notification can follow the keep-alive up and down. Default never emits:
+     * the MCP endpoint's transitions are already covered by the service's own
+     * mcpStatusHolder collection, and AnyConnect's by the Tunnels screen's
+     * explicit stop path.
+     */
+    val changes: kotlinx.coroutines.flow.Flow<Unit>
+        get() = kotlinx.coroutines.flow.emptyFlow()
 }
