@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.56
+
+- **Four more sources of terminal row corruption fixed (#749).**
+- **Following the v5.89.55 row-fetch fix, an audit of the row-assembly path found four more seams that produce the same intra-row corruption** — merged words, eaten spaces, transposed characters — and all four are fixed: stale combining marks from the reused row buffers bleeding onto a shorter row; the on-device text shaper and the terminal's own width table disagreeing on emoji and joined sequences and eating the following space; scroll regions (as used by tmux, vim and htop status bars) overwriting the undamaged rows below the region; and a resize racing a row rebuild, which could write a stale-width row into the new snapshot or crash the rebuild. Device-verified: a full-screen repaint against interleaved fast scrolling stays byte-identical over 12 rounds, and the scroll-region footer case keeps its rows.
+
 ## v5.89.55
 
 - **The terminal no longer permanently corrupts rows during fast scrolling and fast redraws (#749).**
