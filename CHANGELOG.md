@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.54
+
+- **Fixes for jump-host connections: the session count and the passphrase dead-end (#757, #729).**
+- **A failed jump-host attempt no longer leaks a phantom active session (#757).** The count in the ongoing notification went up with every failed connection and named sessions that were never established. A connect with a jump host registers the new session as "connecting" before dialing the jump leg; when the jump leg failed authentication, the error handler showed the password prompt but never unregistered that connecting session, and the retry registered a fresh one — so every failed attempt added one phantom "active" session with its label shown. The failure path now removes the half-registered session before re-prompting, so the count stays honest through failed attempts and retries.
+- **"Incorrect passphrase provided" now prompts instead of dead-ending (#729).** On a terminal connect through a jump host, the target host's typed password was passed into the jump leg and reused as the passphrase for the jump's encrypted key, so a key-authenticated jump failed with that raw error before its own prompt could appear. The jump now resolves its own credentials — the stored key passphrase, or its own saved password for a password-auth jump — and a wrong or stale stored passphrase opens the jump's prompt like any other bad password instead of stopping on the raw error.
+
 ## v5.89.53
 
 - **Fixes for the terminal keyboard, the ongoing-session notification, and the keep-screen-on setting (#756, #757, #758).**
