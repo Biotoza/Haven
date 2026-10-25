@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.55
+
+- **The terminal no longer permanently corrupts rows during fast scrolling and fast redraws (#749).**
+- **Rows that merged, transposed or dropped characters mid-line are fixed (#749).** Fast scroll up/down, and full-screen repaints from TUI apps, could leave individual rows permanently wrong — two words spliced together, characters transposed, leading spaces eaten — while the rows stayed on their correct lines, and no repaint healed them. The row cache was rebuilt one style run at a time, and each run was fetched from the terminal's native model under its own lock; when incoming data arrived between two fetches, the cached row was assembled half from before the write and half from after it. The whole row is now read under a single lock hold, so every cached row is one consistent snapshot. This also brings the terminal's keyboard-behaviour fixes from the same fork update: tapping the terminal now reopens the soft keyboard after the Back key dismissed it.
+
 ## v5.89.54
 
 - **Fixes for jump-host connections: the session count and the passphrase dead-end (#757, #729).**
