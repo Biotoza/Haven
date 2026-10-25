@@ -545,4 +545,17 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_ambiwidth_mode_auto_wide_desc">Mesurer la police active ; secours à 2 cellules (CJK)</string>
     <string name="settings_bell_notification_title">Notification de sonnerie</string>
     <string name="settings_bell_notification_subtitle">Quand un programme du terminal émet un bip pendant qu\'Haven est en arrière-plan, une notification nommant l\'onglet est affichée. Rien n\'apparaît pendant que vous regardez le terminal.</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d désactivés</string>
+    <string name="settings_mcp_tools_cat_terminal">Terminal</string>
+    <string name="settings_mcp_tools_cat_connections">Connexions</string>
+    <string name="settings_mcp_tools_cat_files">Fichiers</string>
+    <string name="settings_mcp_tools_cat_desktop">Bureau</string>
+    <string name="settings_mcp_tools_cat_guest">Invité Linux</string>
+    <string name="settings_mcp_tools_cat_usb">USB et série</string>
+    <string name="settings_mcp_tools_cat_keys">Clés et identifiants</string>
+    <string name="settings_mcp_tools_cat_mail">Courriel</string>
+    <string name="settings_mcp_tools_cat_rclone">Stockage cloud</string>
+    <string name="settings_mcp_tools_cat_senses">Capteurs et localisation</string>
+    <string name="settings_mcp_tools_cat_agent">Agent et contrôle de l\'appareil</string>
+    <string name="settings_mcp_tools_cat_other">Autres</string>
 </resources>

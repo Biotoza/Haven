@@ -545,4 +545,17 @@ Cada clave privada ya almacenada en Haven deberá importarse o generarse de nuev
     <string name="settings_ambiwidth_mode_auto_wide_desc">Medir la fuente activa; reserva en 2 celdas (CJK)</string>
     <string name="settings_bell_notification_title">Notificación de campana</string>
     <string name="settings_bell_notification_subtitle">Cuando un programa de terminal hace sonar la campana mientras Haven está en segundo plano, se publica una notificación con el nombre de la pestaña. No aparece nada mientras miras la terminal.</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d desactivadas</string>
+    <string name="settings_mcp_tools_cat_terminal">Terminal</string>
+    <string name="settings_mcp_tools_cat_connections">Conexiones</string>
+    <string name="settings_mcp_tools_cat_files">Archivos</string>
+    <string name="settings_mcp_tools_cat_desktop">Escritorio</string>
+    <string name="settings_mcp_tools_cat_guest">Invitado Linux</string>
+    <string name="settings_mcp_tools_cat_usb">USB y serie</string>
+    <string name="settings_mcp_tools_cat_keys">Claves y credenciales</string>
+    <string name="settings_mcp_tools_cat_mail">Correo</string>
+    <string name="settings_mcp_tools_cat_rclone">Almacenamiento en la nube</string>
+    <string name="settings_mcp_tools_cat_senses">Sensores y ubicación</string>
+    <string name="settings_mcp_tools_cat_agent">Agente y control del dispositivo</string>
+    <string name="settings_mcp_tools_cat_other">Otros</string>
 </resources>

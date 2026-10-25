@@ -543,4 +543,17 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_ambiwidth_mode_auto_wide_desc">分析当前字体；回退至 2 列 (CJK)</string>
     <string name="settings_bell_notification_title">铃声通知</string>
     <string name="settings_bell_notification_subtitle">当终端程序在 Haven 后台响铃时，发送一条注明标签页名称的通知。查看终端时不会显示任何内容。</string>
+    <string name="settings_mcp_tools_category_off_count">已关闭 %1$d 项</string>
+    <string name="settings_mcp_tools_cat_terminal">终端</string>
+    <string name="settings_mcp_tools_cat_connections">连接</string>
+    <string name="settings_mcp_tools_cat_files">文件</string>
+    <string name="settings_mcp_tools_cat_desktop">桌面</string>
+    <string name="settings_mcp_tools_cat_guest">Linux 客户机</string>
+    <string name="settings_mcp_tools_cat_usb">USB 与串口</string>
+    <string name="settings_mcp_tools_cat_keys">密钥与凭据</string>
+    <string name="settings_mcp_tools_cat_mail">邮件</string>
+    <string name="settings_mcp_tools_cat_rclone">云存储</string>
+    <string name="settings_mcp_tools_cat_senses">传感器与位置</string>
+    <string name="settings_mcp_tools_cat_agent">代理与设备控制</string>
+    <string name="settings_mcp_tools_cat_other">其他</string>
 </resources>

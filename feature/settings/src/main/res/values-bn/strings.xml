@@ -545,4 +545,17 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_ambiwidth_mode_auto_wide_desc">সক্রিয় ফন্ট পরিমাপ করুন; অন্যথায় ২টি ঘর (CJK)</string>
     <string name="settings_bell_notification_title">ঘণ্টির বিজ্ঞপ্তি</string>
     <string name="settings_bell_notification_subtitle">Haven পটভূমিতে থাকার সময় কোনো টার্মিনাল প্রোগ্রাম ঘণ্টি বাজালে ট্যাবের নাম উল্লেখ করে একটি বিজ্ঞপ্তি পাঠানো হয়। আপনি টার্মিনাল দেখার সময় কিছু দেখানো হয় না।</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d বন্ধ</string>
+    <string name="settings_mcp_tools_cat_terminal">টার্মিনাল</string>
+    <string name="settings_mcp_tools_cat_connections">সংযোগ</string>
+    <string name="settings_mcp_tools_cat_files">ফাইল</string>
+    <string name="settings_mcp_tools_cat_desktop">ডেস্কটপ</string>
+    <string name="settings_mcp_tools_cat_guest">Linux গেস্ট</string>
+    <string name="settings_mcp_tools_cat_usb">USB এবং সিরিয়াল</string>
+    <string name="settings_mcp_tools_cat_keys">কী এবং শংসাপত্র</string>
+    <string name="settings_mcp_tools_cat_mail">মেইল</string>
+    <string name="settings_mcp_tools_cat_rclone">ক্লাউড স্টোরেজ</string>
+    <string name="settings_mcp_tools_cat_senses">সেন্সর এবং অবস্থান</string>
+    <string name="settings_mcp_tools_cat_agent">এজেন্ট এবং ডিভাইস নিয়ন্ত্রণ</string>
+    <string name="settings_mcp_tools_cat_other">অন্যান্য</string>
 </resources>

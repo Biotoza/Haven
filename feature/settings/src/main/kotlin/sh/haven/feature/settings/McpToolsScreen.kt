@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.core.data.agent.ConsentLevel
+import sh.haven.core.data.agent.McpToolCategory
 import sh.haven.core.data.agent.McpToolInfo
 
 /**
@@ -34,6 +35,12 @@ import sh.haven.core.data.agent.McpToolInfo
  * saving is the point) and a direct call to it fails with a Settings-pointing
  * error. The endpoint master switch, pairing and per-call consent all still
  * apply — this only subtracts from the surface.
+ *
+ * Tools are grouped by subsystem, each group headed by a master switch that
+ * flips the whole category at once — with ~230 tools, turning off e.g. GPS or
+ * rclone one row at a time was the same wall of rows the screen exists to
+ * reduce. A category switch reads on only when every tool in it is on, and
+ * individual rows stay editable underneath it.
  *
  * Mounted as an overlay over the pager from [SettingsScreen], same as
  * [PairedClientsScreen]; hence the opaque background.
@@ -78,31 +85,83 @@ fun McpToolsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
+        // OTHER sorts last even though it is last in the enum only by intent;
+        // the rest keep the enum's order (terminal first — the commonest thing
+        // to trim on a small-model client).
+        val grouped = tools.groupBy { it.category }
+        val order = McpToolCategory.entries.sortedBy { if (it == McpToolCategory.OTHER) 1 else 0 }
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(tools.sortedBy { it.name }, key = { it.name }) { tool ->
-                val enabled = tool.name !in disabled
-                ListItem(
-                    headlineContent = { Text(tool.name) },
-                    supportingContent = {
-                        Text(
-                            when (tool.consentLevel) {
-                                ConsentLevel.EVERY_CALL ->
-                                    stringResource(R.string.settings_mcp_tools_consent_every_call)
-                                ConsentLevel.ONCE_PER_SESSION ->
-                                    stringResource(R.string.settings_mcp_tools_consent_once)
-                                ConsentLevel.NEVER ->
-                                    stringResource(R.string.settings_mcp_tools_consent_never)
-                            },
-                        )
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = enabled,
-                            onCheckedChange = { viewModel.setMcpToolEnabled(tool.name, it) },
-                        )
-                    },
-                )
+            order.forEach { category ->
+                val inCategory = grouped[category].orEmpty().sortedBy { it.name }
+                if (inCategory.isEmpty()) return@forEach
+                val names = inCategory.map { it.name }
+                val offCount = names.count { it in disabled }
+                item(key = "header_${category.name}") {
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(categoryLabelRes(category)),
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                        },
+                        supportingContent = {
+                            if (offCount > 0) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.settings_mcp_tools_category_off_count,
+                                        offCount,
+                                    ),
+                                )
+                            }
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = offCount == 0,
+                                onCheckedChange = { viewModel.setMcpToolsEnabled(names, it) },
+                            )
+                        },
+                    )
+                }
+                items(inCategory, key = { it.name }) { tool ->
+                    val enabled = tool.name !in disabled
+                    ListItem(
+                        headlineContent = { Text(tool.name) },
+                        supportingContent = {
+                            Text(
+                                when (tool.consentLevel) {
+                                    ConsentLevel.EVERY_CALL ->
+                                        stringResource(R.string.settings_mcp_tools_consent_every_call)
+                                    ConsentLevel.ONCE_PER_SESSION ->
+                                        stringResource(R.string.settings_mcp_tools_consent_once)
+                                    ConsentLevel.NEVER ->
+                                        stringResource(R.string.settings_mcp_tools_consent_never)
+                                },
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = enabled,
+                                onCheckedChange = { viewModel.setMcpToolEnabled(tool.name, it) },
+                            )
+                        },
+                    )
+                }
             }
         }
     }
+}
+
+private fun categoryLabelRes(category: McpToolCategory): Int = when (category) {
+    McpToolCategory.TERMINAL -> R.string.settings_mcp_tools_cat_terminal
+    McpToolCategory.CONNECTIONS -> R.string.settings_mcp_tools_cat_connections
+    McpToolCategory.FILES -> R.string.settings_mcp_tools_cat_files
+    McpToolCategory.DESKTOP -> R.string.settings_mcp_tools_cat_desktop
+    McpToolCategory.GUEST -> R.string.settings_mcp_tools_cat_guest
+    McpToolCategory.USB -> R.string.settings_mcp_tools_cat_usb
+    McpToolCategory.KEYS -> R.string.settings_mcp_tools_cat_keys
+    McpToolCategory.MAIL -> R.string.settings_mcp_tools_cat_mail
+    McpToolCategory.RCLONE -> R.string.settings_mcp_tools_cat_rclone
+    McpToolCategory.SENSES -> R.string.settings_mcp_tools_cat_senses
+    McpToolCategory.AGENT -> R.string.settings_mcp_tools_cat_agent
+    McpToolCategory.OTHER -> R.string.settings_mcp_tools_cat_other
 }

@@ -37303,6 +37303,255 @@
      }
     },
     {
+     "name": "settings_mcp_tools_category_off_count",
+     "en": "%1$d off",
+     "comment": "Paired MCP clients (#210)",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "%1$d متوقف",
+      "bn": "%1$d বন্ধ",
+      "de": "%1$d aus",
+      "es": "%1$d desactivadas",
+      "fr": "%1$d désactivés",
+      "hi": "%1$d बंद",
+      "ja": "%1$d 件オフ",
+      "ko": "%1$d개 꺼짐",
+      "pt": "%1$d desativados",
+      "ru": "выкл. %1$d",
+      "zh": "已关闭 %1$d 项"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_terminal",
+     "en": "Terminal",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "الطرفية",
+      "bn": "টার্মিনাল",
+      "de": "Terminal",
+      "es": "Terminal",
+      "fr": "Terminal",
+      "hi": "टर्मिनल",
+      "ja": "ターミナル",
+      "ko": "터미널",
+      "pt": "Terminal",
+      "ru": "Терминал",
+      "zh": "终端"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_connections",
+     "en": "Connections",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "الاتصالات",
+      "bn": "সংযোগ",
+      "de": "Verbindungen",
+      "es": "Conexiones",
+      "fr": "Connexions",
+      "hi": "कनेक्शन",
+      "ja": "接続",
+      "ko": "연결",
+      "pt": "Conexões",
+      "ru": "Подключения",
+      "zh": "连接"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_files",
+     "en": "Files",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "الملفات",
+      "bn": "ফাইল",
+      "de": "Dateien",
+      "es": "Archivos",
+      "fr": "Fichiers",
+      "hi": "फ़ाइलें",
+      "ja": "ファイル",
+      "ko": "파일",
+      "pt": "Arquivos",
+      "ru": "Файлы",
+      "zh": "文件"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_desktop",
+     "en": "Desktop",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "سطح المكتب",
+      "bn": "ডেস্কটপ",
+      "de": "Desktop",
+      "es": "Escritorio",
+      "fr": "Bureau",
+      "hi": "डेस्कटॉप",
+      "ja": "デスクトップ",
+      "ko": "데스크톱",
+      "pt": "Ambiente de trabalho",
+      "ru": "Рабочий стол",
+      "zh": "桌面"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_guest",
+     "en": "Linux guest",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "ضيف Linux",
+      "bn": "Linux গেস্ট",
+      "de": "Linux-Gast",
+      "es": "Invitado Linux",
+      "fr": "Invité Linux",
+      "hi": "Linux गेस्ट",
+      "ja": "Linuxゲスト",
+      "ko": "Linux 게스트",
+      "pt": "Convidado Linux",
+      "ru": "Гость Linux",
+      "zh": "Linux 客户机"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_usb",
+     "en": "USB and serial",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "USB والتسلسلي",
+      "bn": "USB এবং সিরিয়াল",
+      "de": "USB und seriell",
+      "es": "USB y serie",
+      "fr": "USB et série",
+      "hi": "USB और सीरियल",
+      "ja": "USBとシリアル",
+      "ko": "USB 및 직렬",
+      "pt": "USB e série",
+      "ru": "USB и последовательный порт",
+      "zh": "USB 与串口"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_keys",
+     "en": "Keys and credentials",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "المفاتيح وبيانات الاعتماد",
+      "bn": "কী এবং শংসাপত্র",
+      "de": "Schlüssel und Anmeldedaten",
+      "es": "Claves y credenciales",
+      "fr": "Clés et identifiants",
+      "hi": "कुंजियाँ और क्रेडेंशियल",
+      "ja": "鍵と認証情報",
+      "ko": "키 및 자격 증명",
+      "pt": "Chaves e credenciais",
+      "ru": "Ключи и учётные данные",
+      "zh": "密钥与凭据"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_mail",
+     "en": "Mail",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "البريد",
+      "bn": "মেইল",
+      "de": "E-Mail",
+      "es": "Correo",
+      "fr": "Courriel",
+      "hi": "मेल",
+      "ja": "メール",
+      "ko": "메일",
+      "pt": "E-mail",
+      "ru": "Почта",
+      "zh": "邮件"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_rclone",
+     "en": "Cloud storage",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "التخزين السحابي",
+      "bn": "ক্লাউড স্টোরেজ",
+      "de": "Cloud-Speicher",
+      "es": "Almacenamiento en la nube",
+      "fr": "Stockage cloud",
+      "hi": "क्लाउड स्टोरेज",
+      "ja": "クラウドストレージ",
+      "ko": "클라우드 스토리지",
+      "pt": "Armazenamento na nuvem",
+      "ru": "Облачное хранилище",
+      "zh": "云存储"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_senses",
+     "en": "Sensors and location",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "أجهزة الاستشعار والموقع",
+      "bn": "সেন্সর এবং অবস্থান",
+      "de": "Sensoren und Standort",
+      "es": "Sensores y ubicación",
+      "fr": "Capteurs et localisation",
+      "hi": "सेंसर और स्थान",
+      "ja": "センサーと位置情報",
+      "ko": "센서 및 위치",
+      "pt": "Sensores e localização",
+      "ru": "Датчики и местоположение",
+      "zh": "传感器与位置"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_agent",
+     "en": "Agent and device control",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "الوكيل والتحكم في الجهاز",
+      "bn": "এজেন্ট এবং ডিভাইস নিয়ন্ত্রণ",
+      "de": "Agent und Gerätesteuerung",
+      "es": "Agente y control del dispositivo",
+      "fr": "Agent et contrôle de l\\'appareil",
+      "hi": "एजेंट और डिवाइस नियंत्रण",
+      "ja": "エージェントとデバイス制御",
+      "ko": "에이전트 및 기기 제어",
+      "pt": "Agente e controle do dispositivo",
+      "ru": "Агент и управление устройством",
+      "zh": "代理与设备控制"
+     }
+    },
+    {
+     "name": "settings_mcp_tools_cat_other",
+     "en": "Other",
+     "comment": "Paired MCP clients (#210)",
+     "args": [],
+     "t": {
+      "ar": "أخرى",
+      "bn": "অন্যান্য",
+      "de": "Sonstige",
+      "es": "Otros",
+      "fr": "Autres",
+      "hi": "अन्य",
+      "ja": "その他",
+      "ko": "기타",
+      "pt": "Outros",
+      "ru": "Прочее",
+      "zh": "其他"
+     }
+    },
+    {
      "name": "settings_paired_clients_title",
      "en": "Paired MCP clients",
      "comment": "Paired MCP clients (#210)",

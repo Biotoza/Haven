@@ -544,4 +544,17 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_ambiwidth_mode_auto_wide_desc">フォント幅を自動計測、未判定時は2セル (CJK)</string>
     <string name="settings_bell_notification_title">ベル通知</string>
     <string name="settings_bell_notification_subtitle">Haven がバックグラウンドにある間にターミナルのプログラムがベルを鳴らすと、タブ名を記した通知を表示します。ターミナルを見ている間は何も表示されません。</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d 件オフ</string>
+    <string name="settings_mcp_tools_cat_terminal">ターミナル</string>
+    <string name="settings_mcp_tools_cat_connections">接続</string>
+    <string name="settings_mcp_tools_cat_files">ファイル</string>
+    <string name="settings_mcp_tools_cat_desktop">デスクトップ</string>
+    <string name="settings_mcp_tools_cat_guest">Linuxゲスト</string>
+    <string name="settings_mcp_tools_cat_usb">USBとシリアル</string>
+    <string name="settings_mcp_tools_cat_keys">鍵と認証情報</string>
+    <string name="settings_mcp_tools_cat_mail">メール</string>
+    <string name="settings_mcp_tools_cat_rclone">クラウドストレージ</string>
+    <string name="settings_mcp_tools_cat_senses">センサーと位置情報</string>
+    <string name="settings_mcp_tools_cat_agent">エージェントとデバイス制御</string>
+    <string name="settings_mcp_tools_cat_other">その他</string>
 </resources>

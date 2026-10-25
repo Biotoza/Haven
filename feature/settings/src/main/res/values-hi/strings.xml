@@ -545,4 +545,17 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_ambiwidth_mode_auto_wide_desc">सक्रिय फ़ॉन्ट प्रोफाइल करें; फ़ॉलबैक 2 सेल (CJK)</string>
     <string name="settings_bell_notification_title">घंटी सूचना</string>
     <string name="settings_bell_notification_subtitle">जब Haven पृष्ठभूमि में हो और कोई टर्मिनल प्रोग्राम घंटी बजाए, तो टैब का नाम बताते हुए एक सूचना भेजी जाती है। जब आप टर्मिनल देख रहे हों तो कुछ नहीं दिखता।</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d बंद</string>
+    <string name="settings_mcp_tools_cat_terminal">टर्मिनल</string>
+    <string name="settings_mcp_tools_cat_connections">कनेक्शन</string>
+    <string name="settings_mcp_tools_cat_files">फ़ाइलें</string>
+    <string name="settings_mcp_tools_cat_desktop">डेस्कटॉप</string>
+    <string name="settings_mcp_tools_cat_guest">Linux गेस्ट</string>
+    <string name="settings_mcp_tools_cat_usb">USB और सीरियल</string>
+    <string name="settings_mcp_tools_cat_keys">कुंजियाँ और क्रेडेंशियल</string>
+    <string name="settings_mcp_tools_cat_mail">मेल</string>
+    <string name="settings_mcp_tools_cat_rclone">क्लाउड स्टोरेज</string>
+    <string name="settings_mcp_tools_cat_senses">सेंसर और स्थान</string>
+    <string name="settings_mcp_tools_cat_agent">एजेंट और डिवाइस नियंत्रण</string>
+    <string name="settings_mcp_tools_cat_other">अन्य</string>
 </resources>

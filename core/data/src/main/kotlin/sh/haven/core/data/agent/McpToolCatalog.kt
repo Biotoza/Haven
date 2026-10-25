@@ -23,6 +23,8 @@ import javax.inject.Singleton
 data class McpToolInfo(
     val name: String,
     val consentLevel: ConsentLevel,
+    /** Subsystem group shown in Settings so the list can be steered by category (#755). */
+    val category: McpToolCategory = McpToolCategory.of(name),
 )
 
 /**
@@ -59,6 +61,22 @@ class McpToolCatalog @Inject constructor(
         dataStore.edit { prefs ->
             val current = prefs[disabledKey] ?: emptySet()
             prefs[disabledKey] = if (enabled) current - name else current + name
+        }
+    }
+
+    /**
+     * Switch a whole category on or off in one edit (#755 follow-up) — the
+     * category master switch in Settings. [names] is the category's membership
+     * as currently published by the registry; the caller passes it rather than
+     * the catalog deriving it, because the registry lives in `:app` and this
+     * module only sees the [McpToolInfo] projection. One `edit` means the
+     * dispatcher never observes a half-applied category.
+     */
+    suspend fun setToolsEnabled(names: Collection<String>, enabled: Boolean) {
+        if (names.isEmpty()) return
+        dataStore.edit { prefs ->
+            val current = prefs[disabledKey] ?: emptySet()
+            prefs[disabledKey] = if (enabled) current - names.toSet() else current + names
         }
     }
 

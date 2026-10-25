@@ -545,4 +545,17 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_ambiwidth_mode_auto_wide_desc">Aktive Schrift vermessen; Fallback auf 2 Spalten (CJK)</string>
     <string name="settings_bell_notification_title">Glocken-Benachrichtigung</string>
     <string name="settings_bell_notification_subtitle">Wenn ein Terminalprogramm klingelt, während Haven im Hintergrund ist, wird eine Benachrichtigung mit dem Tab-Namen gesendet. Während du das Terminal siehst, erscheint nichts.</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d aus</string>
+    <string name="settings_mcp_tools_cat_terminal">Terminal</string>
+    <string name="settings_mcp_tools_cat_connections">Verbindungen</string>
+    <string name="settings_mcp_tools_cat_files">Dateien</string>
+    <string name="settings_mcp_tools_cat_desktop">Desktop</string>
+    <string name="settings_mcp_tools_cat_guest">Linux-Gast</string>
+    <string name="settings_mcp_tools_cat_usb">USB und seriell</string>
+    <string name="settings_mcp_tools_cat_keys">Schlüssel und Anmeldedaten</string>
+    <string name="settings_mcp_tools_cat_mail">E-Mail</string>
+    <string name="settings_mcp_tools_cat_rclone">Cloud-Speicher</string>
+    <string name="settings_mcp_tools_cat_senses">Sensoren und Standort</string>
+    <string name="settings_mcp_tools_cat_agent">Agent und Gerätesteuerung</string>
+    <string name="settings_mcp_tools_cat_other">Sonstige</string>
 </resources>

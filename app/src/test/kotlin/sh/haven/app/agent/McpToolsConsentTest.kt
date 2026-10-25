@@ -338,6 +338,21 @@ class McpToolsConsentTest {
     }
 
     @Test
+    fun `every served tool has a Settings category`() {
+        // #755 grouping: the Settings screen groups tools by subsystem, and
+        // anything unmapped falls into "Other" — a growing Other bucket is the
+        // grouping going stale as tools are added, so it must stay empty.
+        val tools = newTools()
+        val uncategorised = tools.definitions()
+            .map { it.optString("name") }
+            .filter { sh.haven.core.data.agent.McpToolCategory.of(it) == sh.haven.core.data.agent.McpToolCategory.OTHER }
+        assertTrue(
+            "tools missing from McpToolCategory: $uncategorised",
+            uncategorised.isEmpty(),
+        )
+    }
+
+    @Test
     fun `unknown tool returns null`() {
         assertNull(newTools().consentFor("does_not_exist"))
     }

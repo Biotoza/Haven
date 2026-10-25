@@ -549,4 +549,17 @@
     <string name="settings_ambiwidth_mode_auto_wide_desc">قياس الخط النشط؛ والرجوع إلى خليتين (CJK)</string>
     <string name="settings_bell_notification_title">إشعار الرنين</string>
     <string name="settings_bell_notification_subtitle">عندما يرنّ برنامج طرفية بينما Haven في الخلفية، تُنشر إشعارات تسمّي التبويب. لا يظهر شيء أثناء نظرك إلى الطرفية.</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d متوقف</string>
+    <string name="settings_mcp_tools_cat_terminal">الطرفية</string>
+    <string name="settings_mcp_tools_cat_connections">الاتصالات</string>
+    <string name="settings_mcp_tools_cat_files">الملفات</string>
+    <string name="settings_mcp_tools_cat_desktop">سطح المكتب</string>
+    <string name="settings_mcp_tools_cat_guest">ضيف Linux</string>
+    <string name="settings_mcp_tools_cat_usb">USB والتسلسلي</string>
+    <string name="settings_mcp_tools_cat_keys">المفاتيح وبيانات الاعتماد</string>
+    <string name="settings_mcp_tools_cat_mail">البريد</string>
+    <string name="settings_mcp_tools_cat_rclone">التخزين السحابي</string>
+    <string name="settings_mcp_tools_cat_senses">أجهزة الاستشعار والموقع</string>
+    <string name="settings_mcp_tools_cat_agent">الوكيل والتحكم في الجهاز</string>
+    <string name="settings_mcp_tools_cat_other">أخرى</string>
 </resources>

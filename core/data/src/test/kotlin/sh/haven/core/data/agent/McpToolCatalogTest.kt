@@ -52,6 +52,21 @@ class McpToolCatalogTest {
     }
 
     @Test
+    fun setToolsEnabledFlipsACategoryInOneEdit() = runBlocking {
+        val catalog = catalog()
+        val category = listOf("get_gps_status", "start_gps_log", "stop_gps_log")
+
+        catalog.setToolsEnabled(category, false)
+        assertEquals(category.toSet(), catalog.disabledTools.first())
+
+        // Re-enabling the category clears exactly its members, leaving a
+        // tool switched off individually elsewhere untouched.
+        catalog.setToolEnabled("read_terminal_snapshot", false)
+        catalog.setToolsEnabled(category, true)
+        assertEquals(setOf("read_terminal_snapshot"), catalog.disabledTools.first())
+    }
+
+    @Test
     fun publishReplacesTheToolListForSettings() {
         val catalog = catalog()
         assertEquals(emptyList<McpToolInfo>(), catalog.tools.value)

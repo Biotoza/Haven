@@ -544,4 +544,17 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_ambiwidth_mode_auto_wide_desc">현재 폰트 자동 측정, 미측정(PUA 등)은 2셀</string>
     <string name="settings_bell_notification_title">벨 알림</string>
     <string name="settings_bell_notification_subtitle">Haven이 백그라운드에 있는 동안 터미널 프로그램이 벨을 울리면 탭 이름을 알리는 알림을 게시합니다. 터미널을 보고 있는 동안에는 아무것도 표시되지 않습니다.</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d개 꺼짐</string>
+    <string name="settings_mcp_tools_cat_terminal">터미널</string>
+    <string name="settings_mcp_tools_cat_connections">연결</string>
+    <string name="settings_mcp_tools_cat_files">파일</string>
+    <string name="settings_mcp_tools_cat_desktop">데스크톱</string>
+    <string name="settings_mcp_tools_cat_guest">Linux 게스트</string>
+    <string name="settings_mcp_tools_cat_usb">USB 및 직렬</string>
+    <string name="settings_mcp_tools_cat_keys">키 및 자격 증명</string>
+    <string name="settings_mcp_tools_cat_mail">메일</string>
+    <string name="settings_mcp_tools_cat_rclone">클라우드 스토리지</string>
+    <string name="settings_mcp_tools_cat_senses">센서 및 위치</string>
+    <string name="settings_mcp_tools_cat_agent">에이전트 및 기기 제어</string>
+    <string name="settings_mcp_tools_cat_other">기타</string>
 </resources>

@@ -310,6 +310,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { mcpToolCatalog.setToolEnabled(name, enabled) }
     }
 
+    /** Category master switch (#755 follow-up): flip every tool in a group at once. */
+    fun setMcpToolsEnabled(names: Collection<String>, enabled: Boolean) {
+        viewModelScope.launch { mcpToolCatalog.setToolsEnabled(names, enabled) }
+    }
+
     val biometricAvailable: Boolean =
         authenticator.checkAvailability(appContext) == BiometricAuthenticator.Availability.AVAILABLE
 

@@ -547,4 +547,17 @@
     <string name="settings_ambiwidth_mode_auto_wide_desc">Замерять активный шрифт; при сбое 2 ячейки (CJK)</string>
     <string name="settings_bell_notification_title">Уведомление о звонке</string>
     <string name="settings_bell_notification_subtitle">Когда программа в терминале подаёт звуковой сигнал, пока Haven в фоновом режиме, приходит уведомление с названием вкладки. Пока вы смотрите в терминал, ничего не появляется.</string>
+    <string name="settings_mcp_tools_category_off_count">выкл. %1$d</string>
+    <string name="settings_mcp_tools_cat_terminal">Терминал</string>
+    <string name="settings_mcp_tools_cat_connections">Подключения</string>
+    <string name="settings_mcp_tools_cat_files">Файлы</string>
+    <string name="settings_mcp_tools_cat_desktop">Рабочий стол</string>
+    <string name="settings_mcp_tools_cat_guest">Гость Linux</string>
+    <string name="settings_mcp_tools_cat_usb">USB и последовательный порт</string>
+    <string name="settings_mcp_tools_cat_keys">Ключи и учётные данные</string>
+    <string name="settings_mcp_tools_cat_mail">Почта</string>
+    <string name="settings_mcp_tools_cat_rclone">Облачное хранилище</string>
+    <string name="settings_mcp_tools_cat_senses">Датчики и местоположение</string>
+    <string name="settings_mcp_tools_cat_agent">Агент и управление устройством</string>
+    <string name="settings_mcp_tools_cat_other">Прочее</string>
 </resources>
