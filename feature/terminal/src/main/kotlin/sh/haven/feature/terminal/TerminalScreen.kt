@@ -847,10 +847,12 @@ fun TerminalScreen(
     // Settings change triggers a recomposition with a new typeface
     // here.
     val hackTypeface = remember(terminalFontPath) {
-        terminalFontPath
+        (terminalFontPath
             ?.let { runCatching { android.graphics.Typeface.createFromFile(it) }.getOrNull() }
             ?: ResourcesCompat.getFont(context, sh.haven.core.ui.R.font.hack_nerd_font_mono_regular)
-            ?: android.graphics.Typeface.MONOSPACE
+            ?: android.graphics.Typeface.MONOSPACE).also {
+            org.connectbot.terminal.FontWidthProfiler.profile(it)
+        }
     }
 
     // Keep the screen awake while a terminal tab is in the foreground when

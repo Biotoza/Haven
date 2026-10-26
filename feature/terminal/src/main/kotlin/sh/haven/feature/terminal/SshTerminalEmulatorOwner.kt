@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.connectbot.terminal.InlineImages
 import org.connectbot.terminal.TerminalDimensions
@@ -151,7 +152,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
         scope.launch { preferencesRepository.terminalColorScheme.collect { globalScheme = it } }
         scope.launch { preferencesRepository.terminalBellNotification.collect { bellNotification = it } }
         scope.launch {
-            preferencesRepository.terminalInlineImages.collect { mode ->
+            preferencesRepository.terminalInlineImages.distinctUntilChanged().collect { mode ->
                 inlineImagesMode = mode
                 // Re-police every owned emulator — tabbed or not; the ViewModel's
                 // own re-police only covers the tabs it mounted. Deny a pending
@@ -163,7 +164,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             }
         }
         scope.launch {
-            preferencesRepository.terminalAmbiwidthMode.collect { mode ->
+            preferencesRepository.terminalAmbiwidthMode.distinctUntilChanged().collect { mode ->
                 ambiwidthMode = mode
                 val termlibMode = when (mode) {
                     UserPreferencesRepository.TerminalAmbiwidthMode.NARROW -> org.connectbot.terminal.AmbiwidthMode.NARROW

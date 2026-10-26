@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.59
+
+- **Box-drawing rules, bullets, and status rows in tmux and TUI apps no longer wrap across two lines or eat the following space (#749).** Under the default Auto+Wide ambiguous-width setting, measuring a monospace font like Hack returns an empty exception list because every ambiguous glyph fits in 1 cell, and background preference emissions re-sent `Auto+Wide` without the profiled table. Native `libvterm` treated an empty custom table as "no custom table" and fell back to 2-column Wide widths for all East Asian Ambiguous characters (`─`, `○`, `●`, `·`, `→`). That made 63-column horizontal rules wrap onto 126 cells and overwrite prompt/status rows during spinner redraws, while 1-column cursor steps after bullets overwrote the second half of the glyph and ate the space. Empty custom tables now keep 1-column widths active, the profiled table is cached across sessions, and unchanged preference emissions are filtered out.
+- **Multi-row terminal updates no longer tear between rows, and switching tabs keeps the soft keyboard and terminal size steady (#749).** Snapshot rebuilds now hold the native lock across the whole row batch so incoming SSH output cannot land between two rows of the same TUI frame, and OSC 8 hyperlink segments are drained in the same lock acquisition as row damage. Switching between open terminal tabs no longer closes the soft keyboard during view teardown or bounces the PTY row count (`29 -> 50 -> 29`).
+
 ## v5.89.58
 
 - **The download is about 85 MB smaller (#762).** The UML kernel and the Go library were shipped with their debug information attached, because the build's automatic strip pass only covers libraries it compiles itself — prebuilt ones are packaged as they arrive. Both are now stripped in the scripts that fetch and build them. The kernel library goes from 79 MB to 9 MB and the Go library from 153 MB to 124 MB on disk, and since both are stored uncompressed in the APK that saving lands directly on the download. Behaviour is unchanged: the stripped kernel boots a guest and the stripped Go library serves the same features, verified on device.

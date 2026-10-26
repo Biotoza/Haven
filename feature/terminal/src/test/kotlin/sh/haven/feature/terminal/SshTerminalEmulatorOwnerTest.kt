@@ -3,8 +3,11 @@ package sh.haven.feature.terminal
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import org.connectbot.terminal.AmbiwidthMode
+import org.connectbot.terminal.TerminalEmulator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -97,5 +100,42 @@ class SshTerminalEmulatorOwnerTest {
         owner.dispose("s1")
         assertNull("registry entry cleared on dispose", registry.get("s1"))
         assertNull("bundle dropped on dispose", owner.bundleFor("s1"))
+    }
+
+    @Test
+    fun `duplicate DataStore emissions do not re-trigger setAmbiwidthMode on attached emulators`() {
+        val registry = TerminalSessionRegistry()
+        val ssh = mockk<SshSessionManager>(relaxed = true) {
+            every { this@mockk.sessions } returns MutableStateFlow(mapOf("s1" to state("s1")))
+        }
+        val repo = mockk<ConnectionRepository>(relaxed = true) {
+            every { observeAll() } returns flowOf(emptyList())
+        }
+        val ambiwidthFlow = MutableSharedFlow<UserPreferencesRepository.TerminalAmbiwidthMode>(replay = 1)
+        val prefs = mockk<UserPreferencesRepository>(relaxed = true) {
+            every { verboseLoggingEnabled } returns flowOf(false)
+            every { terminalScrollbackRows } returns flowOf(UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS)
+            every { terminalColorScheme } returns flowOf(UserPreferencesRepository.TerminalColorScheme.HAVEN)
+            every { terminalBellNotification } returns flowOf(true)
+            every { terminalInlineImages } returns flowOf(UserPreferencesRepository.TerminalInlineImages.ASK)
+            every { terminalAmbiwidthMode } returns ambiwidthFlow
+        }
+        val emulator = mockk<TerminalEmulator>(relaxed = true)
+        val owner = SshTerminalEmulatorOwner(ssh, repo, mockk(relaxed = true), prefs, registry, InlineImageConsentRegistry())
+        owner.emulatorFactory = SshTerminalEmulatorOwner.EmulatorFactory { _, _, _, _, _, _, _, _ -> emulator }
+        owner.start()
+
+        owner.attach("s1")
+        // Force lazy emulator creation in the bundle
+        assertNotNull(owner.bundleFor("s1")!!.emulator)
+
+        // Emit AUTO_WIDE three times in a row (simulating unrelated DataStore writes)
+        ambiwidthFlow.tryEmit(UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE)
+        Thread.sleep(50)
+        ambiwidthFlow.tryEmit(UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE)
+        ambiwidthFlow.tryEmit(UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE)
+        Thread.sleep(50)
+
+        verify(exactly = 1) { emulator.setAmbiwidthMode(AmbiwidthMode.AUTO_WIDE, any()) }
     }
 }
