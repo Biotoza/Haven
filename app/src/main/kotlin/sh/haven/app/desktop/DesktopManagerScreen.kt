@@ -2441,7 +2441,22 @@ private fun CustomBindsDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                // #760: a bind whose Android host path is gone is skipped at
+                // launch (proot would only warn every time and no-op) — say so
+                // here so a mount that quietly stopped working is discoverable.
+                val staleCount = rows.count { (host, _) ->
+                    host.isNotBlank() && !sh.haven.core.local.proot.bindHostPresent(host)
+                }
+                if (staleCount > 0) {
+                    Text(
+                        stringResource(AppR.string.app_desktop_custom_binds_stale, staleCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
                 rows.forEachIndexed { i, (host, guest) ->
+                    val hostStale = host.isNotBlank() && !sh.haven.core.local.proot.bindHostPresent(host)
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.weight(1f)) {
                             OutlinedTextField(
@@ -2450,7 +2465,13 @@ private fun CustomBindsDialog(
                                     onRowsChange(rows.toMutableList().also { it[i] = v.trim() to it[i].second })
                                 },
                                 singleLine = true,
+                                isError = hostStale,
                                 label = { Text(stringResource(AppR.string.app_desktop_custom_binds_host_hint)) },
+                                supportingText = if (hostStale) {
+                                    { Text(stringResource(AppR.string.app_desktop_custom_binds_stale_row)) }
+                                } else {
+                                    null
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             Spacer(Modifier.height(4.dp))

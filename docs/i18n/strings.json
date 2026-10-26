@@ -2282,6 +2282,48 @@
      }
     },
     {
+     "name": "app_desktop_custom_binds_stale",
+     "en": "%1$d custom mount points at a path that no longer exists — it is skipped when the guest starts.",
+     "comment": "Desktop manager: custom bind mounts (#301)",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "%1$d من نقاط التركيب المخصصة تشير إلى مسار لم يعد موجودًا — يتم تجاهلها عند بدء تشغيل الضيف.",
+      "bn": "%1$d কাস্টম মাউন্ট এমন একটি পাথের দিকে ইঙ্গিত করে যা আর নেই — গেস্ট শুরু হলে এটি এড়িয়ে যাওয়া হয়।",
+      "de": "%1$d eigener Mount zeigt auf einen nicht mehr vorhandenen Pfad — er wird beim Start des Gastes übersprungen.",
+      "es": "%1$d montaje propio apunta a una ruta que ya no existe — se omite al iniciar el invitado.",
+      "fr": "%1$d montage personnel pointe vers un chemin qui n’existe plus — il est ignoré au démarrage de l’invité.",
+      "hi": "%1$d कस्टम माउंट एक ऐसे पथ को दर्शाता है जो अब मौजूद नहीं है — गेस्ट शुरू होते समय यह छोड़ दिया जाता है।",
+      "ja": "%1$d のカスタマウントが存在しないパスを指定しています — ゲストの起動時にスキップされます。",
+      "ko": "%1$d개의 사용자 마운트가 더 이상 존재하지 않는 경로를 가리킵니다 — 게스트 시작 시 무시됩니다.",
+      "pt": "%1$d montagem própria aponta para um caminho que não existe mais — é ignorada ao iniciar o convidado.",
+      "ru": "%1$d собственных монтирований указывают на несуществующий путь — при запуске гостя оно пропускается.",
+      "sr": "%1$d посебних монтирања показује на путању које више не постоји — прескаче се при покретању госта.",
+      "zh": "%1$d 个自定义挂载指向的路径已不存在 — 启动客机环境时将跳过。"
+     }
+    },
+    {
+     "name": "app_desktop_custom_binds_stale_row",
+     "en": "This path no longer exists on the device — the mount is skipped when the guest starts.",
+     "comment": "Desktop manager: custom bind mounts (#301)",
+     "args": [],
+     "t": {
+      "ar": "لم يعد هذا المسار موجودًا على الجهاز — يتم تجاهل نقطة التركيب عند بدء تشغيل الضيف.",
+      "bn": "এই পাথটি ডিভাইসে আর নেই — গেস্ট শুরু হলে এই মাউন্টটি এড়িয়ে যাওয়া হয়।",
+      "de": "Dieser Pfad existiert nicht mehr auf dem Gerät — der Mount wird beim Start des Gastes übersprungen.",
+      "es": "Esta ruta ya no existe en el dispositivo — el montaje se omite al iniciar el invitado.",
+      "fr": "Ce chemin n’existe plus sur l’appareil — le montage est ignoré au démarrage de l’invité.",
+      "hi": "यह पथ डिवाइस पर अब मौजूद नहीं है — गेस्ट शुरू होते समय यह माउंट छोड़ दिया जाता है।",
+      "ja": "このパスはデバイス上に存在しません — ゲストの起動時にスキップされます。",
+      "ko": "이 경로가 기기에 더 이상 존재하지 않습니다 — 게스트 시작 시 무시됩니다.",
+      "pt": "Este caminho não existe mais no dispositivo — a montagem é ignorada ao iniciar o convidado.",
+      "ru": "Этот путь более не существует на устройстве — монтирование пропускается при запуске гостя.",
+      "sr": "Ова путања више не постоји на уређају — монтирање ће бити прескочено при покретању госта.",
+      "zh": "此路径在设备上已不存在 — 启动客机环境时将跳过此挂载。"
+     }
+    },
+    {
      "name": "app_desktop_import_rootfs",
      "en": "Import rootfs…",
      "comment": "Desktop manager: import custom rootfs (#284)",

@@ -133,6 +133,8 @@
     <string name="app_desktop_custom_binds_empty">No custom mounts. Add one to expose an Android path in the guest.</string>
     <string name="app_desktop_custom_binds_remove_cd">Remove mount</string>
     <string name="app_desktop_custom_binds_takes_effect">Applies on the next shell, command, or desktop start for this distro.</string>
+    <string name="app_desktop_custom_binds_stale">%1$d custom mount points at a path that no longer exists — it is skipped when the guest starts.</string>
+    <string name="app_desktop_custom_binds_stale_row">This path no longer exists on the device — the mount is skipped when the guest starts.</string>
     <!-- Desktop manager: import custom rootfs (#284) -->
     <string name="app_desktop_import_rootfs">Import rootfs…</string>
     <string name="app_desktop_options_section">Options &amp; mounts</string>

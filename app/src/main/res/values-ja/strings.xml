@@ -279,6 +279,8 @@
     <string name="app_desktop_custom_binds_empty">カスタムマウントはまだありません。追加すると Android パスをゲスト内に公開できます。</string>
     <string name="app_desktop_custom_binds_remove_cd">マウントを削除</string>
     <string name="app_desktop_custom_binds_takes_effect">このディストリビューションで次にシェル、コマンド、またはデスクトップを起動したときに適用されます。</string>
+    <string name="app_desktop_custom_binds_stale">%1$d のカスタマウントが存在しないパスを指定しています — ゲストの起動時にスキップされます。</string>
+    <string name="app_desktop_custom_binds_stale_row">このパスはデバイス上に存在しません — ゲストの起動時にスキップされます。</string>
     <string name="app_desktop_import_rootfs">rootfs をインポート…</string>
     <string name="app_desktop_options_section">オプションとマウント</string>
     <string name="app_desktop_open_usb_drive">USB ドライブを開く…</string>

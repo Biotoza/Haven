@@ -279,6 +279,8 @@
     <string name="app_desktop_custom_binds_empty">Aucun montage personnalisé. Ajoutez-en un pour exposer un chemin Android dans le guest.</string>
     <string name="app_desktop_custom_binds_remove_cd">Supprimer le montage</string>
     <string name="app_desktop_custom_binds_takes_effect">S\'applique au prochain démarrage d\'un shell, d\'une commande ou d\'un bureau pour cette distribution.</string>
+    <string name="app_desktop_custom_binds_stale">%1$d montage personnel pointe vers un chemin qui n’existe plus — il est ignoré au démarrage de l’invité.</string>
+    <string name="app_desktop_custom_binds_stale_row">Ce chemin n’existe plus sur l’appareil — le montage est ignoré au démarrage de l’invité.</string>
     <string name="app_desktop_import_rootfs">Importer un rootfs…</string>
     <string name="app_desktop_options_section">Options et montages</string>
     <string name="app_desktop_open_usb_drive">Ouvrir un lecteur USB…</string>

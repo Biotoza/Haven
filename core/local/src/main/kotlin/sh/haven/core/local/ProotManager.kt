@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import sh.haven.core.data.repository.ProotInstallLogRepository
 import sh.haven.core.local.proot.Arch
 import sh.haven.core.local.proot.CustomBind
+import sh.haven.core.local.proot.bindHostPresent
 import sh.haven.core.local.proot.DesktopCatalog
 import sh.haven.core.local.proot.downloadCleartextFallback
 import sh.haven.core.local.proot.downloadViaPlatform
@@ -651,9 +652,15 @@ class ProotManager @Inject constructor(
         _customBindsRev.value++
     }
 
-    /** Custom binds for [distroId] as proot short-form args (`-b spec …`). */
+    /**
+     * Custom binds for [distroId] as proot short-form args (`-b spec …`).
+     * Binds whose Android host path no longer exists are dropped (#760) —
+     * passing them through only makes proot warn on every launch while the
+     * mount silently no-ops. The drop is logged so a bind that quietly stopped
+     * working is at least traceable; the Manage UI shows the stale ones.
+     */
     fun customBindShortArgs(distroId: String): List<String> =
-        customBinds(distroId).flatMap { listOf("-b", it.spec()) }
+        validCustomBinds(distroId).flatMap { listOf("-b", it.spec()) }
 
     /**
      * Shared-storage binds as proot short-form args (`-b spec …`), or empty when
@@ -681,9 +688,26 @@ class ProotManager @Inject constructor(
             emptyList()
         }
 
-    /** Custom binds for [distroId] as proot long-form args (`--bind=spec`). */
+    /** Custom binds for [distroId] as proot long-form args (`--bind=spec`); see [customBindShortArgs] for the #760 drop. */
     fun customBindLongArgs(distroId: String): List<String> =
-        customBinds(distroId).map { "--bind=${it.spec()}" }
+        validCustomBinds(distroId).map { "--bind=${it.spec()}" }
+
+    /**
+     * [customBinds] minus the ones whose Android host path is gone (#760).
+     * The dropped binds are logged once per launch so a mount that silently
+     * stopped working (the usual cause: a path under Android's random
+     * `/data/app/~~<random>/` install dir, which changes on every update) can
+     * be found in logcat; the Manage UI surfaces them too.
+     */
+    private fun validCustomBinds(distroId: String): List<CustomBind> {
+        val all = customBinds(distroId)
+        val (keep, drop) = all.partition { bindHostPresent(it.host) }
+        if (drop.isNotEmpty()) {
+            Log.w(TAG, "dropping ${drop.size} custom bind(s) for $distroId whose host path is gone: " +
+                drop.joinToString("; ") { it.spec() })
+        }
+        return keep
+    }
 
     /**
      * Distros that are installed on this device — derived from the

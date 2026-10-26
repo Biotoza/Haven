@@ -289,6 +289,8 @@
     <string name="app_desktop_custom_binds_empty">사용자 지정 마운트가 없습니다. 추가하면 Android 경로를 게스트에 노출할 수 있습니다.</string>
     <string name="app_desktop_custom_binds_remove_cd">마운트 제거</string>
     <string name="app_desktop_custom_binds_takes_effect">이 배포판에서 다음에 셸, 명령 또는 데스크톱을 시작할 때 적용됩니다.</string>
+    <string name="app_desktop_custom_binds_stale">%1$d개의 사용자 마운트가 더 이상 존재하지 않는 경로를 가리킵니다 — 게스트 시작 시 무시됩니다.</string>
+    <string name="app_desktop_custom_binds_stale_row">이 경로가 기기에 더 이상 존재하지 않습니다 — 게스트 시작 시 무시됩니다.</string>
     <string name="app_desktop_import_rootfs">rootfs 가져오기…</string>
     <string name="app_desktop_options_section">옵션 및 마운트</string>
     <string name="app_desktop_open_usb_drive">USB 드라이브 열기…</string>

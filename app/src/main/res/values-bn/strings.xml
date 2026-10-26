@@ -279,6 +279,8 @@
     <string name="app_desktop_custom_binds_empty">কোনো কাস্টম মাউন্ট নেই। গেস্টে একটি Android পাথ প্রকাশ করতে একটি যোগ করুন।</string>
     <string name="app_desktop_custom_binds_remove_cd">মাউন্ট সরান</string>
     <string name="app_desktop_custom_binds_takes_effect">এই distro-র পরবর্তী শেল, কমান্ড বা ডেস্কটপ চালুর সময় প্রযোজ্য হয়।</string>
+    <string name="app_desktop_custom_binds_stale">%1$d কাস্টম মাউন্ট এমন একটি পাথের দিকে ইঙ্গিত করে যা আর নেই — গেস্ট শুরু হলে এটি এড়িয়ে যাওয়া হয়।</string>
+    <string name="app_desktop_custom_binds_stale_row">এই পাথটি ডিভাইসে আর নেই — গেস্ট শুরু হলে এই মাউন্টটি এড়িয়ে যাওয়া হয়।</string>
     <string name="app_desktop_import_rootfs">rootfs ইমপোর্ট করুন…</string>
     <string name="app_desktop_options_section">অপশন ও মাউন্ট</string>
     <string name="app_desktop_open_usb_drive">USB ড্রাইভ খুলুন…</string>

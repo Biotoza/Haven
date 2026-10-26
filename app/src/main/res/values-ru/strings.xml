@@ -285,6 +285,8 @@
     <string name="app_desktop_custom_binds_empty">Своих точек монтирования нет. Добавьте одну, чтобы открыть путь Android в гостевой системе.</string>
     <string name="app_desktop_custom_binds_remove_cd">Удалить монтирование</string>
     <string name="app_desktop_custom_binds_takes_effect">Применяется при следующем запуске shell, команды или рабочего стола этого дистрибутива.</string>
+    <string name="app_desktop_custom_binds_stale">%1$d собственных монтирований указывают на несуществующий путь — при запуске гостя оно пропускается.</string>
+    <string name="app_desktop_custom_binds_stale_row">Этот путь более не существует на устройстве — монтирование пропускается при запуске гостя.</string>
     <string name="app_desktop_import_rootfs">Импортировать rootfs…</string>
     <string name="app_desktop_options_section">Параметры и точки монтирования</string>
     <string name="app_desktop_open_usb_drive">Открыть USB-накопитель…</string>

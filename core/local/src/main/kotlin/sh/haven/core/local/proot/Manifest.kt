@@ -65,6 +65,16 @@ data class CustomBind(val host: String, val guest: String = "") {
     }
 }
 
+/**
+ * Whether a custom bind's Android host path currently exists (#760). A bind
+ * whose host is gone — typically anything under `/data/app/~~<random>/`, which
+ * Android re-randomises on every package update — makes proot log
+ * "can't sanitize binding" on every launch while the mount silently does
+ * nothing, so the launch paths drop these instead of passing them through.
+ */
+fun bindHostPresent(host: String): Boolean =
+    host.isNotBlank() && java.io.File(host).exists()
+
 /** Package management family. Each distro picks exactly one. */
 enum class PackageFamily {
     APK,      // Alpine, postmarketOS

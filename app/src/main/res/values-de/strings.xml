@@ -279,6 +279,8 @@
     <string name="app_desktop_custom_binds_empty">Keine eigenen Mounts. Füge einen hinzu, um einen Android-Pfad im Gast bereitzustellen.</string>
     <string name="app_desktop_custom_binds_remove_cd">Mount entfernen</string>
     <string name="app_desktop_custom_binds_takes_effect">Gilt ab dem nächsten Start einer Shell, eines Befehls oder eines Desktops für diese Distribution.</string>
+    <string name="app_desktop_custom_binds_stale">%1$d eigener Mount zeigt auf einen nicht mehr vorhandenen Pfad — er wird beim Start des Gastes übersprungen.</string>
+    <string name="app_desktop_custom_binds_stale_row">Dieser Pfad existiert nicht mehr auf dem Gerät — der Mount wird beim Start des Gastes übersprungen.</string>
     <string name="app_desktop_import_rootfs">Rootfs importieren…</string>
     <string name="app_desktop_options_section">Optionen &amp; Mounts</string>
     <string name="app_desktop_open_usb_drive">USB-Laufwerk öffnen…</string>
