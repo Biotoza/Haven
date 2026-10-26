@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.58
+
+- **The download is about 85 MB smaller (#762).** The UML kernel and the Go library were shipped with their debug information attached, because the build's automatic strip pass only covers libraries it compiles itself — prebuilt ones are packaged as they arrive. Both are now stripped in the scripts that fetch and build them. The kernel library goes from 79 MB to 9 MB and the Go library from 153 MB to 124 MB on disk, and since both are stored uncompressed in the APK that saving lands directly on the download. Behaviour is unchanged: the stripped kernel boots a guest and the stripped Go library serves the same features, verified on device.
+
 ## v5.89.57
 
 - **The MCP tool switches are grouped by category, and a whole category can be toggled at once (#755).** Settings → MCP Tools now lists the switches under headings (terminal, files, desktop, sensors, and so on), each with a master switch and an "N off" count, instead of one long flat list.
