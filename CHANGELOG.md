@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.57
+
+- **The MCP tool switches are grouped by category, and a whole category can be toggled at once (#755).** Settings → MCP Tools now lists the switches under headings (terminal, files, desktop, sensors, and so on), each with a master switch and an "N off" count, instead of one long flat list.
+- **A custom proot bind whose Android path no longer exists is skipped instead of silently failing (#760).** Android re-randomises its install directory on every app update, so a bind pointing under it broke on the next update and then warned on every guest launch while doing nothing. Stale binds are now dropped before the guest starts, named in the launch log, and marked in red in the custom-binds dialog.
+
 ## v5.89.56
 
 - **Four more sources of terminal row corruption fixed (#749).**
