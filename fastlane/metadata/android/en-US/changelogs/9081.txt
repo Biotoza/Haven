@@ -1,0 +1,3 @@
+The MCP tool switches are grouped by category, and a whole category can be toggled at once (#755). Each heading gets a master switch and an "N off" count, instead of one long flat list.
+
+A custom proot bind whose Android path no longer exists is now skipped instead of failing silently (#760). Android re-randomises its install directory on every update, so such a bind broke and warned on every guest launch while doing nothing. Stale binds are dropped before the guest starts and marked in red.
