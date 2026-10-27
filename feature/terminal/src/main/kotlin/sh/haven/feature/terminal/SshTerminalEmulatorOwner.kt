@@ -186,7 +186,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             sshSessionManager.sessions.collect { map ->
                 bundles.keys.filter { id ->
                     val s = map[id]
-                    s == null || (s.shellChannel == null && s.terminalSession == null)
+                    s == null || (s.tunnelOpened && s.shellChannel == null && s.terminalSession == null)
                 }.forEach { dispose(it) }
             }
         }

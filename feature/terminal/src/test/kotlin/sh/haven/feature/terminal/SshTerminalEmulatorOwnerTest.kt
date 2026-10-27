@@ -136,6 +136,45 @@ class SshTerminalEmulatorOwnerTest {
         ambiwidthFlow.tryEmit(UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE)
         Thread.sleep(50)
 
-        verify(exactly = 1) { emulator.setAmbiwidthMode(AmbiwidthMode.AUTO_WIDE, any()) }
+        verify(timeout = 2_000, exactly = 1) { emulator.setAmbiwidthMode(AmbiwidthMode.AUTO_WIDE, any()) }
+    }
+
+    @Test
+    fun `closeShellOnly transition to shell-less tunnel carrier disposes bundle`() {
+        val sessionsFlow = MutableStateFlow(
+            mapOf("s1" to state("s1").copy(shellChannel = mockk(relaxed = true))),
+        )
+        val registry = TerminalSessionRegistry()
+        val ssh = mockk<SshSessionManager>(relaxed = true) {
+            every { this@mockk.sessions } returns sessionsFlow
+        }
+        val repo = mockk<ConnectionRepository>(relaxed = true) {
+            every { observeAll() } returns flowOf(emptyList())
+        }
+        val prefs = mockk<UserPreferencesRepository>(relaxed = true) {
+            every { verboseLoggingEnabled } returns flowOf(false)
+            every { terminalScrollbackRows } returns flowOf(UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS)
+            every { terminalColorScheme } returns flowOf(UserPreferencesRepository.TerminalColorScheme.HAVEN)
+            every { terminalBellNotification } returns flowOf(true)
+            every { terminalInlineImages } returns flowOf(UserPreferencesRepository.TerminalInlineImages.ASK)
+            every { terminalAmbiwidthMode } returns flowOf(UserPreferencesRepository.TerminalAmbiwidthMode.NARROW)
+        }
+        val owner = SshTerminalEmulatorOwner(ssh, repo, mockk(relaxed = true), prefs, registry, InlineImageConsentRegistry())
+        owner.emulatorFactory = SshTerminalEmulatorOwner.EmulatorFactory { _, _, _, _, _, _, _, _ -> mockk(relaxed = true) }
+        owner.start()
+        owner.attach("s1")
+        assertNotNull(owner.bundleFor("s1"))
+
+        // Simulate closeShellOnly (#764): session remains in map as a tunnel carrier
+        // (tunnelOpened = true) with shellChannel and terminalSession cleared.
+        sessionsFlow.value = mapOf(
+            "s1" to state("s1").copy(tunnelOpened = true, shellChannel = null, terminalSession = null),
+        )
+        val deadline = System.currentTimeMillis() + 2_000
+        while ((owner.bundleFor("s1") != null || registry.get("s1") != null) && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20)
+        }
+        assertNull("bundle disposed when session becomes shell-less tunnel carrier", owner.bundleFor("s1"))
+        assertNull("registry entry cleared when session becomes shell-less tunnel carrier", registry.get("s1"))
     }
 }
