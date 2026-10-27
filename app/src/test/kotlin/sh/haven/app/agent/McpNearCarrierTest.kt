@@ -97,4 +97,17 @@ class McpNearCarrierTest {
         assertEquals(NearCarrierDecision.NoInteractiveSession("p1"), decision)
         assertNull((decision as? NearCarrierDecision.ShouldApplyTo)?.session)
     }
+
+    @Test
+    fun `keeps riding currentAppliedSessionId when an earlier session in map order also becomes CONNECTED`() {
+        val s1 = session(sessionId = "s1", profileId = "p1")
+        val s2 = session(sessionId = "s2", profileId = "p1")
+        // Map iteration order has s1 first, but s2 is already carrying MCP.
+        // When s1 finishes reconnecting and becomes CONNECTED alongside s2,
+        // decideNearCarrier must stay on s2 instead of hopping back to s1
+        // and triggering a self-heal kill loop between the two sessions.
+        val sessions = linkedMapOf(s1.sessionId to s1, s2.sessionId to s2)
+        val decision = decideNearCarrier("p1", sessions, currentAppliedSessionId = s2.sessionId)
+        assertEquals(NearCarrierDecision.AlreadyRiding(s2), decision)
+    }
 }

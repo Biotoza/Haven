@@ -101,6 +101,7 @@ class ConnectionsViewModelSessionTest {
     // scripts ensureFresh on it — a relaxed default would return a relaxed
     // SshKey and break the row the test means to resolve.
     private lateinit var certRenewalGate: sh.haven.core.stepca.CertRenewalGate
+    private lateinit var desktopSessionRegistry: sh.haven.core.data.desktop.DesktopSessionRegistry
     private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver = mockk(relaxed = true)
     private lateinit var viewModel: ConnectionsViewModel
 
@@ -109,6 +110,7 @@ class ConnectionsViewModelSessionTest {
         Dispatchers.setMain(testDispatcher)
 
         appContext = mockk(relaxed = true)
+        desktopSessionRegistry = sh.haven.core.data.desktop.DesktopSessionRegistry()
         repository = mockk(relaxed = true) {
             every { observeAll() } returns flowOf(emptyList())
         }
@@ -269,9 +271,7 @@ class ConnectionsViewModelSessionTest {
                 every { observeAll() } returns flowOf(emptyList())
             },
             certRenewalGate = certRenewalGate,
-            desktopSessionRegistry = mockk(relaxed = true) {
-                every { statuses } returns kotlinx.coroutines.flow.MutableStateFlow(emptyMap())
-            },
+            desktopSessionRegistry = desktopSessionRegistry,
             agentUiCommandBus = mockk(relaxed = true) {
                 every { commands } returns kotlinx.coroutines.flow.MutableSharedFlow()
             },
@@ -321,6 +321,16 @@ class ConnectionsViewModelSessionTest {
         viewModel.disconnect("profile1")
 
         verify { desktopManager.stopAll() }
+    }
+
+    @Test
+    fun `disconnect invokes desktopSessionRegistry closeHandle for direct desktop sessions`() {
+        var closed = false
+        desktopSessionRegistry.registerCloseHandle("vnc-direct") { closed = true }
+
+        viewModel.disconnect("vnc-direct")
+
+        org.junit.Assert.assertTrue("Direct VNC/RDP/SPICE closeHandle must be invoked on disconnect", closed)
     }
 
     @Test

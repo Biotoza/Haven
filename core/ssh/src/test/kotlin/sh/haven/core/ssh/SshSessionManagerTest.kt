@@ -496,6 +496,67 @@ class SshSessionManagerTest {
         verify(timeout = 1000, exactly = 1) { ca.disconnect() }
     }
 
+    @Test
+    fun `removing last jump dependent tears down jump host whose shell was closed`() {
+        // After jump host A's terminal tab is closed via closeShellOrRemoveSession (#764),
+        // A stays alive only as a jump carrier for B. Once B is removed, A must also
+        // be torn down so it does not stay stuck CONNECTED with no terminal tab.
+        val ca = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val cb = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val shell = mockk<ShellChannel>(relaxed = true) { every { isConnected } returns true }
+        val term = mockk<TerminalSession>(relaxed = true)
+        val a = manager.registerSession("jump", "A", ca)
+        manager.updateStatus(a, SshSessionManager.SessionState.Status.CONNECTED)
+        manager.attachShellChannel(a, shell)
+        manager.attachTerminalSession(a, term)
+
+        val b = manager.registerSession("leaf", "B", cb)
+        manager.setJumpSessionId(b, a)
+        manager.updateStatus(b, SshSessionManager.SessionState.Status.CONNECTED)
+
+        manager.closeShellOrRemoveSession(a)
+        assertNotNull("A stays alive while B rides it", manager.getSession(a))
+
+        manager.closeShellOrRemoveSession(b)
+
+        assertNull("B should be removed", manager.getSession(b))
+        assertNull("jump host A should be torn down once its last dependent B closes", manager.getSession(a))
+        verify(timeout = 1000, exactly = 1) { ca.disconnect() }
+        verify(timeout = 1000, exactly = 1) { cb.disconnect() }
+    }
+
+    @Test
+    fun `removeAllSessionsForProfile cascades to jump dependents and fires lease parentGone`() {
+        val ca = mockk<SshClient>(relaxed = true)
+        val cb = mockk<SshClient>(relaxed = true)
+        val a = manager.registerSession("jump-profile", "A", ca)
+        val b = manager.registerSession("leaf-profile", "B", cb)
+        manager.setJumpSessionId(b, a)
+        var fired = 0
+        manager.acquireTunnelLease(a, "vnc-1", localForwardPort = null) { fired++ }
+
+        manager.removeAllSessionsForProfile("jump-profile")
+
+        assertNull("jump session A must be removed", manager.getSession(a))
+        assertNull("dependent session B must cascade-remove", manager.getSession(b))
+        assertEquals("tunnel lease on A must fire onParentGone", 1, fired)
+        verify(timeout = 1000, exactly = 1) { ca.disconnect() }
+        verify(timeout = 1000, exactly = 1) { cb.disconnect() }
+    }
+
+    @Test
+    fun `tearDown disconnects shared client when only DISCONNECTED sibling remains`() {
+        val shared = mockk<SshClient>(relaxed = true)
+        val s1 = manager.registerSession("p1", "primary", shared)
+        val s2 = manager.registerSession("p1", "reused", shared)
+        manager.updateStatus(s1, SshSessionManager.SessionState.Status.DISCONNECTED)
+        manager.updateStatus(s2, SshSessionManager.SessionState.Status.CONNECTED)
+
+        manager.removeSession(s2)
+
+        verify(timeout = 1000, exactly = 1) { shared.disconnect() }
+    }
+
     // --- #150 reconnect policy gating -----------------------------------
 
     @Test
@@ -880,6 +941,137 @@ class SshSessionManagerTest {
 
         assertNotNull(manager.getSession(other))
         assertNotNull(manager.getSession(fresh))
+    }
+
+    @Test
+    fun `headless session does not mark profile connected or get removed by user profile disconnect`() {
+        val headlessClient = mockk<SshClient>(relaxed = true)
+        val headlessSid = manager.registerSession("p1", "MCP tunnel", headlessClient, headless = true)
+        manager.updateStatus(headlessSid, SshSessionManager.SessionState.Status.CONNECTED)
+
+        assertFalse("headless tunnel must not mark user profile connected", manager.isProfileConnected("p1"))
+        assertNull("headless tunnel must not report user profile status", manager.getProfileStatus("p1"))
+        assertTrue("getSessionsForProfile excludes headless by default", manager.getSessionsForProfile("p1").isEmpty())
+
+        manager.removeAllSessionsForProfile("p1")
+        assertNotNull("user profile disconnect must not kill background headless tunnel", manager.getSession(headlessSid))
+    }
+
+    @Test
+    fun `applyPortForwards with selfHealOnBindFailure strips same remote port from sibling session activeForwards`() {
+        val c1 = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val c2 = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val s1 = manager.registerSession("p1", "Tab 1", c1)
+        val s2 = manager.registerSession("p1", "Tab 2", c2)
+        manager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+        manager.updateStatus(s2, SshSessionManager.SessionState.Status.CONNECTED)
+
+        val selfHealFwd = criticalRemoteForward(8730).copy(critical = false, selfHealOnBindFailure = true)
+        assertTrue(manager.applyPortForwards(s1, listOf(selfHealFwd)))
+        assertEquals(1, manager.getSession(s1)!!.activeForwards.size)
+
+        // When MCP carrier moves to s2, s1 must lose the forward from activeForwards
+        // so a later reconnect of s1 does not re-bind :8730 and kill s2's sshd.
+        assertTrue(manager.applyPortForwards(s2, listOf(selfHealFwd)))
+        assertEquals(1, manager.getSession(s2)!!.activeForwards.size)
+        assertTrue(
+            "s1 must no longer carry mcp-reverse-tunnel in activeForwards",
+            manager.getSession(s1)!!.activeForwards.none { it.bindPort == 8730 },
+        )
+        verify { c1.delPortForwardingR(8730) }
+    }
+
+    @Test
+    fun `removeSession tears down immediately without blocking behind an in-flight reconnect`() {
+        val reconnectingClient = mockk<SshClient>(relaxed = true)
+        val victimClient = mockk<SshClient>(relaxed = true)
+        val s1 = manager.registerSession("p1", "Reconnecting", reconnectingClient)
+        manager.storeConnectionConfig(s1, configWithPolicy(autoReconnect = true), SessionManager.NONE)
+        manager.updateStatus(s1, SshSessionManager.SessionState.Status.DISCONNECTED)
+
+        val s2 = manager.registerSession("p2", "Victim", victimClient)
+        manager.updateStatus(s2, SshSessionManager.SessionState.Status.CONNECTED)
+
+        // Start reconnect on s1 (sleeps 2000ms on reconnect executor).
+        manager.requestReconnect(s1)
+        Thread.sleep(100)
+
+        // Removing s2 (and s1) must tear down within 300ms, not wait 2000ms for s1's sleep.
+        manager.removeSession(s2)
+        manager.removeSession(s1)
+
+        verify(timeout = 400, exactly = 1) { victimClient.disconnect() }
+        verify(timeout = 400, exactly = 1) { reconnectingClient.disconnect() }
+    }
+
+    @Test
+    fun `attemptReconnect disconnects newClient and does not resurrect session when removeSession races mid-dial`() {
+        val oldClient = mockk<SshClient>(relaxed = true)
+        val newClient = mockk<SshClient>(relaxed = true)
+        val dialStarted = java.util.concurrent.CountDownLatch(1)
+        val finishDial = java.util.concurrent.CountDownLatch(1)
+
+        every {
+            newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any())
+        } answers {
+            dialStarted.countDown()
+            try {
+                finishDial.await(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (_: InterruptedException) {
+                // removeSession interrupts the reconnect thread; simulate connectBlocking
+                // either returning just as removeSession raced or throwing on interrupt.
+            }
+            null
+        }
+        manager.reconnectInitialDelayMs = 10L
+        manager.reconnectClientFactory = { newClient }
+
+        val s1 = manager.registerSession("p1", "Server", oldClient)
+        manager.storeConnectionConfig(s1, configWithPolicy(autoReconnect = true), SessionManager.NONE)
+        manager.updateStatus(s1, SshSessionManager.SessionState.Status.DISCONNECTED)
+
+        manager.requestReconnect(s1)
+        assertTrue("reconnect should enter connectBlocking", dialStarted.await(2, java.util.concurrent.TimeUnit.SECONDS))
+
+        // User removes the session while connectBlocking is in flight.
+        manager.removeSession(s1)
+        finishDial.countDown()
+
+        verify(timeout = 1000, exactly = 1) { oldClient.disconnect() }
+        verify(timeout = 1000, atLeast = 1) { newClient.disconnect() }
+        assertNull("removed session must not be resurrected", manager.getSession(s1))
+    }
+
+    @Test
+    fun `applyPortForwards skips LOCAL and non-self-heal REMOTE forwards already bound on a connected sibling session`() {
+        val c1 = mockk<SshClient>(relaxed = true) {
+            every { isConnected } returns true
+            every { setPortForwardingL(any(), any(), any(), any()) } answers { secondArg() }
+        }
+        val c2 = mockk<SshClient>(relaxed = true) {
+            every { isConnected } returns true
+        }
+        val s1 = manager.registerSession("p1", "Tab 1", c1)
+        val s2 = manager.registerSession("p1", "Tab 2", c2)
+        manager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+        manager.updateStatus(s2, SshSessionManager.SessionState.Status.CONNECTED)
+
+        val localFwd = SshSessionManager.PortForwardInfo(
+            ruleId = "local-2222",
+            type = SshSessionManager.PortForwardType.LOCAL,
+            bindAddress = "127.0.0.1",
+            bindPort = 2222,
+            targetHost = "127.0.0.1",
+            targetPort = 22,
+        )
+        assertTrue(manager.applyPortForwards(s1, listOf(localFwd)))
+        assertEquals(1, manager.getSession(s1)!!.activeForwards.size)
+
+        // Applying the same local port forward to s2 while s1 is CONNECTED must
+        // skip it immediately instead of colliding in bindLocalWithRetry (3s per rule).
+        assertTrue(manager.applyPortForwards(s2, listOf(localFwd)))
+        verify(exactly = 0) { c2.setPortForwardingL(any(), eq(2222), any(), any()) }
+        assertTrue(manager.getSession(s2)!!.activeForwards.isEmpty())
     }
 
     private fun configWithPolicy(

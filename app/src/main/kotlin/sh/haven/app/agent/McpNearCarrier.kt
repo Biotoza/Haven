@@ -96,12 +96,19 @@ class McpNearCarrier @Inject constructor(
         mcpPort: Int,
         tunneledPort: Int,
     ) {
-        when (val decision = decideNearCarrier(profileId, sessions, appliedSessionId)) {
+        val prevId = appliedSessionId
+        when (val decision = decideNearCarrier(profileId, sessions, prevId)) {
             is NearCarrierDecision.NoProfileConfigured -> {
+                if (prevId != null) {
+                    sshSessionManager.forgetPortForward(prevId, MCP_REVERSE_TUNNEL_RULE_ID)
+                }
                 appliedSessionId = null
                 mcpStatusHolder.setNearCarrier(NearCarrierStatus())
             }
             is NearCarrierDecision.NoInteractiveSession -> {
+                if (prevId != null) {
+                    sshSessionManager.forgetPortForward(prevId, MCP_REVERSE_TUNNEL_RULE_ID)
+                }
                 appliedSessionId = null
                 val label = connectionRepository.getById(decision.profileId)?.label
                 mcpStatusHolder.setNearCarrier(
@@ -111,8 +118,11 @@ class McpNearCarrier @Inject constructor(
             is NearCarrierDecision.AlreadyRiding -> { /* nothing to do */ }
             is NearCarrierDecision.ShouldApplyTo -> {
                 val session = decision.session
+                if (prevId != null && prevId != session.sessionId) {
+                    sshSessionManager.forgetPortForward(prevId, MCP_REVERSE_TUNNEL_RULE_ID)
+                }
                 val forward = SshSessionManager.PortForwardInfo(
-                    ruleId = "mcp-reverse-tunnel",
+                    ruleId = MCP_REVERSE_TUNNEL_RULE_ID,
                     type = SshSessionManager.PortForwardType.REMOTE,
                     bindAddress = "127.0.0.1",
                     bindPort = mcpPort,
@@ -123,14 +133,24 @@ class McpNearCarrier @Inject constructor(
                     critical = false,
                     selfHealOnBindFailure = true,
                 )
-                val ok = sshSessionManager.applyPortForwards(session.sessionId, listOf(forward))
+                // Mark appliedSessionId before applyPortForwards mutates _sessions
+                // via recordActiveForward; otherwise collectLatest cancels reconcile
+                // while recordTunnelSshPid is still running and re-invokes
+                // applyPortForwards on the same session a second time.
+                appliedSessionId = session.sessionId
+                val ok = try {
+                    sshSessionManager.applyPortForwards(session.sessionId, listOf(forward))
+                } catch (t: Throwable) {
+                    appliedSessionId = null
+                    throw t
+                }
                 if (ok) {
-                    appliedSessionId = session.sessionId
                     Log.i(TAG, "MCP now riding the interactive session for ${LogRedact.of(session.label)} (-R $mcpPort)")
                     mcpStatusHolder.setNearCarrier(
                         NearCarrierStatus(active = true, profileId = session.profileId, profileLabel = session.label),
                     )
                 } else {
+                    appliedSessionId = null
                     Log.w(TAG, "MCP forward failed to bind on the interactive session for ${LogRedact.of(session.label)} — leaving MCP-over-near down")
                     mcpStatusHolder.setNearCarrier(
                         NearCarrierStatus(active = false, profileId = session.profileId, profileLabel = session.label),
@@ -138,6 +158,10 @@ class McpNearCarrier @Inject constructor(
                 }
             }
         }
+    }
+
+    private companion object {
+        const val MCP_REVERSE_TUNNEL_RULE_ID = "mcp-reverse-tunnel"
     }
 }
 
@@ -164,14 +188,23 @@ internal fun decideNearCarrier(
     currentAppliedSessionId: String?,
 ): NearCarrierDecision {
     if (profileId.isNullOrBlank()) return NearCarrierDecision.NoProfileConfigured
+    // Prefer staying on currentAppliedSessionId while it remains an eligible
+    // CONNECTED session for profileId. Otherwise, when a second session earlier
+    // in map iteration order finishes reconnecting alongside currentAppliedSessionId,
+    // firstOrNull would hop back to the earlier session and trigger a self-heal
+    // bind duel between the two sessions.
+    val current = currentAppliedSessionId?.let { sessions[it] }
+    if (current != null &&
+        current.profileId == profileId &&
+        !current.headless &&
+        current.status == SshSessionManager.SessionState.Status.CONNECTED
+    ) {
+        return NearCarrierDecision.AlreadyRiding(current)
+    }
     val session = sessions.values.firstOrNull {
         it.profileId == profileId &&
             !it.headless &&
             it.status == SshSessionManager.SessionState.Status.CONNECTED
     } ?: return NearCarrierDecision.NoInteractiveSession(profileId)
-    return if (session.sessionId == currentAppliedSessionId) {
-        NearCarrierDecision.AlreadyRiding(session)
-    } else {
-        NearCarrierDecision.ShouldApplyTo(session)
-    }
+    return NearCarrierDecision.ShouldApplyTo(session)
 }

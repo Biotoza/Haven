@@ -142,7 +142,7 @@ class EtSessionManager @Inject constructor(
             clientId = session.clientId,
             passkey = session.passkey,
             onDataReceived = onDataReceived,
-            onDisconnected = { _ ->
+            onDisconnected = { cleanExit ->
                 // ET has no built-in reconnect like Mosh's UDP roaming —
                 // a TCP drop is terminal at the transport layer. App-
                 // level reconnect would re-establish ET with the stored
@@ -155,8 +155,16 @@ class EtSessionManager @Inject constructor(
                 // Not yet implemented; the per-profile autoReconnect flag
                 // from #150 has no effect on ET until that lands.
                 // Track in #150 phase notes.
-                Log.d(TAG, "ET session $sessionId disconnected — TCP drop terminal; user must reconnect manually")
-                updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                Log.d(TAG, "ET session $sessionId disconnected (clean=$cleanExit) — TCP drop terminal; user must reconnect manually")
+                if (cleanExit) {
+                    removeSession(sessionId)
+                } else {
+                    updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                    ioExecutor.execute {
+                        runCatching { session.sshClient?.close() }
+                        runCatching { session.etSession?.close() }
+                    }
+                }
             },
             verboseBuffer = session.verboseBuffer,
         )

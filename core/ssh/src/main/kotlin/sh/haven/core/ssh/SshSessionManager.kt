@@ -334,6 +334,30 @@ class SshSessionManager @Inject constructor(
         Thread(r, "ssh-session-io").apply { isDaemon = true }
     }
 
+    /**
+     * Separate executor for reconnect backoff + network dialing so a long
+     * Thread.sleep or blocking connect in [attemptReconnect] never delays
+     * [removeSession], [closeShellOnly], or [disconnectAll] teardowns queued
+     * on [ioExecutor].
+     */
+    private val reconnectExecutor = Executors.newCachedThreadPool { r ->
+        Thread(r, "ssh-session-reconnect").apply { isDaemon = true }
+    }
+
+    /** Active reconnect threads by sessionId, interrupted immediately on [removeSession] / [disconnectAll]. */
+    private val reconnectThreads = ConcurrentHashMap<String, Thread>()
+
+    /** Sessions explicitly removed via [removeSession] / [disconnectAll] so an in-flight connect can detect cancellation. */
+    private val removedSessionIds = ConcurrentHashMap.newKeySet<String>()
+
+    /** Test seam for creating replacement clients during [attemptReconnect]. */
+    internal var reconnectClientFactory: (ConnectionConfig) -> SshConnection = {
+        SshConnectionFactory.create(it)
+    }
+
+    /** Test seam for initial reconnect delay in [attemptReconnect]. */
+    internal var reconnectInitialDelayMs: Long = RECONNECT_INITIAL_DELAY_MS
+
     val activeSessions: List<SessionState>
         get() = _sessions.value.values.filter {
             it.status == SessionState.Status.CONNECTED ||
@@ -520,15 +544,15 @@ class SshSessionManager @Inject constructor(
                         Log.d(TAG, "Shell for $sessionId exited cleanly while carrying jump/tunnel dependents — keeping SSH transport connected")
                         closeShellOnly(sessionId)
                     } else {
-                        Log.d(TAG, "Session $sessionId exited cleanly — not reconnecting")
-                        updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                        Log.d(TAG, "Session $sessionId exited cleanly — tearing down session")
+                        removeSession(sessionId)
                     }
                 } else {
                     Log.d(TAG, "Session $sessionId disconnected unexpectedly")
                     val sess = _sessions.value[sessionId]
                     val cfg = sess?.connectionConfig
                     if (cfg != null && cfg.reconnectPolicy.autoReconnect) {
-                        ioExecutor.execute { attemptReconnect(sessionId) }
+                        reconnectExecutor.execute { attemptReconnect(sessionId) }
                     } else {
                         if (cfg != null) {
                             Log.d(TAG, "Session $sessionId auto-reconnect disabled by profile policy")
@@ -783,9 +807,12 @@ class SshSessionManager @Inject constructor(
      * legacy transport for servers without an SFTP subsystem.
      */
     fun getSshClientForProfile(profileId: String): SshConnection? {
-        return _sessions.value.values
-            .firstOrNull { it.profileId == profileId && it.status == SessionState.Status.CONNECTED }
-            ?.client
+        val values = _sessions.value.values
+        return (values.firstOrNull {
+            it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
+        } ?: values.firstOrNull {
+            it.profileId == profileId && it.status == SessionState.Status.CONNECTED
+        })?.client
     }
 
     /**
@@ -818,9 +845,11 @@ class SshSessionManager @Inject constructor(
      * session, so it never waits on itself.
      */
     suspend fun awaitReusableClient(profileId: String, timeoutMs: Long = 35_000): SshConnection? {
-        getSshClientForProfile(profileId)?.let { return it }
+        _sessions.value.values.firstOrNull {
+            it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
+        }?.client?.let { return it }
         val pending = _sessions.value.values.firstOrNull {
-            it.profileId == profileId && it.status == SessionState.Status.CONNECTING
+            it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTING
         } ?: return null
         Log.d(TAG, "awaitReusableClient($profileId): waiting on in-flight connect ${pending.sessionId}")
         return withTimeoutOrNull(timeoutMs) {
@@ -828,7 +857,9 @@ class SshSessionManager @Inject constructor(
                 val s = map[pending.sessionId]
                 s == null || s.status != SessionState.Status.CONNECTING
             }
-            getSshClientForProfile(profileId)
+            _sessions.value.values.firstOrNull {
+                it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
+            }?.client
         }
     }
 
@@ -931,7 +962,7 @@ class SshSessionManager @Inject constructor(
         if (session.status == SessionState.Status.CONNECTED) return
         if (session.connectionConfig == null) return
         Log.d(TAG, "requestReconnect: $sessionId (status=${session.status})")
-        ioExecutor.execute { attemptReconnect(sessionId) }
+        reconnectExecutor.execute { attemptReconnect(sessionId) }
     }
 
     /**
@@ -1001,7 +1032,7 @@ class SshSessionManager @Inject constructor(
 
     /**
      * Attempt to reconnect a dropped session with exponential backoff.
-     * Called on the ioExecutor thread.
+     * Called on [reconnectExecutor].
      */
     private fun attemptReconnect(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
@@ -1012,6 +1043,8 @@ class SshSessionManager @Inject constructor(
             Log.d(TAG, "attemptReconnect: $sessionId already in flight — skipping duplicate")
             return
         }
+        val currentThread = Thread.currentThread()
+        reconnectThreads[sessionId] = currentThread
         try {
         updateStatus(sessionId, SessionState.Status.RECONNECTING)
         breadcrumb(session.profileId, "attempt started → ${config.host}:${config.port}")
@@ -1037,12 +1070,12 @@ class SshSessionManager @Inject constructor(
             maxAttempts > 0 -> maxAttempts
             else -> RECONNECT_MAX_ATTEMPTS
         }
-        var delayMs = RECONNECT_INITIAL_DELAY_MS
+        var delayMs = reconnectInitialDelayMs
         var attempt = 0
         while (attempt < attemptCap) {
             attempt++
             // Check if session was removed (user manually disconnected)
-            if (_sessions.value[sessionId] == null) {
+            if (_sessions.value[sessionId] == null || currentThread.isInterrupted) {
                 Log.d(TAG, "Reconnect cancelled for $sessionId — session removed")
                 return
             }
@@ -1056,8 +1089,9 @@ class SshSessionManager @Inject constructor(
             }
 
             // Check again after sleep
-            if (_sessions.value[sessionId] == null) return
+            if (_sessions.value[sessionId] == null || currentThread.isInterrupted) return
 
+            var candidateClient: SshConnection? = null
             try {
                 // Rebuild the routing proxy the same way the initial connect
                 // did. Jump host > per-profile tunnel (WireGuard / Tailscale) /
@@ -1091,17 +1125,20 @@ class SshSessionManager @Inject constructor(
                     }
                 }
 
-                val newClient = SshConnectionFactory.create(config).apply {
+                val previousClient = _sessions.value[sessionId]?.client
+                val previousShell = _sessions.value[sessionId]?.shellChannel
+                val newClient = reconnectClientFactory(config).apply {
                     // Carry FIDO wiring from the client we're replacing so a
                     // security-key profile can re-authenticate on reconnect —
                     // otherwise addFidoIdentity NPEs on the null authenticator.
-                    fidoAuthenticator = _sessions.value[sessionId]?.client?.fidoAuthenticator
-                    openKeychainClients = _sessions.value[sessionId]?.client?.openKeychainClients
+                    fidoAuthenticator = previousClient?.fidoAuthenticator
+                    openKeychainClients = previousClient?.openKeychainClients
                     // Same for security-chip keys: KeystoreSshIdentity needs
                     // the signer, and a reconnect that drops it would fail
                     // with "no HardwareSshKeySigner configured".
-                    hardwareKeySigner = _sessions.value[sessionId]?.client?.hardwareKeySigner
+                    hardwareKeySigner = previousClient?.hardwareKeySigner
                 }
+                candidateClient = newClient
                 val hostKeyEntry = newClient.connectBlocking(
                     config,
                     proxy = proxy,
@@ -1130,10 +1167,45 @@ class SshSessionManager @Inject constructor(
                     Log.i(TAG, "Reconnect $sessionId: host verified by trusted CA")
                 }
 
-                // Update session state with new client
+                // If removeSession() raced while connectBlocking / TOFU was running,
+                // tear down newClient immediately instead of leaking it on the server.
+                if (_sessions.value[sessionId] == null || currentThread.isInterrupted) {
+                    Log.d(TAG, "Session $sessionId removed during reconnect dial — disconnecting newClient")
+                    runCatching { newClient.disconnect() }
+                    return
+                }
+
+                // Capture any connection-reuse sibling sessions that shared previousClient
+                // so they also move onto newClient and reattach their shells.
+                val sharedSiblingIds = if (previousClient != null) {
+                    _sessions.value.values
+                        .filter { it.sessionId != sessionId && it.client === previousClient }
+                        .map { it.sessionId }
+                } else emptyList()
+
+                // Update session state (and any shared siblings) with new client
                 _sessions.update { map ->
                     val existing = map[sessionId] ?: return@update map
-                    map + (sessionId to existing.copy(client = newClient))
+                    var updated = map + (sessionId to existing.copy(client = newClient))
+                    for (sibId in sharedSiblingIds) {
+                        val sib = updated[sibId] ?: continue
+                        updated = updated + (sibId to sib.copy(client = newClient))
+                    }
+                    updated
+                }
+
+                if (_sessions.value[sessionId] == null) {
+                    runCatching { newClient.disconnect() }
+                    return
+                }
+
+                // Disconnect the replaced shell channel and old client so they don't leak.
+                runCatching { if (previousShell?.isConnected == true) previousShell.disconnect() }
+                if (previousClient != null && previousClient !== newClient) {
+                    val stillUsed = _sessions.value.values.any { it.client === previousClient }
+                    if (!stillUsed) {
+                        runCatching { previousClient.disconnect() }
+                    }
                 }
 
                 // Open shell and reconnect terminal — skipped for headless
@@ -1151,6 +1223,11 @@ class SshSessionManager @Inject constructor(
                     (reconnecting.headless != true || reconnecting.terminalSession != null)
                 ) {
                     val channel = newClient.openTerminalChannel(reconnecting.remoteCommand, reconnecting.requestPty)
+                    if (_sessions.value[sessionId] == null || currentThread.isInterrupted) {
+                        runCatching { channel.disconnect() }
+                        runCatching { newClient.disconnect() }
+                        return
+                    }
                     attachShellChannel(sessionId, channel)
 
                     // Swap channel in the terminal session and restart reader
@@ -1165,6 +1242,30 @@ class SshSessionManager @Inject constructor(
                         termSession?.setPendingCommands(pendingCmds)
                     }
                     termSession?.reconnect(channel, newClient)
+                }
+
+                // Reattach shell channels for any connection-reuse sibling sessions
+                // that were sharing previousClient.
+                for (sibId in sharedSiblingIds) {
+                    val sib = _sessions.value[sibId] ?: continue
+                    if (sib.terminalSession != null || sib.shellChannel != null) {
+                        runCatching {
+                            val oldSibShell = sib.shellChannel
+                            val sibChannel = newClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                            attachShellChannel(sibId, sibChannel)
+                            runCatching { if (oldSibShell?.isConnected == true) oldSibShell.disconnect() }
+                            val sibPending = if (sib.remoteCommand == null) {
+                                buildPendingCommands(sibId, sib.sessionManager, sib.postLoginCommand, sib.postLoginBeforeSessionManager)
+                            } else emptyList()
+                            if (sibPending.isNotEmpty()) {
+                                sib.terminalSession?.setPendingCommands(sibPending)
+                            }
+                            sib.terminalSession?.reconnect(sibChannel, newClient)
+                            updateStatus(sibId, SessionState.Status.CONNECTED)
+                        }.onFailure { e ->
+                            Log.w(TAG, "Failed to reattach reused sibling session $sibId: ${e.message}")
+                        }
+                    }
                 }
 
                 // Restore port forwards
@@ -1188,6 +1289,11 @@ class SshSessionManager @Inject constructor(
                     }
                 }
 
+                if (_sessions.value[sessionId] == null || currentThread.isInterrupted) {
+                    runCatching { newClient.disconnect() }
+                    return
+                }
+
                 updateStatus(sessionId, SessionState.Status.CONNECTED)
                 // Post-reconnect hooks (e.g. USB/IP host re-attach). Best-effort —
                 // a failing hook must never abort a successful reconnect.
@@ -1195,6 +1301,11 @@ class SshSessionManager @Inject constructor(
                 Log.d(TAG, "Reconnected $sessionId on attempt $attempt")
                 return
             } catch (e: Exception) {
+                runCatching { candidateClient?.disconnect() }
+                if (_sessions.value[sessionId] == null || currentThread.isInterrupted || e is InterruptedException) {
+                    Log.d(TAG, "Reconnect aborted for $sessionId during dial")
+                    return
+                }
                 Log.w(TAG, "Reconnect attempt $attempt failed for $sessionId: ${e.message}")
                 delayMs = (delayMs * 2).coerceAtMost(RECONNECT_MAX_DELAY_MS)
             }
@@ -1203,6 +1314,7 @@ class SshSessionManager @Inject constructor(
         Log.d(TAG, "Reconnect failed after $attempt attempts for $sessionId")
         updateStatus(sessionId, SessionState.Status.DISCONNECTED)
         } finally {
+            reconnectThreads.remove(sessionId, currentThread)
             reconnectingInFlight.remove(sessionId)
         }
     }
@@ -1213,18 +1325,27 @@ class SshSessionManager @Inject constructor(
      *  - a session whose [SessionState.jumpSessionId] is [sessionId], or
      *  - a VNC/RDP/SMB profile registered in [SessionState.tunnelDependents] or [leases].
      */
+    private fun hasActiveJumpDependents(sessionId: String): Boolean =
+        _sessions.value.values.any {
+            it.jumpSessionId == sessionId &&
+                it.status != SessionState.Status.DISCONNECTED &&
+                it.status != SessionState.Status.ERROR
+        }
+
     fun isJumpOrTunnelCarrier(sessionId: String): Boolean {
         val session = _sessions.value[sessionId] ?: return false
         if (session.tunnelDependents.isNotEmpty()) return true
         if (leases.values.any { it.sessionId == sessionId }) return true
-        return _sessions.value.values.any { it.jumpSessionId == sessionId }
+        return hasActiveJumpDependents(sessionId)
     }
 
     /**
      * Close only the interactive shell channel and terminal attachment on
      * [sessionId], keeping the underlying SSH connection and [SessionState]
      * CONNECTED so jump-host and tunnel dependents riding [sessionId]
-     * stay alive (#764).
+     * stay alive (#764). Marks [SessionState.tunnelOpened] true so that once
+     * the last jump/tunnel dependent disconnects, [sessionId] is torn down
+     * instead of lingering forever without a terminal tab.
      */
     fun closeShellOnly(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
@@ -1233,6 +1354,7 @@ class SshSessionManager @Inject constructor(
             map + (sessionId to existing.copy(
                 shellChannel = null,
                 terminalSession = null,
+                tunnelOpened = true,
             ))
         }
         agentScrollback.remove(sessionId)
@@ -1267,10 +1389,13 @@ class SshSessionManager @Inject constructor(
     }
 
     fun removeSession(sessionId: String) {
+        removedSessionIds.add(sessionId)
         val session = _sessions.value[sessionId] ?: return
+        val parentJumpId = session.jumpSessionId
         // Cascade: disconnect any sessions that use this one as a jump host
         val dependents = _sessions.value.values.filter { it.jumpSessionId == sessionId }
         _sessions.update { it - sessionId }
+        reconnectThreads.remove(sessionId)?.interrupt()
         agentScrollback.remove(sessionId)
         reconnectProxyProviders.remove(sessionId)
         reconnectHooks.remove(sessionId)
@@ -1285,6 +1410,16 @@ class SshSessionManager @Inject constructor(
         for (dep in dependents) {
             Log.d(TAG, "Cascading disconnect from jump host $sessionId to ${dep.sessionId}")
             removeSession(dep.sessionId)
+        }
+        // If this session rode an upstream jump host that was auto-opened (or
+        // had its own terminal tab closed via closeShellOnly) and now carries
+        // no remaining jump/tunnel dependents, tear the jump host down too.
+        if (parentJumpId != null) {
+            val parentJump = _sessions.value[parentJumpId]
+            if (parentJump != null && parentJump.tunnelOpened && !isJumpOrTunnelCarrier(parentJumpId)) {
+                Log.d(TAG, "Tearing down orphaned jump host $parentJumpId (last dependent $sessionId removed)")
+                removeSession(parentJumpId)
+            }
         }
     }
 
@@ -1377,19 +1512,21 @@ class SshSessionManager @Inject constructor(
 
     fun getSession(sessionId: String): SessionState? = _sessions.value[sessionId]
 
+    fun wasSessionRemoved(sessionId: String): Boolean = sessionId in removedSessionIds
+
     // --- Profile-level helpers ---
 
-    fun getSessionsForProfile(profileId: String): List<SessionState> =
-        _sessions.value.values.filter { it.profileId == profileId }
+    fun getSessionsForProfile(profileId: String, includeHeadless: Boolean = false): List<SessionState> =
+        _sessions.value.values.filter { it.profileId == profileId && (includeHeadless || !it.headless) }
 
     fun isProfileConnected(profileId: String): Boolean =
         _sessions.value.values.any {
-            it.profileId == profileId && it.status == SessionState.Status.CONNECTED
+            it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
         }
 
     fun getProfileStatus(profileId: String): SessionState.Status? {
         val statuses = _sessions.value.values
-            .filter { it.profileId == profileId }
+            .filter { it.profileId == profileId && !it.headless }
             .map { it.status }
         if (statuses.isEmpty()) return null
         // Priority: CONNECTED > RECONNECTING > CONNECTING > ERROR > DISCONNECTED
@@ -1403,8 +1540,10 @@ class SshSessionManager @Inject constructor(
     }
 
     fun getConnectionConfigForProfile(profileId: String): Pair<ConnectionConfig, SessionManager>? {
-        val session = _sessions.value.values
-            .firstOrNull { it.profileId == profileId && it.connectionConfig != null }
+        val session = (_sessions.value.values
+            .firstOrNull { it.profileId == profileId && !it.headless && it.connectionConfig != null }
+            ?: _sessions.value.values
+                .firstOrNull { it.profileId == profileId && it.connectionConfig != null })
             ?: return null
         // Deep-copy auth material so tearDown() zeroing one session's bytes
         // doesn't corrupt the config for other sessions sharing the same profile.
@@ -1421,17 +1560,19 @@ class SshSessionManager @Inject constructor(
         return safeCopy to session.sessionManager
     }
 
-    fun removeAllSessionsForProfile(profileId: String) {
-        val toRemove = _sessions.value.values.filter { it.profileId == profileId }
-        _sessions.update { map -> map.filterValues { it.profileId != profileId } }
-        ioExecutor.execute {
-            toRemove.forEach { tearDown(it) }
-        }
+    fun removeAllSessionsForProfile(profileId: String, includeHeadless: Boolean = false) {
+        val toRemove = _sessions.value.values
+            .filter { it.profileId == profileId && (includeHeadless || !it.headless) }
+            .map { it.sessionId }
+        toRemove.forEach { removeSession(it) }
     }
 
     fun disconnectAll() {
         val snapshot = _sessions.value.values.toList()
+        snapshot.forEach { removedSessionIds.add(it.sessionId) }
         _sessions.update { emptyMap() }
+        reconnectThreads.values.forEach { it.interrupt() }
+        reconnectThreads.clear()
         ioExecutor.execute {
             snapshot.forEach { tearDown(it) }
             SshClient.clearDnsCache()
@@ -1481,6 +1622,19 @@ class SshSessionManager @Inject constructor(
     }
 
     /**
+     * Mark [sessionId] as having been auto-opened solely as a jump host for a
+     * downstream SSH session (which tracks its dependency via
+     * [SessionState.jumpSessionId]). When the last jump/tunnel dependent
+     * disconnects, [removeSession] tears [sessionId] down automatically.
+     */
+    fun markJumpOpened(sessionId: String) {
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(tunnelOpened = true))
+        }
+    }
+
+    /**
      * Add [dependentProfileId] to an existing session's dependent set
      * without changing its [SessionState.tunnelOpened] flag. Use when an
      * already-connected session is reused by a new VNC/RDP/SMB tunnel —
@@ -1510,17 +1664,18 @@ class SshSessionManager @Inject constructor(
      * (#121, KoriKraut).
      */
     fun releaseTunnelDependent(dependentProfileId: String): List<String> {
-        val toTearDown = mutableListOf<String>()
+        val candidates = mutableListOf<String>()
         _sessions.update { map ->
             map.mapValues { (_, session) ->
                 if (dependentProfileId !in session.tunnelDependents) return@mapValues session
                 val newDeps = session.tunnelDependents - dependentProfileId
                 if (newDeps.isEmpty() && session.tunnelOpened) {
-                    toTearDown += session.sessionId
+                    candidates += session.sessionId
                 }
                 session.copy(tunnelDependents = newDeps)
             }
         }
+        val toTearDown = candidates.filter { !hasActiveJumpDependents(it) }
         for (sid in toTearDown) {
             Log.d(TAG, "Tearing down orphaned tunnel session $sid (last dependent $dependentProfileId released)")
             removeSession(sid)
@@ -1666,23 +1821,58 @@ class SshSessionManager @Inject constructor(
         var criticalFailed = false
 
         for (rule in rules) {
+            if (_sessions.value[sessionId] == null) {
+                Log.d(TAG, "applyPortForwards aborted — session $sessionId removed")
+                break
+            }
             try {
                 when (rule.type) {
                     PortForwardType.LOCAL -> {
+                        if (rule.bindPort != 0 && (
+                                activated.any { (it.type == PortForwardType.LOCAL || it.type == PortForwardType.DYNAMIC) && (it.bindPort == rule.bindPort || it.actualBoundPort == rule.bindPort) } ||
+                                    isLocalPortHeldByOtherSession(sessionId, rule.bindPort)
+                                )
+                        ) {
+                            Log.d(TAG, "Skipping L ${rule.bindAddress}:${rule.bindPort} on $sessionId — already bound")
+                            continue
+                        }
                         val actualPort = bindLocalWithRetry(session.client, rule)
-                        activated.add(rule.copy(actualBoundPort = actualPort))
+                        val bound = rule.copy(actualBoundPort = actualPort)
+                        activated.add(bound)
+                        recordActiveForward(sessionId, bound)
                         Log.d(TAG, "Port forward activated: L ${rule.bindAddress}:$actualPort -> ${rule.targetHost}:${rule.targetPort}")
                     }
                     PortForwardType.REMOTE -> {
+                        if (rule.selfHealOnBindFailure) {
+                            stripConflictingRemoteForwards(sessionId, session.profileId, session.client, rule.bindPort)
+                        } else if (rule.bindPort != 0 && (
+                                activated.any { it.type == PortForwardType.REMOTE && it.bindPort == rule.bindPort } ||
+                                    isRemotePortHeldByOtherSession(sessionId, session.profileId, rule.bindPort)
+                                )
+                        ) {
+                            Log.d(TAG, "Skipping R ${rule.bindAddress}:${rule.bindPort} on $sessionId — already bound for ${session.profileId}")
+                            continue
+                        }
                         bindRemoteWithSelfHeal(session.client, rule)
                         activated.add(rule)
+                        recordActiveForward(sessionId, rule)
                         Log.d(TAG, "Port forward activated: R ${rule.bindAddress}:${rule.bindPort} -> ${rule.targetHost}:${rule.targetPort}")
                     }
                     PortForwardType.DYNAMIC -> {
+                        if (rule.bindPort != 0 && (
+                                activated.any { (it.type == PortForwardType.LOCAL || it.type == PortForwardType.DYNAMIC) && (it.bindPort == rule.bindPort || it.actualBoundPort == rule.bindPort) } ||
+                                    isLocalPortHeldByOtherSession(sessionId, rule.bindPort)
+                                )
+                        ) {
+                            Log.d(TAG, "Skipping D ${rule.bindAddress}:${rule.bindPort} on $sessionId — already bound")
+                            continue
+                        }
                         val actualPort = session.client.setPortForwardingDynamic(
                             rule.bindAddress, rule.bindPort,
                         )
-                        activated.add(rule.copy(actualBoundPort = actualPort))
+                        val bound = rule.copy(actualBoundPort = actualPort)
+                        activated.add(bound)
+                        recordActiveForward(sessionId, bound)
                         Log.d(TAG, "Port forward activated: D ${rule.bindAddress}:$actualPort (SOCKS5)")
                     }
                 }
@@ -1692,17 +1882,86 @@ class SshSessionManager @Inject constructor(
             }
         }
 
-        _sessions.update { map ->
-            val existing = map[sessionId] ?: return@update map
-            map + (sessionId to existing.copy(activeForwards = existing.activeForwards + activated))
-        }
         // After a clean (re)connect of a self-healing reverse tunnel, record
-        // this connection's endpoint sshd PID so a future instance can kill
-        // this session if it lingers stale and blocks the rebind.
-        if (!criticalFailed && rules.any { it.selfHealOnBindFailure && it.type == PortForwardType.REMOTE }) {
-            recordTunnelSshPid(session.client)
+        // this connection's endpoint sshd PID per port so a future instance can
+        // kill this session if it lingers stale and blocks the rebind, without
+        // overwriting the PID of a sibling session forwarding a different port.
+        if (!criticalFailed && _sessions.value[sessionId] != null) {
+            activated
+                .filter { it.selfHealOnBindFailure && it.type == PortForwardType.REMOTE }
+                .forEach { recordTunnelSshPid(session.client, it.bindPort) }
         }
         return !criticalFailed
+    }
+
+    private fun recordActiveForward(sessionId: String, forward: PortForwardInfo) {
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            val deduped = existing.activeForwards.filterNot { prev ->
+                prev.ruleId == forward.ruleId || (prev.type == forward.type && prev.bindPort == forward.bindPort && forward.bindPort != 0)
+            }
+            map + (sessionId to existing.copy(activeForwards = deduped + forward))
+        }
+    }
+
+    private fun isLocalPortHeldByOtherSession(sessionId: String, port: Int): Boolean =
+        _sessions.value.values.any { s ->
+            s.sessionId != sessionId &&
+                s.status != SessionState.Status.DISCONNECTED &&
+                s.status != SessionState.Status.ERROR &&
+                s.activeForwards.any {
+                    (it.type == PortForwardType.LOCAL || it.type == PortForwardType.DYNAMIC) &&
+                        (it.bindPort == port || it.actualBoundPort == port)
+                }
+        }
+
+    private fun isRemotePortHeldByOtherSession(sessionId: String, profileId: String, port: Int): Boolean =
+        _sessions.value.values.any { s ->
+            s.sessionId != sessionId &&
+                s.profileId == profileId &&
+                s.status != SessionState.Status.DISCONNECTED &&
+                s.status != SessionState.Status.ERROR &&
+                s.activeForwards.any { it.type == PortForwardType.REMOTE && it.bindPort == port }
+        }
+
+    /**
+     * Ensure at most one session per profile carries a self-healing remote
+     * forward on [bindPort] in [SessionState.activeForwards]. Releases the
+     * remote port on any sibling session's connected client and drops the rule
+     * from its [SessionState.activeForwards] so a later reconnect of that
+     * sibling cannot re-bind [bindPort] and kill [newOwnerSessionId]'s `sshd`.
+     */
+    private fun stripConflictingRemoteForwards(
+        newOwnerSessionId: String,
+        profileId: String,
+        newOwnerClient: SshConnection,
+        bindPort: Int,
+    ) {
+        val siblings = _sessions.value.values.filter { s ->
+            s.sessionId != newOwnerSessionId &&
+                s.profileId == profileId &&
+                s.activeForwards.any { it.type == PortForwardType.REMOTE && it.bindPort == bindPort }
+        }
+        for (sib in siblings) {
+            if (sib.client !== newOwnerClient && sib.client.isConnected) {
+                runCatching { sib.client.delPortForwardingR(bindPort) }
+            }
+        }
+        if (siblings.isNotEmpty()) {
+            val siblingIds = siblings.map { it.sessionId }.toSet()
+            _sessions.update { map ->
+                var updated = map
+                for (sibId in siblingIds) {
+                    val existing = updated[sibId] ?: continue
+                    updated = updated + (sibId to existing.copy(
+                        activeForwards = existing.activeForwards.filterNot {
+                            it.type == PortForwardType.REMOTE && it.bindPort == bindPort
+                        },
+                    ))
+                }
+                updated
+            }
+        }
     }
 
     /**
@@ -1770,7 +2029,10 @@ class SshSessionManager @Inject constructor(
      */
     private fun freeStaleReverseForward(client: SshConnection, port: Int): Boolean {
         val cmd =
-            "F=\"\$HOME/.haven-mcp-tunnel.pid\"; old=\$(cat \"\$F\" 2>/dev/null); " +
+            "F=\"\$HOME/.haven-mcp-tunnel-$port.pid\"; L=\"\$HOME/.haven-mcp-tunnel.pid\"; " +
+                "old=\$(cat \"\$F\" 2>/dev/null); " +
+                "if [ -z \"\$old\" ]; then old=\$(cat \"\$L\" 2>/dev/null); fi; " +
+                "rm -f \"\$F\" \"\$L\" 2>/dev/null; " +
                 "if [ -n \"\$old\" ] && [ \"\$old\" != \"\$PPID\" ] && grep -qa sshd \"/proc/\$old/comm\" 2>/dev/null; then " +
                 "kill \"\$old\" 2>/dev/null && echo HEALED || echo KILLFAIL; " +
                 "else echo NOHOLDER; fi"
@@ -1786,14 +2048,32 @@ class SshSessionManager @Inject constructor(
 
     /**
      * Record THIS connection's endpoint-side `sshd-session` PID (`$PPID` of an
-     * exec) to `~/.haven-mcp-tunnel.pid` after a successful self-heal forward
-     * bind, so a later instance whose bind is blocked by this (now stale)
-     * session can find + kill it (see [freeStaleReverseForward]). Best-effort.
+     * exec) to `~/.haven-mcp-tunnel-[port].pid` after a successful self-heal
+     * forward bind, so a later instance whose bind is blocked by this (now
+     * stale) session can find + kill it (see [freeStaleReverseForward]).
+     * Best-effort.
      */
-    private fun recordTunnelSshPid(client: SshConnection) {
+    private fun recordTunnelSshPid(client: SshConnection, port: Int) {
         try {
-            runBlocking { client.execCommand("echo \"\$PPID\" > \"\$HOME/.haven-mcp-tunnel.pid\" 2>/dev/null") }
+            runBlocking {
+                client.execCommand(
+                    "echo \"\$PPID\" > \"\$HOME/.haven-mcp-tunnel-$port.pid\" 2>/dev/null; " +
+                        "rm -f \"\$HOME/.haven-mcp-tunnel.pid\" 2>/dev/null",
+                )
+            }
         } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * Remove any port forward with [ruleId] from [sessionId] (releasing the
+     * bind if connected and dropping it from [SessionState.activeForwards]).
+     */
+    fun forgetPortForward(sessionId: String, ruleId: String) {
+        val session = _sessions.value[sessionId] ?: return
+        val matching = session.activeForwards.filter { it.ruleId == ruleId }
+        for (fwd in matching) {
+            removePortForward(sessionId, fwd)
         }
     }
 
@@ -1897,7 +2177,11 @@ class SshSessionManager @Inject constructor(
         // channels; tearing the client down here would kill the sibling
         // session. removeSession() has already pulled this session from the
         // map, so this checks the *remaining* sessions.
-        val clientStillInUse = _sessions.value.values.any { it.client === session.client }
+        val clientStillInUse = _sessions.value.values.any {
+            it.client === session.client &&
+                it.status != SessionState.Status.DISCONNECTED &&
+                it.status != SessionState.Status.ERROR
+        }
         if (clientStillInUse) {
             Log.d(TAG, "tearDown: keeping shared SSH client alive for ${session.sessionId}'s sibling session(s)")
         } else {

@@ -197,11 +197,16 @@ class MoshSessionManager @Inject constructor(
                 // silent for a long time (#421 — both clean=false).
                 Log.d(TAG, "Mosh session $sessionId disconnected — " +
                     "clean=$cleanExit, server=${session.serverIp}:${session.moshPort}")
-                updateStatus(sessionId, SessionState.Status.DISCONNECTED)
-                // A clean exit means the user's shell ended — reconnecting
-                // would resurrect a session they deliberately closed. Only the
-                // unexpected endings get a reconnect attempt.
-                if (!cleanExit) onSessionDied?.invoke(session.profileId, sessionId)
+                // A clean exit means the user's shell ended — remove the
+                // session and close its bootstrap SSH client so it doesn't
+                // linger open; reconnecting would resurrect a session they
+                // deliberately closed. Only unexpected endings get a reconnect.
+                if (cleanExit) {
+                    removeSession(sessionId)
+                } else {
+                    updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                    onSessionDied?.invoke(session.profileId, sessionId)
+                }
             },
             verboseBuffer = session.verboseBuffer,
             socketProvider = session.socketProvider

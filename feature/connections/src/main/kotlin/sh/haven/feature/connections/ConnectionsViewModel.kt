@@ -666,8 +666,12 @@ class ConnectionsViewModel @Inject constructor(
             // (which stays CONNECTED for SFTP even after the transport disconnects).
             val transportProfiles = mutableSetOf<String>()
 
-            // SSH statuses (base — may be overridden by transport-specific status)
-            sshMap.values.groupBy { it.profileId }.forEach { (profileId, states) ->
+            // SSH statuses (base — may be overridden by transport-specific status).
+            // Exclude headless background tunnel sessions (e.g. McpTunnelManager's
+            // adb/guest-service forwarder) so they don't make the user profile card
+            // show CONNECTED or route card taps into ensureShellForProfile on the
+            // headless session.
+            sshMap.values.filter { !it.headless }.groupBy { it.profileId }.forEach { (profileId, states) ->
                 val statuses = states.map { it.status }
                 result[profileId] = when {
                     SshSessionManager.SessionState.Status.CONNECTED in statuses -> ProfileStatus.CONNECTED
@@ -2158,6 +2162,8 @@ class ConnectionsViewModel @Inject constructor(
     fun deleteConnection(id: String) {
         viewModelScope.launch {
             sessionManagerRegistry.disconnectProfile(id)
+            sshSessionManager.teardownTunnelDependent(id)
+            desktopSessionRegistry.closeHandle(id)?.invoke()
             localSessionManager.desktopManager.stopAll()
             updateServiceNotification()
             repository.delete(id)
@@ -5083,7 +5089,27 @@ class ConnectionsViewModel @Inject constructor(
     fun dismissSessionPicker() {
         val sel = _sessionSelection.value ?: return
         _sessionSelection.value = null
-        sshSessionManager.closeShellOrRemoveSession(sel.sessionId)
+        when (sel.transportType) {
+            "MOSH" -> {
+                val client = moshPendingClient
+                moshPendingClient = null
+                moshPendingHost = null
+                moshPendingVerboseLogger = null
+                viewModelScope.launch(Dispatchers.IO) { runCatching { client?.disconnect() } }
+                moshSessionManager.removeSession(sel.sessionId)
+            }
+            "ET" -> {
+                val client = etPendingClient
+                etPendingClient = null
+                etPendingProfile = null
+                etPendingVerboseLogger = null
+                viewModelScope.launch(Dispatchers.IO) { runCatching { client?.disconnect() } }
+                etSessionManager.removeSession(sel.sessionId)
+            }
+            else -> {
+                sshSessionManager.closeShellOrRemoveSession(sel.sessionId)
+            }
+        }
     }
 
     /**
@@ -5238,6 +5264,8 @@ class ConnectionsViewModel @Inject constructor(
             // session is torn down when the owner disconnects (#121).
             if (tunnelOwnerProfileId != null) {
                 sshSessionManager.markTunnelOpened(jumpSessionId, tunnelOwnerProfileId)
+            } else {
+                sshSessionManager.markJumpOpened(jumpSessionId)
             }
             return jumpSessionId to false
         } catch (e: Exception) {
@@ -5307,6 +5335,14 @@ class ConnectionsViewModel @Inject constructor(
                     )
                 }
             }
+        }
+        // If disconnect(profileId) / removeSession(sessionId) raced while
+        // openShellAndAwaitReady or applyPortForwards was running, abort now so
+        // we don't log a false CONNECTED event, restart the foreground service,
+        // or navigate to a removed session.
+        if (sshSessionManager.wasSessionRemoved(sessionId)) {
+            Log.d(TAG, "finishConnect aborted for $sessionId — session was removed during setup")
+            return false
         }
         sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.CONNECTED)
         repository.markConnected(profileId)
@@ -6320,6 +6356,10 @@ class ConnectionsViewModel @Inject constructor(
         // VNC reused) it legitimately survives, so the SSH-teardown cascade
         // alone would leave the tab open over a now-detached tunnel (#121).
         sshSessionManager.teardownTunnelDependent(profileId)
+        // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
+        // to cascade through — close them via the tab's registered close
+        // handle, matching McpTools.disconnectProfile (#437).
+        desktopSessionRegistry.closeHandle(profileId)?.invoke()
         // Drop the WireGuard / Tailscale refcount this profile may have
         // acquired via TunnelResolver. No-op if the profile didn't go
         // through a tunnel; otherwise the underlying tunnel closes only
