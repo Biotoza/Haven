@@ -453,6 +453,49 @@ class SshSessionManagerTest {
         assertNull(manager.getSession(b))
     }
 
+    @Test
+    fun `closeShellOrRemoveSession keeps jump host alive and closes only its shell`() {
+        // #764: closing the terminal tab for jump host A while dependent B is
+        // connected through A must tear down only A's shell/terminal attachment,
+        // leaving A's SSH transport CONNECTED and B untouched.
+        val ca = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val cb = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val shell = mockk<ShellChannel>(relaxed = true) { every { isConnected } returns true }
+        val term = mockk<TerminalSession>(relaxed = true)
+        val a = manager.registerSession("jump", "A", ca)
+        manager.updateStatus(a, SshSessionManager.SessionState.Status.CONNECTED)
+        manager.attachShellChannel(a, shell)
+        manager.attachTerminalSession(a, term)
+
+        val b = manager.registerSession("leaf", "B", cb)
+        manager.setJumpSessionId(b, a)
+        manager.updateStatus(b, SshSessionManager.SessionState.Status.CONNECTED)
+
+        manager.closeShellOrRemoveSession(a)
+
+        assertEquals(SshSessionManager.SessionState.Status.CONNECTED, manager.getSession(b)?.status)
+        val stateA = manager.getSession(a)
+        assertNotNull("jump carrier must stay registered", stateA)
+        assertEquals(SshSessionManager.SessionState.Status.CONNECTED, stateA!!.status)
+        assertNull("shellChannel must be cleared", stateA.shellChannel)
+        assertNull("terminalSession must be cleared", stateA.terminalSession)
+        verify(timeout = 1000, exactly = 1) { term.close() }
+        verify(timeout = 1000, exactly = 1) { shell.disconnect() }
+        verify(exactly = 0) { ca.disconnect() }
+    }
+
+    @Test
+    fun `closeShellOrRemoveSession removes standalone session completely`() {
+        val ca = mockk<SshClient>(relaxed = true)
+        val a = manager.registerSession("solo", "A", ca)
+        manager.updateStatus(a, SshSessionManager.SessionState.Status.CONNECTED)
+
+        manager.closeShellOrRemoveSession(a)
+
+        assertNull(manager.getSession(a))
+        verify(timeout = 1000, exactly = 1) { ca.disconnect() }
+    }
+
     // --- #150 reconnect policy gating -----------------------------------
 
     @Test

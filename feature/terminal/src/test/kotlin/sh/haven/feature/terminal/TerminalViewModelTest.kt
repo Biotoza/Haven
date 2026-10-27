@@ -278,6 +278,36 @@ class TerminalViewModelTest {
     }
 
     @Test
+    fun `closeTab on a jump host closes its shell without dropping dependent session`() {
+        val jumpClient = mockk<SshClient>(relaxed = true)
+        val leafClient = mockk<SshClient>(relaxed = true)
+        val shell = mockk<sh.haven.core.ssh.ShellChannel>(relaxed = true) {
+            every { isConnected } returns true
+        }
+        val jumpSid = sessionManager.registerSession("server1", "Server 1", jumpClient)
+        sessionManager.updateStatus(jumpSid, SshSessionManager.SessionState.Status.CONNECTED)
+        sessionManager.attachShellChannel(jumpSid, shell)
+        sessionManager.createTerminalSession(jumpSid, { _, _, _ -> })
+
+        val leafSid = sessionManager.registerSession("server2", "Server 2", leafClient)
+        sessionManager.setJumpSessionId(leafSid, jumpSid)
+        sessionManager.updateStatus(leafSid, SshSessionManager.SessionState.Status.CONNECTED)
+
+        viewModel.closeTab(jumpSid)
+
+        assertEquals(
+            "dependent session must survive closing jump host's terminal tab",
+            SshSessionManager.SessionState.Status.CONNECTED,
+            sessionManager.getSession(leafSid)?.status,
+        )
+        val jumpState = sessionManager.getSession(jumpSid)
+        assertEquals(SshSessionManager.SessionState.Status.CONNECTED, jumpState?.status)
+        assertEquals(null, jumpState?.terminalSession)
+        assertEquals(null, jumpState?.shellChannel)
+        verify(exactly = 0) { jumpClient.disconnect() }
+    }
+
+    @Test
     fun `closeTab tears down a BLE-serial session`() {
         // Regression: removeTabAndSync only knew SSH/mosh/et/local/reticulum, so a
         // serial session fell through to reticulum (no-op), stayed alive, and

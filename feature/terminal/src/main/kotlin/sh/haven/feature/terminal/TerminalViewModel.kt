@@ -2537,7 +2537,7 @@ class TerminalViewModel @Inject constructor(
 
     private fun removeTabAndSync(sessionId: String) {
         if (sessionManager.sessions.value.containsKey(sessionId)) {
-            sessionManager.removeSession(sessionId)
+            sessionManager.closeShellOrRemoveSession(sessionId)
         } else if (moshSessionManager.sessions.value.containsKey(sessionId)) {
             moshSessionManager.removeSession(sessionId)
         } else if (etSessionManager.sessions.value.containsKey(sessionId)) {

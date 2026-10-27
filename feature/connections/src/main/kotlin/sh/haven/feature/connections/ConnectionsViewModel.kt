@@ -5083,7 +5083,7 @@ class ConnectionsViewModel @Inject constructor(
     fun dismissSessionPicker() {
         val sel = _sessionSelection.value ?: return
         _sessionSelection.value = null
-        sshSessionManager.removeSession(sel.sessionId)
+        sshSessionManager.closeShellOrRemoveSession(sel.sessionId)
     }
 
     /**

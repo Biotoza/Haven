@@ -177,13 +177,17 @@ class SshTerminalEmulatorOwner @Inject constructor(
                 }
             }
         }
-        // Dispose a bundle only when its session is fully removed from the map
-        // (the removeSession teardown). RECONNECTING / clean-exit-still-present
-        // keep the same TerminalSession, so the bundle must survive them.
+        // Dispose a bundle when its session is removed from the map OR when its
+        // shell/terminal attachment is closed while the session stays alive as a
+        // headless jump/tunnel carrier (#764). RECONNECTING and Activity
+        // recreation (detachTerminalSession, which keeps shellChannel non-null)
+        // retain the bundle.
         scope.launch {
             sshSessionManager.sessions.collect { map ->
-                val live = map.keys
-                bundles.keys.filter { it !in live }.forEach { dispose(it) }
+                bundles.keys.filter { id ->
+                    val s = map[id]
+                    s == null || (s.shellChannel == null && s.terminalSession == null)
+                }.forEach { dispose(it) }
             }
         }
     }

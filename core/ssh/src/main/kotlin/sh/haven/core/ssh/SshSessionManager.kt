@@ -516,8 +516,13 @@ class SshSessionManager @Inject constructor(
                     )
                     updateStatus(sessionId, SessionState.Status.DISCONNECTED)
                 } else if (cleanExit) {
-                    Log.d(TAG, "Session $sessionId exited cleanly — not reconnecting")
-                    updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                    if (isJumpOrTunnelCarrier(sessionId) && session.client.isConnected) {
+                        Log.d(TAG, "Shell for $sessionId exited cleanly while carrying jump/tunnel dependents — keeping SSH transport connected")
+                        closeShellOnly(sessionId)
+                    } else {
+                        Log.d(TAG, "Session $sessionId exited cleanly — not reconnecting")
+                        updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                    }
                 } else {
                     Log.d(TAG, "Session $sessionId disconnected unexpectedly")
                     val sess = _sessions.value[sessionId]
@@ -1142,8 +1147,10 @@ class SshSessionManager @Inject constructor(
                 // terminal stays frozen. A pure tunnel has terminalSession ==
                 // null and still skips this.
                 val reconnecting = _sessions.value[sessionId]
-                if (reconnecting?.headless != true || reconnecting.terminalSession != null) {
-                    val channel = newClient.openTerminalChannel(reconnecting?.remoteCommand, reconnecting?.requestPty ?: true)
+                if ((reconnecting?.terminalSession != null || reconnecting?.shellChannel != null) &&
+                    (reconnecting.headless != true || reconnecting.terminalSession != null)
+                ) {
+                    val channel = newClient.openTerminalChannel(reconnecting.remoteCommand, reconnecting.requestPty)
                     attachShellChannel(sessionId, channel)
 
                     // Swap channel in the terminal session and restart reader
@@ -1197,6 +1204,65 @@ class SshSessionManager @Inject constructor(
         updateStatus(sessionId, SessionState.Status.DISCONNECTED)
         } finally {
             reconnectingInFlight.remove(sessionId)
+        }
+    }
+
+    /**
+     * True when another live session or tunnel resource rides [sessionId]
+     * as its jump host or port-forward carrier:
+     *  - a session whose [SessionState.jumpSessionId] is [sessionId], or
+     *  - a VNC/RDP/SMB profile registered in [SessionState.tunnelDependents] or [leases].
+     */
+    fun isJumpOrTunnelCarrier(sessionId: String): Boolean {
+        val session = _sessions.value[sessionId] ?: return false
+        if (session.tunnelDependents.isNotEmpty()) return true
+        if (leases.values.any { it.sessionId == sessionId }) return true
+        return _sessions.value.values.any { it.jumpSessionId == sessionId }
+    }
+
+    /**
+     * Close only the interactive shell channel and terminal attachment on
+     * [sessionId], keeping the underlying SSH connection and [SessionState]
+     * CONNECTED so jump-host and tunnel dependents riding [sessionId]
+     * stay alive (#764).
+     */
+    fun closeShellOnly(sessionId: String) {
+        val session = _sessions.value[sessionId] ?: return
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(
+                shellChannel = null,
+                terminalSession = null,
+            ))
+        }
+        agentScrollback.remove(sessionId)
+        sessionNotices.remove(sessionId)
+        ioExecutor.execute {
+            try { session.terminalSession?.close() } catch (e: Exception) {
+                Log.e(TAG, "closeShellOnly: terminalSession.close() failed", e)
+            }
+            try {
+                if (session.shellChannel?.isConnected == true) {
+                    session.shellChannel.disconnect()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "closeShellOnly: shellChannel.disconnect() failed", e)
+            }
+        }
+    }
+
+    /**
+     * Close the terminal tab for [sessionId]. When [sessionId] is carrying
+     * active jump-host or tunnel dependents (#764), tear down only its shell
+     * channel and leave the SSH transport connected; otherwise remove the
+     * session completely.
+     */
+    fun closeShellOrRemoveSession(sessionId: String) {
+        if (isJumpOrTunnelCarrier(sessionId)) {
+            Log.d(TAG, "Closing shell on $sessionId while keeping SSH transport alive for jump/tunnel dependents")
+            closeShellOnly(sessionId)
+        } else {
+            removeSession(sessionId)
         }
     }
 
