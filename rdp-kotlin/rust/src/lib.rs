@@ -639,6 +639,11 @@ impl RdpClient {
                 // again with the plan applied. Exactly one hop — chained
                 // redirects fail out of the loop.
                 let mut redirect_plan: Option<redirection::RedirectFollow> = None;
+                // #117: GNOME Remote Desktop's remote login needs two hops —
+                // one to its greeter session, a second to the user's session
+                // once the password is accepted. Allow a short chain and stop
+                // well before a redirect loop could spin.
+                let mut redirect_hops: u8 = 0;
                 let mut stream_slot = Some(stream);
                 let result = loop {
                     let attempt_stream = match stream_slot.take() {
@@ -657,6 +662,7 @@ impl RdpClient {
                             &server_name,
                             server_addr,
                             redirect_plan.as_ref(),
+                            redirect_hops,
                         )
                     }))
                     .unwrap_or_else(|payload| {
@@ -674,6 +680,7 @@ impl RdpClient {
                     match attempt {
                         Ok(Some(plan)) => {
                             redirect_plan = Some(plan);
+                            redirect_hops += 1;
                             continue;
                         }
                         Ok(None) => break Ok(()),
@@ -1546,11 +1553,16 @@ fn slow_path_input_event(
     })
 }
 
+/// Upper bound on a chain of followed server redirections (#117).
+const MAX_REDIRECT_HOPS: u8 = 4;
+
 /// Runs one RDP connection to completion. `Ok(None)` is a normal session end;
 /// `Ok(Some(plan))` means the server sent a redirection this connection did
 /// not follow yet — the caller reconnects and passes the plan back in as
-/// `redirect` (#117). A session that IS the followed hop never returns a
-/// second plan; a re-redirect fails instead.
+/// `redirect` (#117). `redirect_hops` counts how many redirections have
+/// already been followed in this session: GNOME Remote Desktop's remote login
+/// redirects twice (greeter, then the user's session), so a chain of up to
+/// [`MAX_REDIRECT_HOPS`] is followed and anything longer is treated as a loop.
 fn run_rdp_session(
     stream: TcpStream,
     config: &RdpConfig,
@@ -1559,6 +1571,7 @@ fn run_rdp_session(
     server_name: &str,
     server_addr: SocketAddr,
     redirect: Option<&redirection::RedirectFollow>,
+    redirect_hops: u8,
 ) -> Result<Option<redirection::RedirectFollow>, String> {
     use ironrdp_blocking::{connect_begin, connect_finalize, mark_as_upgraded, Framed};
     use ironrdp_connector::ServerName;
@@ -1795,8 +1808,25 @@ fn run_rdp_session(
     let fastpath_input_supported = {
         use ironrdp_pdu::rdp::capability_sets::InputFlags;
         let flags = connection_result.input_flags;
-        let supported = flags.intersects(InputFlags::FASTPATH_INPUT | InputFlags::FASTPATH_INPUT_2);
-        if !supported {
+        let advertised =
+            flags.intersects(InputFlags::FASTPATH_INPUT | InputFlags::FASTPATH_INPUT_2);
+        // Fast-path input is only used with Windows-like servers. The
+        // compositor-backed Linux servers tested (GNOME Remote Desktop 50.x,
+        // KDE's KRDP) drop or duplicate input they receive this way: one tap
+        // sometimes does nothing and sometimes repeats the character a dozen
+        // times, while the same session is clean over slow-path TS_INPUT PDUs
+        // and clean with mstsc/FreeRDP. Windows sets
+        // INPUT_FLAG_TS_QOE_TIMESTAMPS and those servers do not, so that flag
+        // is the discriminator; a server we misjudge only loses the small
+        // latency win of fast-path, never correctness.
+        let windows_like = flags.contains(InputFlags::TS_QOE_TIMESTAMPS);
+        let supported = advertised && windows_like;
+        if advertised && !windows_like {
+            info!(
+                "Server is not Windows-like ({flags:?}); using slow-path input PDUs \
+                 (fast-path input is unreliable on compositor-backed Linux RDP servers)"
+            );
+        } else if !advertised {
             info!("Server did not advertise fast-path input ({flags:?}); using slow-path input PDUs");
         }
         supported
@@ -2216,10 +2246,12 @@ fn run_rdp_session(
                         // control PDU type" because IronRDP can't decode it.
                         // Recognise it from the raw frame and follow it (#117):
                         // hand the replay plan to the caller, which reconnects
-                        // with the routing token + one-time credentials. One hop
-                        // only — a redirect DURING a followed hop is an error.
+                        // with the routing token + one-time credentials. A short
+                        // chain is allowed — GNOME Remote Desktop's remote login
+                        // redirects again once the password is accepted — and
+                        // anything past MAX_REDIRECT_HOPS is treated as a loop.
                         if let Some(info) = redirection::detect_server_redirect(frame_to_process) {
-                            if redirect.is_none() {
+                            if redirect_hops < MAX_REDIRECT_HOPS {
                                 if let Some(plan) = info.follow_plan() {
                                     info!(
                                         "#117: server redirection received (flags={:#010x}) — reconnecting to follow the handover",
