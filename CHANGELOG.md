@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.61
+
+- **Settings → MCP tools opens with all categories collapsed by default (#755).** Instead of expanding all ~230 tool switches on launch, the screen now opens as a compact list of the 12 subsystem categories (`Terminal`, `Connections`, `Files`, `Desktop`, `Linux guest`, `USB and serial`, `Keys and credentials`, `Mail`, `Cloud storage`, `Sensors and location`, `Agent and device control`, `Other`). Each category header displays its `enabled / total` count (plus `N off` when partially or fully disabled) and a master switch that turns the entire category off or on in one tap; tapping the category row expands or collapses its indented per-tool switches underneath.
+
 ## v5.89.60
 
 - **Closing a terminal tab on a jump host or tunnel carrier keeps the underlying connection alive for dependent sessions (#764).** Closing the tab on a session that is also carrying a jump hop, port forward, or tunnel for another connection previously tore down the SSH connection and dropped the dependent session with it. Closing the tab now closes only the shell channel and terminal bundle while the carrier has active dependents, and tears the carrier down automatically once its last dependent closes.

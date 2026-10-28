@@ -1,0 +1,1 @@
+Settings → MCP tools now opens with all 12 tool categories collapsed by default (#755). Each category row shows its enabled/total count and a master switch to disable or enable the whole category at once, and tapping a category expands its individual tool switches underneath.
