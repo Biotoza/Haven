@@ -33,18 +33,14 @@ okhttp = "5.5.0"
 # makes JSONObject every method return defaults — clients parsing server JSON in tests
 # need the real artifact. Runtime code keeps android.jar's org.json.
 orgjson = "20240303"
-# QR / barcode + on-device OCR for the terminal's Scan/Recognize attach options.
-# ZXing core is pure Java (Apache 2.0). Tesseract4Android is the adaptech-cz
-# maintained fork that wraps Tesseract 5.x via JNI (Apache 2.0).
+# QR / barcode + on-device RapidOCR (PP-OCRv4 via ONNX Runtime) for the
+# terminal's Scan/Recognize attach options and remote-desktop MCP OCR.
+# ZXing core is pure Java (Apache 2.0). ONNX Runtime is MIT-licensed on Central.
 zxing = "3.5.4"
-# adaptech-cz Tesseract4Android is shipped via JitPack (no Maven Central
-# artifact). 4.8.0 wraps Tesseract 5.x + leptonica, JitPack build "ok".
-# Check https://jitpack.io/#adaptech-cz/Tesseract4Android before bumping —
-# some upstream tags fail JitPack's build and never get an AAR.
-tesseract4android = "4.8.0"
+onnxruntime = "1.20.0"
 # USB serial driver library (mik3y). MIT-licensed, no transitive deps — pure
 # Android USB host API. Drives CDC-ACM + CH34x/FTDI/CP21xx/Prolific adapters
-# for the USB-serial terminal connection type. JitPack, like jsch/tesseract.
+# for the USB-serial terminal connection type. JitPack, like jsch.
 usbSerial = "3.11.0"
 # Pure-Java XZ decoder, BSD-licensed. Needed to extract tar.xz rootfs
 # tarballs (Debian / Ubuntu / Arch from proot-distro). Tiny (~110KB).
@@ -111,12 +107,11 @@ orgjson = { group = "org.json", name = "json", version.ref = "orgjson" }
 # Terminal
 termlib = { group = "org.connectbot", name = "termlib", version.ref = "termlib" }
 
-# Scan / OCR — feeds the terminal's paperclip → camera/photo flow. ZXing-core
-# stays pure Java (no Android dep), so the recognizer can be unit-tested on
-# the JVM. Tesseract4Android ships native libs per ABI and is the F-Droid-
-# friendly alternative to Google ML Kit.
+# Scan / OCR — feeds the terminal's paperclip → camera/photo flow and the
+# remote-desktop MCP OCR + k-d tree spatial index. ZXing-core stays pure Java
+# (no Android dep), and ONNX Runtime ships native libs per ABI on Maven Central.
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
-tesseract4android = { group = "com.github.adaptech-cz", name = "Tesseract4Android", version.ref = "tesseract4android" }
+onnxruntime-android = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version.ref = "onnxruntime" }
 usbserial = { group = "com.github.mik3y", name = "usb-serial-for-android", version.ref = "usbSerial" }
 
 # XZ decoder for tar.xz rootfs tarballs (Debian / Ubuntu via proot-distro).

@@ -201,7 +201,7 @@ androidComponents {
             "**/libxwayland_wrapper.so",
             "**/libbenchmark_gles.so",
             // Media conversion, preview and streaming. libc++_shared.so is
-            // NOT here — tesseract and others link against it too.
+            // NOT here — other native modules link against it too.
             "**/libffmpeg.so",
             "**/libffprobe.so",
             "**/libavcodec.so",
@@ -279,6 +279,7 @@ dependencies {
     implementation(project(":core:knock"))
     implementation(project(":core:mcp"))
     implementation(project(":core:spa"))
+    implementation(project(":core:scan"))
 
     implementation(project(":feature:connections"))
     implementation(project(":feature:terminal"))

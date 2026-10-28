@@ -6,7 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Hilt bindings for the scan module. Keeps the production [TextRecognizer.TessEngineFactory]
+ * Hilt bindings for the scan module. Keeps the production [TextRecognizer.OcrEngineFactory]
  * loose from any consumer-side wiring — tests can override via a TestInstallIn
  * if they need to provide a fake engine.
  */
@@ -15,5 +15,5 @@ import dagger.hilt.components.SingletonComponent
 abstract class ScanModule {
 
     @Binds
-    abstract fun bindTessEngineFactory(impl: DefaultTessEngineFactory): TextRecognizer.TessEngineFactory
+    abstract fun bindOcrEngineFactory(impl: DefaultOcrEngineFactory): TextRecognizer.OcrEngineFactory
 }

@@ -8,10 +8,17 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import sh.haven.core.data.agent.ConsentLevel
+import sh.haven.core.data.desktop.DesktopFrameHandle
 import sh.haven.core.data.desktop.DesktopInputHandle
 import sh.haven.core.data.desktop.DesktopSessionRegistry
 import sh.haven.core.local.LocalSessionManager
 import sh.haven.core.mcp.McpError
+import sh.haven.core.scan.OcrBbox
+import sh.haven.core.scan.OcrNeighbor
+import sh.haven.core.scan.OcrNode
+import sh.haven.core.scan.OcrScreenIndex
+import sh.haven.core.scan.TextRecognizer
+import kotlin.math.roundToInt
 
 /**
  * The desktop MCP tools (#mcp-backbone Stage 5, Layer E): desktop-environment
@@ -28,7 +35,10 @@ internal class DesktopToolProvider(
     private val ctx: ToolContext,
     private val desktopSessionRegistry: DesktopSessionRegistry,
     private val localSessionManager: LocalSessionManager,
+    private val textRecognizer: TextRecognizer? = null,
 ) : ToolProvider {
+
+    override val defaultCategory = sh.haven.core.data.agent.McpToolCategory.DESKTOP
 
     private val prootManager get() = localSessionManager.prootManager
     private val systemVmManager get() = localSessionManager.systemVmManager
@@ -214,20 +224,106 @@ internal class DesktopToolProvider(
         ) { args -> captureDesktopTab(args) },
 
         "tap_desktop_tab" to ToolHandler(
-            description = "Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab reports: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Keyboard typing is not yet supported (the session abstraction has no key verb). Returns { profileId, protocol, x, y, button }.",
+            description = "Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab and inspect_desktop_tab report: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Pass clicks=2 for a double-click. Returns { profileId, protocol, x, y, button, clicks }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
                 integer("x", "Remote framebuffer X (0..width from capture_desktop_tab).", required = true)
                 integer("y", "Remote framebuffer Y (0..height from capture_desktop_tab).", required = true)
                 integer("button", "X11 button: 1=left (default), 2=middle, 3=right.")
+                integer("clicks", "Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args ->
                 val pid = args.optString("profileId").takeIf { it.isNotBlank() }
                 val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
-                "Click (${args.optInt("x")},${args.optInt("y")}) on $who"
+                val clicks = args.optInt("clicks", 1).coerceIn(1, 3)
+                val verb = if (clicks == 2) "Double-click" else "Click"
+                "$verb (${args.optInt("x")},${args.optInt("y")}) on $who"
             },
         ) { args -> tapDesktopTab(args) },
+
+        "inspect_desktop_tab" to ToolHandler(
+            description = "Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode=\"at\" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].",
+            inputSchema = objectSchema {
+                string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
+                string("mode", "Query mode: \"auto\" (default: coordinate lookup if x/y set, text search if query set, else full tree), \"at\" (coordinate k-d tree lookup at x,y or the current pointer if x/y omitted), \"find\" (text search for query), or \"tree\" (full blocks/lines/words hierarchy).", enum = listOf("auto", "at", "find", "tree"))
+                integer("x", "Framebuffer X coordinate for 2D k-d tree nearest-neighbor / containment lookup.")
+                integer("y", "Framebuffer Y coordinate for 2D k-d tree nearest-neighbor / containment lookup.")
+                string("query", "Text to search for (case-insensitive substring by default, or full match when exact=true).")
+                boolean("exact", "Require exact normalized text equality for query instead of substring match. Default false.")
+                integer("nearX", "Optional anchor X coordinate to disambiguate multiple text matches by proximity.")
+                integer("nearY", "Optional anchor Y coordinate to disambiguate multiple text matches by proximity.")
+                integer("k", "Number of nearest 2D k-d tree neighbors to return (for coordinate lookup or per text match). Default 5 (clamped 0..50).")
+                integer("maxRadius", "Optional maximum distance in pixels for k-d tree neighbor search.")
+                string("level", "Filter detections by granularity: \"all\" (default), \"word\", or \"line\".", enum = listOf("all", "word", "line"))
+                boolean("forceRefresh", "Force a fresh RapidOCR pass even if the framebuffer hash matches the cached index. Default false.")
+            },
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
+            summarise = { args ->
+                val pid = args.optString("profileId").takeIf { it.isNotBlank() }
+                val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
+                "Let the agent inspect OCR and spatial elements on $who"
+            },
+        ) { args -> inspectDesktopTab(args) },
+
+        "tap_desktop_text" to ToolHandler(
+            description = "Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.",
+            inputSchema = objectSchema {
+                string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
+                string("query", "Visible text label to find and click.", required = true)
+                boolean("exact", "Require exact normalized text match instead of substring match. Default false.")
+                integer("nearX", "Optional anchor X to rank matches by proximity.")
+                integer("nearY", "Optional anchor Y to rank matches by proximity.")
+                integer("nth", "0-based index among ranked matches to click. Default 0 (best/closest match).")
+                integer("dx", "Horizontal pixel offset added to the matched element's center X before clicking. Default 0.")
+                integer("dy", "Vertical pixel offset added to the matched element's center Y before clicking. Default 0.")
+                integer("button", "X11 mouse button: 1=left (default), 2=middle, 3=right.")
+                integer("clicks", "Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).")
+                string("level", "Granularity to match: \"all\" (default, prefers tight word boxes), \"word\", or \"line\".", enum = listOf("all", "word", "line"))
+                boolean("forceRefresh", "Force a fresh RapidOCR pass before matching. Default false.")
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { args ->
+                val pid = args.optString("profileId").takeIf { it.isNotBlank() }
+                val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
+                "Click text \"${args.optString("query")}\" on $who"
+            },
+        ) { args -> tapDesktopText(args) },
+
+        "move_desktop_mouse" to ToolHandler(
+            description = "Move the mouse pointer on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) to (x, y) in remote framebuffer pixel coordinates without clicking. Useful for hovering to reveal tooltips/menus or positioning the cursor before inspect_desktop_tab(mode=\"at\") or scroll_desktop_tab. Returns { profileId, protocol, x, y }.",
+            inputSchema = objectSchema {
+                string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
+                integer("x", "Remote framebuffer X (0..width).", required = true)
+                integer("y", "Remote framebuffer Y (0..height).", required = true)
+            },
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
+            summarise = { args ->
+                val pid = args.optString("profileId").takeIf { it.isNotBlank() }
+                val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
+                "Move mouse on $who"
+            },
+        ) { args -> moveDesktopMouse(args) },
+
+        "drag_desktop_tab" to ToolHandler(
+            description = "Drag the mouse on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) from (startX, startY) to (endX, endY) in remote framebuffer pixel coordinates — moves to start, presses the mouse button, interpolates intermediate motion steps over durationMs, and releases the button. Use for moving windows, selecting text/regions, or dragging sliders. Returns { profileId, protocol, startX, startY, endX, endY, button, steps, durationMs }.",
+            inputSchema = objectSchema {
+                string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
+                integer("startX", "Drag start X in remote framebuffer pixels.", required = true)
+                integer("startY", "Drag start Y in remote framebuffer pixels.", required = true)
+                integer("endX", "Drag end X in remote framebuffer pixels.", required = true)
+                integer("endY", "Drag end Y in remote framebuffer pixels.", required = true)
+                integer("button", "X11 mouse button to hold during drag: 1=left (default), 2=middle, 3=right.")
+                integer("steps", "Number of interpolated motion steps between start and end. Default 12 (clamped 1..100).")
+                integer("durationMs", "Total drag duration in milliseconds. Default 180 (clamped 0..5000).")
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { args ->
+                val pid = args.optString("profileId").takeIf { it.isNotBlank() }
+                val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
+                "Drag (${args.optInt("startX")},${args.optInt("startY")}) → (${args.optInt("endX")},${args.optInt("endY")}) on $who"
+            },
+        ) { args -> dragDesktopTab(args) },
 
         "type_desktop_text" to ToolHandler(
             description = "Type text into a remote-desktop VIEWER tab as real keystrokes. GLKVM only today: GLKVM's HID path types mapped characters as physical position keys (the target OS applies its own keyboard layout — UK/US set on the profile) and falls back to the device's US-layout printer for accents; VNC/RDP/SPICE have no keyboard verb yet and error out here (use send_desktop_clipboard). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, chars }.",
@@ -802,6 +898,22 @@ internal class DesktopToolProvider(
         )
     }
 
+    private fun resolveDesktopFrame(args: JSONObject): Pair<String, DesktopFrameHandle> {
+        val explicitPid = args.optString("profileId").takeIf { it.isNotBlank() }
+        val handles = desktopSessionRegistry.frameHandles()
+        val pid = explicitPid ?: when (handles.size) {
+            1 -> handles.keys.first()
+            0 -> throw McpError(-32602, "No remote-desktop tab is open. Use connect_profile, then list_desktop_sessions.")
+            else -> throw McpError(
+                -32602,
+                "Multiple desktop tabs open (${handles.keys.joinToString()}); pass profileId.",
+            )
+        }
+        val handle = desktopSessionRegistry.frameHandle(pid)
+            ?: throw McpError(-32602, "No capturable desktop tab for profile '$pid' (call list_desktop_sessions).")
+        return pid to handle
+    }
+
     private fun resolveDesktopInput(args: JSONObject): Pair<String, DesktopInputHandle> {
         val explicitPid = args.optString("profileId").takeIf { it.isNotBlank() }
         val handles = desktopSessionRegistry.inputHandles()
@@ -815,15 +927,327 @@ internal class DesktopToolProvider(
         return pid to handle
     }
 
-    private fun tapDesktopTab(args: JSONObject): JSONObject {
+    private fun parseLevelArg(raw: String): OcrNode.Level? = when (raw.trim().lowercase()) {
+        "", "all" -> null
+        "word", "words" -> OcrNode.Level.WORD
+        "line", "lines" -> OcrNode.Level.LINE
+        else -> throw McpError(-32602, "level must be one of all, word, line")
+    }
+
+    private fun bboxToJson(b: OcrBbox): JSONArray =
+        JSONArray().put(b.x).put(b.y).put(b.width).put(b.height)
+
+    private fun centerToJson(b: OcrBbox): JSONArray =
+        JSONArray().put(b.cx.roundToInt()).put(b.cy.roundToInt())
+
+    private fun nodeToJson(n: OcrNode): JSONObject = JSONObject().apply {
+        put("id", n.id)
+        put("level", n.level.name.lowercase())
+        put("text", n.text)
+        put("score", (n.score * 1000.0).roundToInt() / 1000.0)
+        put("bbox", bboxToJson(n.bbox))
+        put("center", centerToJson(n.bbox))
+        put("blockId", n.blockId)
+        put("lineId", n.lineId)
+    }
+
+    private fun neighborToJson(nb: OcrNeighbor): JSONObject = JSONObject().apply {
+        put("id", nb.node.id)
+        put("level", nb.node.level.name.lowercase())
+        put("text", nb.node.text)
+        put("score", (nb.node.score * 1000.0).roundToInt() / 1000.0)
+        put("bbox", bboxToJson(nb.node.bbox))
+        put("center", centerToJson(nb.node.bbox))
+        put("centerDistance", (nb.centerDistance * 10.0).roundToInt() / 10.0)
+        put("rectDistance", (nb.rectDistance * 10.0).roundToInt() / 10.0)
+        put("dx", (nb.dx * 10.0).roundToInt() / 10.0)
+        put("dy", (nb.dy * 10.0).roundToInt() / 10.0)
+    }
+
+    private suspend fun buildOrGetOcrIndex(
+        pid: String,
+        handle: DesktopFrameHandle,
+        forceRefresh: Boolean,
+    ): OcrScreenIndex {
+        val recognizer = textRecognizer
+            ?: throw McpError(-32603, "RapidOCR TextRecognizer is not available")
+        val src = handle.frame()
+            ?: throw McpError(-32603, "Desktop '$pid' has not rendered a frame yet — wait for it to connect.")
+        // Copy frame off the UI state holder before running OCR so concurrent
+        // viewer updates cannot mutate pixels mid-inference.
+        val bmp = withContext(Dispatchers.Default) {
+            src.copy(Bitmap.Config.ARGB_8888, false)
+        }
+        return try {
+            recognizer.recognizeIndex(bmp, forceRefresh = forceRefresh)
+        } catch (e: Exception) {
+            throw McpError(-32603, e.message ?: "RapidOCR failed on desktop '$pid'")
+        }
+    }
+
+    private suspend fun inspectDesktopTab(args: JSONObject): JSONObject {
+        val (pid, handle) = resolveDesktopFrame(args)
+        val forceRefresh = args.optBoolean("forceRefresh", false)
+        val level = parseLevelArg(args.optString("level", "all"))
+        val k = args.optInt("k", 5).coerceIn(0, 50)
+        val maxRadius = if (args.has("maxRadius") && !args.isNull("maxRadius")) {
+            args.optDouble("maxRadius", Double.POSITIVE_INFINITY).coerceAtLeast(0.0)
+        } else {
+            Double.POSITIVE_INFINITY
+        }
+
+        val rawMode = args.optString("mode", "auto").trim().lowercase()
+        val hasCoords = args.has("x") && !args.isNull("x") && args.has("y") && !args.isNull("y")
+        val query = args.optString("query").trim()
+        val resolvedMode = when (rawMode) {
+            "", "auto" -> when {
+                hasCoords -> "at"
+                query.isNotEmpty() -> "find"
+                else -> "tree"
+            }
+            "at", "find", "tree" -> rawMode
+            else -> throw McpError(-32602, "mode must be one of auto, at, find, tree")
+        }
+
+        val index = buildOrGetOcrIndex(pid, handle, forceRefresh)
+        val (pointerX, pointerY) = handle.pointer()
+
+        val base = JSONObject().apply {
+            put("profileId", pid)
+            put("protocol", handle.protocol)
+            put("width", index.frameWidth)
+            put("height", index.frameHeight)
+            put("frameHash", index.frameHash)
+            put("ocrMs", (index.ocrMs * 10.0).roundToInt() / 10.0)
+            put("blockCount", index.blocks.size)
+            put("lineCount", index.lineCount)
+            put("wordCount", index.wordCount)
+            put("pointerX", pointerX)
+            put("pointerY", pointerY)
+            put("mode", resolvedMode)
+        }
+
+        when (resolvedMode) {
+            "at" -> {
+                val qx = if (hasCoords) args.getInt("x").toDouble() else pointerX.toDouble()
+                val qy = if (hasCoords) args.getInt("y").toDouble() else pointerY.toDouble()
+                val res = index.queryAt(
+                    x = qx,
+                    y = qy,
+                    k = k,
+                    maxRadius = maxRadius,
+                    level = level,
+                )
+                base.put("queryX", res.x)
+                base.put("queryY", res.y)
+                base.put("containing", JSONArray().apply {
+                    res.containing.forEach { put(nodeToJson(it)) }
+                })
+                base.put("nearest", JSONArray().apply {
+                    res.nearest.forEach { put(neighborToJson(it)) }
+                })
+            }
+            "find" -> {
+                if (query.isEmpty()) {
+                    throw McpError(-32602, "query is required when mode=\"find\"")
+                }
+                val exact = args.optBoolean("exact", false)
+                val nearX = if (args.has("nearX") && !args.isNull("nearX")) args.getInt("nearX").toDouble() else null
+                val nearY = if (args.has("nearY") && !args.isNull("nearY")) args.getInt("nearY").toDouble() else null
+                val matches = index.findText(
+                    query = query,
+                    exact = exact,
+                    nearX = nearX,
+                    nearY = nearY,
+                    kNeighbors = k,
+                    level = level,
+                )
+                base.put("query", query)
+                base.put("exact", exact)
+                if (nearX != null && nearY != null) {
+                    base.put("nearX", nearX.roundToInt())
+                    base.put("nearY", nearY.roundToInt())
+                }
+                base.put("matchCount", matches.size)
+                base.put("matches", JSONArray().apply {
+                    matches.forEach { m ->
+                        put(nodeToJson(m.node).apply {
+                            m.anchorDistance?.let { d ->
+                                put("anchorDistance", (d * 10.0).roundToInt() / 10.0)
+                            }
+                            put("neighbors", JSONArray().apply {
+                                m.neighbors.forEach { nb -> put(neighborToJson(nb)) }
+                            })
+                        })
+                    }
+                })
+            }
+            else -> {
+                base.put("blocks", JSONArray().apply {
+                    index.blocks.forEach { blk ->
+                        put(JSONObject().apply {
+                            put("id", blk.id)
+                            put("lines", JSONArray().apply {
+                                blk.lines.forEach { line ->
+                                    put(JSONObject().apply {
+                                        put("id", line.id)
+                                        put("text", line.text)
+                                        put("score", (line.score * 1000.0).roundToInt() / 1000.0)
+                                        put("bbox", bboxToJson(line.bbox))
+                                        put("center", centerToJson(line.bbox))
+                                        put("words", JSONArray().apply {
+                                            line.words.forEach { w ->
+                                                put(JSONObject().apply {
+                                                    put("id", w.id)
+                                                    put("text", w.text)
+                                                    put("bbox", bboxToJson(w.bbox))
+                                                    put("center", centerToJson(w.bbox))
+                                                })
+                                            }
+                                        })
+                                    })
+                                }
+                            })
+                        })
+                    }
+                })
+            }
+        }
+        return base
+    }
+
+    private suspend fun tapDesktopText(args: JSONObject): JSONObject {
+        val (pid, inputHandle) = resolveDesktopInput(args)
+        val frameHandle = desktopSessionRegistry.frameHandle(pid)
+            ?: throw McpError(-32602, "No capturable desktop tab for profile '$pid' (call list_desktop_sessions).")
+        val query = args.optString("query").trim()
+        if (query.isEmpty()) throw McpError(-32602, "query is required")
+
+        val exact = args.optBoolean("exact", false)
+        val nearX = if (args.has("nearX") && !args.isNull("nearX")) args.getInt("nearX").toDouble() else null
+        val nearY = if (args.has("nearY") && !args.isNull("nearY")) args.getInt("nearY").toDouble() else null
+        val nth = args.optInt("nth", 0).coerceAtLeast(0)
+        val dx = args.optInt("dx", 0)
+        val dy = args.optInt("dy", 0)
+        val button = args.optInt("button", 1).coerceIn(1, 7)
+        val clicks = args.optInt("clicks", 1).coerceIn(1, 3)
+        val level = parseLevelArg(args.optString("level", "all"))
+        val forceRefresh = args.optBoolean("forceRefresh", false)
+
+        val index = buildOrGetOcrIndex(pid, frameHandle, forceRefresh)
+        val matches = index.findText(
+            query = query,
+            exact = exact,
+            nearX = nearX,
+            nearY = nearY,
+            kNeighbors = 4,
+            level = level,
+        )
+        if (matches.isEmpty()) {
+            throw McpError(
+                -32603,
+                "No OCR text matching '$query' found on desktop '$pid' " +
+                    "(${index.lineCount} lines, ${index.wordCount} words indexed)",
+            )
+        }
+        if (nth >= matches.size) {
+            throw McpError(
+                -32602,
+                "nth=$nth is out of range for '$query' (found ${matches.size} match(es))",
+            )
+        }
+        val chosen = matches[nth]
+        val clickX = (chosen.node.bbox.cx.roundToInt() + dx).coerceIn(0, (index.frameWidth - 1).coerceAtLeast(0))
+        val clickY = (chosen.node.bbox.cy.roundToInt() + dy).coerceIn(0, (index.frameHeight - 1).coerceAtLeast(0))
+
+        repeat(clicks) { i ->
+            if (i > 0) kotlinx.coroutines.delay(60)
+            inputHandle.mouseClick(clickX, clickY, button)
+        }
+
+        return JSONObject().apply {
+            put("profileId", pid)
+            put("protocol", inputHandle.protocol)
+            put("x", clickX)
+            put("y", clickY)
+            put("button", button)
+            put("clicks", clicks)
+            put("query", query)
+            put("nth", nth)
+            put("matchCount", matches.size)
+            put("matched", nodeToJson(chosen.node).apply {
+                chosen.anchorDistance?.let { d ->
+                    put("anchorDistance", (d * 10.0).roundToInt() / 10.0)
+                }
+            })
+            put("neighbors", JSONArray().apply {
+                chosen.neighbors.forEach { nb -> put(neighborToJson(nb)) }
+            })
+        }
+    }
+
+    private suspend fun tapDesktopTab(args: JSONObject): JSONObject {
         val (pid, h) = resolveDesktopInput(args)
         val x = requireIntArg(args, "x")
         val y = requireIntArg(args, "y")
         val button = args.optInt("button", 1).coerceIn(1, 7)
-        h.mouseClick(x, y, button)
+        val clicks = args.optInt("clicks", 1).coerceIn(1, 3)
+        repeat(clicks) { i ->
+            if (i > 0) kotlinx.coroutines.delay(60)
+            h.mouseClick(x, y, button)
+        }
         return JSONObject().apply {
             put("profileId", pid); put("protocol", h.protocol)
-            put("x", x); put("y", y); put("button", button)
+            put("x", x); put("y", y); put("button", button); put("clicks", clicks)
+        }
+    }
+
+    private fun moveDesktopMouse(args: JSONObject): JSONObject {
+        val (pid, h) = resolveDesktopInput(args)
+        val x = requireIntArg(args, "x")
+        val y = requireIntArg(args, "y")
+        h.mouseMove(x, y)
+        return JSONObject().apply {
+            put("profileId", pid); put("protocol", h.protocol)
+            put("x", x); put("y", y)
+        }
+    }
+
+    private suspend fun dragDesktopTab(args: JSONObject): JSONObject {
+        val (pid, h) = resolveDesktopInput(args)
+        val startX = requireIntArg(args, "startX")
+        val startY = requireIntArg(args, "startY")
+        val endX = requireIntArg(args, "endX")
+        val endY = requireIntArg(args, "endY")
+        val button = args.optInt("button", 1).coerceIn(1, 7)
+        val steps = args.optInt("steps", 12).coerceIn(1, 100)
+        val durationMs = args.optInt("durationMs", 180).coerceIn(0, 5000)
+        val stepDelayMs = if (steps > 0) (durationMs / steps).toLong() else 0L
+
+        h.mouseMove(startX, startY)
+        h.mouseButton(button, true)
+        try {
+            for (i in 1..steps) {
+                if (stepDelayMs > 0) kotlinx.coroutines.delay(stepDelayMs)
+                val frac = i.toDouble() / steps.toDouble()
+                val ix = (startX + (endX - startX) * frac).roundToInt()
+                val iy = (startY + (endY - startY) * frac).roundToInt()
+                h.mouseMove(ix, iy)
+            }
+        } finally {
+            h.mouseButton(button, false)
+        }
+
+        return JSONObject().apply {
+            put("profileId", pid)
+            put("protocol", h.protocol)
+            put("startX", startX)
+            put("startY", startY)
+            put("endX", endX)
+            put("endY", endY)
+            put("button", button)
+            put("steps", steps)
+            put("durationMs", durationMs)
         }
     }
 

@@ -49,6 +49,8 @@ class McpToolsConsentTest {
         localSessionManager: LocalSessionManager = mockk(relaxed = true),
         hardwareKeySource: sh.haven.core.security.HardwareKeySource? = null,
         biometricAuthenticator: sh.haven.core.security.BiometricAuthenticator? = null,
+        openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager? = null,
+        tunnelResolver: sh.haven.core.tunnel.TunnelResolver? = null,
     ): McpTools {
         val connectionRepository = mockk<ConnectionRepository>(relaxed = true)
         // profileLabel(...) hits this; return a stable label so the
@@ -113,6 +115,8 @@ class McpToolsConsentTest {
             mailRuleRepository = mockk(relaxed = true),
             mailWatchManager = mockk(relaxed = true),
             agentActivityHolder = mockk(relaxed = true),
+            openAiSessionManager = openAiSessionManager,
+            tunnelResolver = tunnelResolver,
         )
     }
 
@@ -342,13 +346,23 @@ class McpToolsConsentTest {
         // #755 grouping: the Settings screen groups tools by subsystem, and
         // anything unmapped falls into "Other" — a growing Other bucket is the
         // grouping going stale as tools are added, so it must stay empty.
-        val tools = newTools()
-        val uncategorised = tools.definitions()
-            .map { it.optString("name") }
+        // Construct with optional providers (OpenAI) enabled so their tools are
+        // covered too, and verify 1:1 parity in both directions.
+        val tools = newTools(
+            openAiSessionManager = mockk(relaxed = true),
+            tunnelResolver = mockk(relaxed = true),
+        )
+        val servedNames = tools.definitions().map { it.optString("name") }.toSet()
+        val uncategorised = servedNames
             .filter { sh.haven.core.data.agent.McpToolCategory.of(it) == sh.haven.core.data.agent.McpToolCategory.OTHER }
         assertTrue(
             "tools missing from McpToolCategory: $uncategorised",
             uncategorised.isEmpty(),
+        )
+        val staleInCategory = sh.haven.core.data.agent.McpToolCategory.mappedToolNames - servedNames
+        assertTrue(
+            "stale tool names in McpToolCategory (not registered in McpTools): $staleInCategory",
+            staleInCategory.isEmpty(),
         )
     }
 
@@ -1039,7 +1053,9 @@ class McpToolsConsentTest {
         for (name in listOf(
             "list_desktop_windows",
             "install_desktop", "uninstall_desktop", "start_desktop", "stop_desktop",
-            "capture_desktop", "capture_desktop_tab", "tap_desktop_tab", "scroll_desktop_tab",
+            "capture_desktop", "capture_desktop_tab", "inspect_desktop_tab",
+            "tap_desktop_tab", "tap_desktop_text", "move_desktop_mouse",
+            "drag_desktop_tab", "scroll_desktop_tab",
             "send_desktop_clipboard", "launch_app_in_desktop",
         )) {
             assertTrue("$name missing from definitions()", name in names)

@@ -186,6 +186,7 @@ internal class McpTools(
      */
     private val updateChecker: sh.haven.core.data.update.UpdateChecker =
         sh.haven.core.data.update.UpdateChecker(context, preferencesRepository),
+    private val textRecognizer: sh.haven.core.scan.TextRecognizer? = null,
 ) {
 
     /**
@@ -306,6 +307,7 @@ internal class McpTools(
         ctx = toolContext,
         desktopSessionRegistry = desktopSessionRegistry,
         localSessionManager = localSessionManager,
+        textRecognizer = textRecognizer,
     )
     private val mailProvider = MailToolProvider(
         ctx = toolContext,
@@ -410,19 +412,52 @@ internal class McpTools(
     )
 
     /** Tool registry: name → handler. */
+    private val providers: List<ToolProvider> = listOfNotNull(
+        keyStoreProvider,
+        tunnelProvider,
+        sshKeyProvider,
+        hostKeyProvider,
+        stepCaProvider,
+        rcloneProvider,
+        usbProvider,
+        desktopProvider,
+        mailProvider,
+        openAiProvider,
+        serialBridgeProvider,
+        sensesProvider,
+        gpsProvider,
+        notificationProvider,
+        reflexProvider,
+        crossProtocolProvider,
+        credentialProvider,
+    )
+
     // The not-yet-extracted tools are split across several builder methods
     // purely to keep each under the JVM's 64 KiB per-method bytecode limit —
     // the whole registry in one initializer overflowed `<init>`. (A structural
     // symptom of the God-file debt the provider split above retires; this is
     // the holding fix for the tools that haven't moved out yet.)
-    private val tools: Map<String, ToolHandler> =
-        toolsPart1() + toolsPart2() + toolsPart3() + toolsPart4() +
-            keyStoreProvider.tools() + tunnelProvider.tools() + sshKeyProvider.tools() +
-            hostKeyProvider.tools() + stepCaProvider.tools() + rcloneProvider.tools() + usbProvider.tools() +
-            desktopProvider.tools() + mailProvider.tools() + (openAiProvider?.tools() ?: emptyMap()) +
-                serialBridgeProvider.tools() +
-            sensesProvider.tools() + gpsProvider.tools() + notificationProvider.tools() + reflexProvider.tools() +
-            crossProtocolProvider.tools() + credentialProvider.tools()
+    private val tools: Map<String, ToolHandler> = buildMap {
+        putAll(toolsPart1())
+        putAll(toolsPart2())
+        putAll(toolsPart3())
+        putAll(toolsPart4())
+        for (provider in providers) {
+            val defaultCat = provider.defaultCategory
+            for ((name, handler) in provider.tools()) {
+                put(
+                    name,
+                    if (handler.category == null && defaultCat != null &&
+                        sh.haven.core.data.agent.McpToolCategory.of(name) == sh.haven.core.data.agent.McpToolCategory.OTHER
+                    ) {
+                        handler.withCategory(defaultCat)
+                    } else {
+                        handler
+                    },
+                )
+            }
+        }
+    }
 
     // #755: the disabled-tool set is a Flow, but definitions() (tools/list)
     // is not suspend, so keep a volatile snapshot the collector below keeps
@@ -434,9 +469,18 @@ internal class McpTools(
     private var disabledToolSnapshot: Set<String> = emptySet()
 
     init {
+        val uncategorised = tools.mapNotNull { (name, h) ->
+            val cat = h.category ?: sh.haven.core.data.agent.McpToolCategory.of(name)
+            name.takeIf { cat == sh.haven.core.data.agent.McpToolCategory.OTHER }
+        }
+        check(uncategorised.isEmpty()) {
+            "MCP tools registered without a Settings switch category (set ToolHandler.category, " +
+                "ToolProvider.defaultCategory, or add to McpToolCategory): $uncategorised"
+        }
         toolCatalog?.let { catalog ->
             catalog.publish(tools.map { (name, h) ->
-                sh.haven.core.data.agent.McpToolInfo(name, h.consentLevel)
+                val cat = h.category ?: sh.haven.core.data.agent.McpToolCategory.of(name)
+                sh.haven.core.data.agent.McpToolInfo(name, h.consentLevel, cat)
             })
             presentScope.launch {
                 catalog.disabledTools.collect { disabledToolSnapshot = it }
@@ -8727,6 +8771,12 @@ internal class ToolHandler(
      */
     val capability: AgentCapability? = null,
     /**
+     * Optional Settings switch category ([sh.haven.core.data.agent.McpToolCategory])
+     * declared inline at the registration site. When null, falls back to
+     * [sh.haven.core.data.agent.McpToolCategory.of] or [ToolProvider.defaultCategory].
+     */
+    val category: sh.haven.core.data.agent.McpToolCategory? = null,
+    /**
      * Builds the human-readable one-liner shown in the consent prompt
      * for non-NEVER tools. Default is just the tool name; per-tool
      * registrations should override with something specific so the user
@@ -8745,6 +8795,16 @@ internal class ToolHandler(
      */
     private val invoke: suspend (JSONObject) -> Any,
 ) {
+    fun withCategory(cat: sh.haven.core.data.agent.McpToolCategory): ToolHandler = ToolHandler(
+        description = description,
+        inputSchema = inputSchema,
+        consentLevel = consentLevel,
+        capability = capability,
+        category = cat,
+        summarise = summarise,
+        invoke = invoke,
+    )
+
     suspend fun handle(args: JSONObject): ToolResult = when (val r = invoke(args)) {
         is ToolResult -> r
         is JSONObject -> ToolResult.Structured(r)

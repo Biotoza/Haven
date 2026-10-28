@@ -260,6 +260,8 @@ class McpServer @Inject constructor(
     // constructions; Hilt injects the real @Singleton, which Settings also
     // observes, so the phone-side toggle list and the dispatcher share one store.
     private val toolCatalog: sh.haven.core.data.agent.McpToolCatalog? = null,
+    // RapidOCR + 2D k-d tree screen indexer for inspect_desktop_tab / tap_desktop_text.
+    private val textRecognizer: sh.haven.core.scan.TextRecognizer? = null,
 ) : Closeable {
 
     /**
@@ -522,6 +524,7 @@ class McpServer @Inject constructor(
         sessionSelectionHolder = sessionSelectionHolder,
         agentConsentManager = consentManager,
         toolCatalog = toolCatalog,
+        textRecognizer = textRecognizer,
         mcpPortProvider = { port },
     )
 

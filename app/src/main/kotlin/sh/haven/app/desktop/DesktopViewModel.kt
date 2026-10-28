@@ -1936,10 +1936,23 @@ class DesktopViewModel @Inject constructor(
                     DesktopInputHandle(
                         protocol = "VNC",
                         // #723: the MCP input handle honours the tab's view-only flag.
-                        mouseMove = { x, y -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseMove(x, y) },
-                        mouseClick = { x, y, button -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseClick(x, y, button) },
+                        mouseMove = { x, y ->
+                            if (!newTab._viewOnly.value) {
+                                pointerPos.value = x to y
+                                newTab.remoteDesktop.sendMouseMove(x, y)
+                            }
+                        },
+                        mouseClick = { x, y, button ->
+                            if (!newTab._viewOnly.value) {
+                                pointerPos.value = x to y
+                                newTab.remoteDesktop.sendMouseClick(x, y, button)
+                            }
+                        },
                         mouseWheel = { deltaY -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendClipboardText(text) },
+                        mouseButton = { button, pressed ->
+                            if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseButton(button, pressed)
+                        },
                     ),
                 )
                 // Let MCP disconnect_profile close this tab even when there's
@@ -2216,10 +2229,17 @@ class DesktopViewModel @Inject constructor(
                     profileId,
                     DesktopInputHandle(
                         protocol = "RDP",
-                        mouseMove = { x, y -> tab.remoteDesktop.sendMouseMove(x, y) },
-                        mouseClick = { x, y, button -> tab.remoteDesktop.sendMouseClick(x, y, button) },
+                        mouseMove = { x, y ->
+                            pointerPos.value = x to y
+                            tab.remoteDesktop.sendMouseMove(x, y)
+                        },
+                        mouseClick = { x, y, button ->
+                            pointerPos.value = x to y
+                            tab.remoteDesktop.sendMouseClick(x, y, button)
+                        },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                        mouseButton = { button, pressed -> tab.remoteDesktop.sendMouseButton(button, pressed) },
                     ),
                 )
                 // Let MCP disconnect_profile close this tab even when there's
@@ -2402,10 +2422,17 @@ class DesktopViewModel @Inject constructor(
                     profileId,
                     DesktopInputHandle(
                         protocol = "SPICE",
-                        mouseMove = { x, y -> tab.remoteDesktop.sendMouseMove(x, y) },
-                        mouseClick = { x, y, button -> tab.remoteDesktop.sendMouseClick(x, y, button) },
+                        mouseMove = { x, y ->
+                            pointerPos.value = x to y
+                            tab.remoteDesktop.sendMouseMove(x, y)
+                        },
+                        mouseClick = { x, y, button ->
+                            pointerPos.value = x to y
+                            tab.remoteDesktop.sendMouseClick(x, y, button)
+                        },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                        mouseButton = { button, pressed -> tab.remoteDesktop.sendMouseButton(button, pressed) },
                     ),
                 )
                 // Let MCP disconnect_profile close this tab even when there's
@@ -2604,8 +2631,14 @@ class DesktopViewModel @Inject constructor(
                     profileId,
                     DesktopInputHandle(
                         protocol = "GLKVM",
-                        mouseMove = { x, y -> tab.remoteDesktop.sendMouseMove(x, y) },
-                        mouseClick = { x, y, button -> tab.remoteDesktop.sendMouseClick(x, y, button) },
+                        mouseMove = { x, y ->
+                            pointerPos.value = x to y
+                            tab.remoteDesktop.sendMouseMove(x, y)
+                        },
+                        mouseClick = { x, y, button ->
+                            pointerPos.value = x to y
+                            tab.remoteDesktop.sendMouseClick(x, y, button)
+                        },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
                         // GLKVM types as real keystrokes (layout table + kvmd
@@ -2613,6 +2646,7 @@ class DesktopViewModel @Inject constructor(
                         // with a text verb today; MCP's type_desktop_text
                         // routes through this.
                         typeText = { text -> session.typeText(text) },
+                        mouseButton = { button, pressed -> tab.remoteDesktop.sendMouseButton(button, pressed) },
                     ),
                 )
                 desktopSessionRegistry.registerCloseHandle(profileId) {

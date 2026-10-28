@@ -12,71 +12,64 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Manages Tesseract trained-data files on internal storage.
+ * Manages the bundled RapidOCR (PP-OCRv4) ONNX model files on internal storage.
  *
- * Tesseract's `init()` takes a parent directory that must contain a
- * `tessdata/` subdir with `<lang>.traineddata` inside. We ship the English
- * `_fast` LSTM model in `assets/tessdata/` and copy it to
- * `filesDir/tessdata/` on first OCR use. Subsequent calls return the
- * cached path without I/O.
- *
- * Bundled asset is the `eng.traineddata` from
- * https://github.com/tesseract-ocr/tessdata_fast (Apache 2.0, ~4 MB).
- * The "fast" variant trades a few percent of accuracy for a ~3× speedup
- * and much smaller download — the right trade for terminal-screenshot
- * style input on a phone CPU.
+ * Extracts `rapidocr/ch_PP-OCRv4_det_infer.onnx` and
+ * `rapidocr/ch_PP-OCRv4_rec_infer.onnx` from app assets into
+ * `filesDir/rapidocr/` on first OCR use, and removes any legacy
+ * `filesDir/tessdata/` directory left behind by earlier releases.
  */
 @Singleton
 class TrainedDataManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
+    data class RapidOcrModelPaths(
+        val detModel: File,
+        val recModel: File,
+    )
+
     private val mutex = Mutex()
-    private val tessdataDir: File = File(context.filesDir, "tessdata")
+    private val modelDir: File = File(context.filesDir, "rapidocr")
 
-    /**
-     * @return the parent directory to hand to Tesseract's `init(parent, "eng")`,
-     *   i.e. the directory that contains the `tessdata/` folder.
-     * @throws TrainedDataException if the asset is missing or the copy fails.
-     */
-    suspend fun ensureEnglish(): File = ensureLanguage("eng")
-
-    /**
-     * Returns the parent directory containing tessdata/<language>.traineddata,
-     * extracting the bundled asset if necessary.
-     */
-    suspend fun ensureLanguage(language: String): File = withContext(Dispatchers.IO) {
-        val target = File(tessdataDir, "$language.traineddata")
-        if (target.exists() && target.length() > 0) {
-            return@withContext context.filesDir
+    suspend fun ensureModels(): RapidOcrModelPaths = withContext(Dispatchers.IO) {
+        val detFile = File(modelDir, DET_MODEL_NAME)
+        val recFile = File(modelDir, REC_MODEL_NAME)
+        if (detFile.exists() && detFile.length() > 0 && recFile.exists() && recFile.length() > 0) {
+            return@withContext RapidOcrModelPaths(detFile, recFile)
         }
         mutex.withLock {
-            // Re-check after acquiring the lock — another caller may have
-            // landed the file while we were waiting.
-            if (target.exists() && target.length() > 0) return@withLock
-            if (!tessdataDir.exists() && !tessdataDir.mkdirs()) {
-                throw TrainedDataException(
-                    "Could not create tessdata directory at ${tessdataDir.absolutePath}",
-                )
+            // Reclaim ~4 MB if an older release extracted tessdata/.
+            runCatching {
+                val legacyTessDir = File(context.filesDir, "tessdata")
+                if (legacyTessDir.exists()) legacyTessDir.deleteRecursively()
             }
-            val assetPath = "tessdata/$language.traineddata"
-            try {
-                context.assets.open(assetPath).use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
-                }
-            } catch (e: Exception) {
-                target.delete()
-                throw TrainedDataException(
-                    "Failed to extract tessdata asset '$assetPath': ${e.message}",
-                    e,
-                )
+            if (!modelDir.exists() && !modelDir.mkdirs()) {
+                throw TrainedDataException("Could not create rapidocr directory at ${modelDir.absolutePath}")
             }
-            Log.i(TAG, "Extracted $assetPath (${target.length()} bytes) → $target")
+            extractIfNeeded(DET_MODEL_NAME, detFile)
+            extractIfNeeded(REC_MODEL_NAME, recFile)
         }
-        context.filesDir
+        RapidOcrModelPaths(detFile, recFile)
     }
 
-    private companion object {
-        const val TAG = "TrainedDataManager"
+    private fun extractIfNeeded(name: String, target: File) {
+        if (target.exists() && target.length() > 0) return
+        val assetPath = "rapidocr/$name"
+        try {
+            context.assets.open(assetPath).use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+        } catch (e: Exception) {
+            target.delete()
+            throw TrainedDataException("Failed to extract RapidOCR asset '$assetPath': ${e.message}", e)
+        }
+        Log.i(TAG, "Extracted $assetPath (${target.length()} bytes) -> $target")
+    }
+
+    companion object {
+        private const val TAG = "TrainedDataManager"
+        const val DET_MODEL_NAME = "ch_PP-OCRv4_det_infer.onnx"
+        const val REC_MODEL_NAME = "ch_PP-OCRv4_rec_infer.onnx"
     }
 }
 

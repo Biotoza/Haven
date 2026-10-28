@@ -51,6 +51,7 @@ class DesktopInputHandle(
     val mouseWheel: (deltaY: Int) -> Unit,
     val clipboard: (text: String) -> Unit,
     var typeText: ((text: String) -> Unit)? = null,
+    val mouseButton: (button: Int, pressed: Boolean) -> Unit = { _, _ -> },
 )
 
 /**

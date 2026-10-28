@@ -1,5 +1,7 @@
 package sh.haven.app.agent
 
+import sh.haven.core.data.agent.McpToolCategory
+
 /**
  * A cohesive domain's slice of the MCP tool registry (#mcp-backbone Stage 5,
  * Layer E). [McpTools] aggregates providers together with its own
@@ -14,6 +16,13 @@ package sh.haven.app.agent
  * bytecode limit the monolithic registry initializer bumps into.
  */
 internal interface ToolProvider {
+    /**
+     * Optional default Settings switch category ([McpToolCategory]) for tools
+     * in this provider when neither [ToolHandler.category] nor
+     * [McpToolCategory.of] specifies one.
+     */
+    val defaultCategory: McpToolCategory? get() = null
+
     /** This domain's tools, keyed by MCP tool name. */
     fun tools(): Map<String, ToolHandler>
 }

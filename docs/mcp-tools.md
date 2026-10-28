@@ -41,8 +41,8 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (78 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (62 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (80 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (64 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (92 tools).
 
 ## Sections
@@ -54,7 +54,7 @@ consent level:
 - [**Files, media & clipboard**](#sec-files) — 23 tools
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
 - [**Email**](#sec-email) — 15 tools
-- [**Linux guest (proot) & desktops**](#sec-linux) — 47 tools
+- [**Linux guest (proot) & desktops**](#sec-linux) — 51 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
 - [**USB & host-device brokers**](#sec-usb) — 19 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
@@ -1255,7 +1255,7 @@ Send a plain-text email from a connected EMAIL profile. Pass profileId (from lis
 
 <a id="sec-linux"></a>
 
-## Linux guest (proot) & desktops (47)
+## Linux guest (proot) & desktops (51)
 
 The on-device Linux distros, their desktop environments and windows, guest services, the audio bridge, and guest-file access.
 
@@ -1306,6 +1306,22 @@ Delete a stored system-VM image (#326) — removes its qcow2 plus its label/arch
 Stop the haven-usb guest proxy started by usb_attach_to_guest and release the brokered USB device handle (the guest's /dev/pts serial bridge or LD_PRELOAD HID routing stops working immediately). Pass keepOpen:true to leave the device handle open. The teardown counterpart to usb_attach_to_guest.
 
 - `keepOpen` (boolean) — Leave the brokered device handle open (default false = fully release it).
+
+</details>
+
+<details markdown="1">
+<summary><code>drag_desktop_tab</code> · asks every call</summary>
+
+Drag the mouse on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) from (startX, startY) to (endX, endY) in remote framebuffer pixel coordinates — moves to start, presses the mouse button, interpolates intermediate motion steps over durationMs, and releases the button. Use for moving windows, selecting text/regions, or dragging sliders. Returns { profileId, protocol, startX, startY, endX, endY, button, steps, durationMs }.
+
+- `endX` (integer, required) — Drag end X in remote framebuffer pixels.
+- `endY` (integer, required) — Drag end Y in remote framebuffer pixels.
+- `startX` (integer, required) — Drag start X in remote framebuffer pixels.
+- `startY` (integer, required) — Drag start Y in remote framebuffer pixels.
+- `button` (integer) — X11 mouse button to hold during drag: 1=left (default), 2=middle, 3=right.
+- `durationMs` (integer) — Total drag duration in milliseconds. Default 180 (clamped 0..5000).
+- `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.
+- `steps` (integer) — Number of interpolated motion steps between start and end. Default 12 (clamped 1..100).
 
 </details>
 
@@ -1374,6 +1390,26 @@ Import a bootable disk image as a system VM (#326). `source` is an http(s) URL o
 - `arch` (string, one of: x86_64 | aarch64) — Guest CPU architecture of the image. Default x86_64.
 - `id` (string) — Image id slug (lowercase letters, digits, . _ -). Defaults to a slug of the label.
 - `sha256` (string) — Optional SHA-256 of the source bytes to verify after download.
+
+</details>
+
+<details markdown="1">
+<summary><code>inspect_desktop_tab</code> · asks once per session</summary>
+
+Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode="at" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].
+
+- `exact` (boolean) — Require exact normalized text equality for query instead of substring match. Default false.
+- `forceRefresh` (boolean) — Force a fresh RapidOCR pass even if the framebuffer hash matches the cached index. Default false.
+- `k` (integer) — Number of nearest 2D k-d tree neighbors to return (for coordinate lookup or per text match). Default 5 (clamped 0..50).
+- `level` (string, one of: all | word | line) — Filter detections by granularity: "all" (default), "word", or "line".
+- `maxRadius` (integer) — Optional maximum distance in pixels for k-d tree neighbor search.
+- `mode` (string, one of: auto | at | find | tree) — Query mode: "auto" (default: coordinate lookup if x/y set, text search if query set, else full tree), "at" (coordinate k-d tree lookup at x,y or the current pointer if x/y omitted), "find" (text search for query), or "tree" (full blocks/lines/words hierarchy).
+- `nearX` (integer) — Optional anchor X coordinate to disambiguate multiple text matches by proximity.
+- `nearY` (integer) — Optional anchor Y coordinate to disambiguate multiple text matches by proximity.
+- `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.
+- `query` (string) — Text to search for (case-insensitive substring by default, or full match when exact=true).
+- `x` (integer) — Framebuffer X coordinate for 2D k-d tree nearest-neighbor / containment lookup.
+- `y` (integer) — Framebuffer Y coordinate for 2D k-d tree nearest-neighbor / containment lookup.
 
 </details>
 
@@ -1483,6 +1519,17 @@ List guest services registered on the active distro with their live state (STOPP
 <summary><code>list_system_vm_images</code> · no per-call prompt</summary>
 
 List the stored system-VM disk images (#326) and the current VM's state. A system VM is a full QEMU Linux VM (x86_64 or aarch64) booted inside the active proot and viewed over VNC on loopback — distinct from a desktop environment (list_desktop_environments) and the USB-drive appliance (#287). Returns { vm: { status, vncPort, arch, accel, accelReason }, host: { arch, kvm: { usable, detail } }, count, images:[{ id, label, sizeBytes, arch }] }. `status` is one of stopped/starting/running/error; when running, `vncPort` is the loopback port a VNC connection points at (create_connection type=VNC host=127.0.0.1 vncPort=<port>). `host.kvm` is a live probe of /dev/kvm — on retail arm64 phones it is absent because the vendor hypervisor owns EL2, so guests run under TCG emulation. Images are qcow2, normalised on import.
+
+</details>
+
+<details markdown="1">
+<summary><code>move_desktop_mouse</code> · asks once per session</summary>
+
+Move the mouse pointer on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) to (x, y) in remote framebuffer pixel coordinates without clicking. Useful for hovering to reveal tooltips/menus or positioning the cursor before inspect_desktop_tab(mode="at") or scroll_desktop_tab. Returns { profileId, protocol, x, y }.
+
+- `x` (integer, required) — Remote framebuffer X (0..width).
+- `y` (integer, required) — Remote framebuffer Y (0..height).
+- `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.
 
 </details>
 
@@ -1664,11 +1711,32 @@ Power off / kill the running system VM (#326) and release its loopback VNC port.
 <details markdown="1">
 <summary><code>tap_desktop_tab</code> · asks every call</summary>
 
-Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab reports: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Keyboard typing is not yet supported (the session abstraction has no key verb). Returns { profileId, protocol, x, y, button }.
+Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab and inspect_desktop_tab report: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Pass clicks=2 for a double-click. Returns { profileId, protocol, x, y, button, clicks }.
 
 - `x` (integer, required) — Remote framebuffer X (0..width from capture_desktop_tab).
 - `y` (integer, required) — Remote framebuffer Y (0..height from capture_desktop_tab).
 - `button` (integer) — X11 button: 1=left (default), 2=middle, 3=right.
+- `clicks` (integer) — Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).
+- `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.
+
+</details>
+
+<details markdown="1">
+<summary><code>tap_desktop_text</code> · asks every call</summary>
+
+Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.
+
+- `query` (string, required) — Visible text label to find and click.
+- `button` (integer) — X11 mouse button: 1=left (default), 2=middle, 3=right.
+- `clicks` (integer) — Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).
+- `dx` (integer) — Horizontal pixel offset added to the matched element's center X before clicking. Default 0.
+- `dy` (integer) — Vertical pixel offset added to the matched element's center Y before clicking. Default 0.
+- `exact` (boolean) — Require exact normalized text match instead of substring match. Default false.
+- `forceRefresh` (boolean) — Force a fresh RapidOCR pass before matching. Default false.
+- `level` (string, one of: all | word | line) — Granularity to match: "all" (default, prefers tight word boxes), "word", or "line".
+- `nearX` (integer) — Optional anchor X to rank matches by proximity.
+- `nearY` (integer) — Optional anchor Y to rank matches by proximity.
+- `nth` (integer) — 0-based index among ranked matches to click. Default 0 (best/closest match).
 - `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.
 
 </details>

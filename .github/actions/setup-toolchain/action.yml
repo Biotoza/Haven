@@ -156,15 +156,15 @@ runs:
         go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20251021151156-188f512ec823
         go install golang.org/x/mobile/cmd/gobind@v0.0.0-20251021151156-188f512ec823
 
-    # fetchTessdata pulls ~4 MB from GitHub raw on every clean run, and
-    # shared runner IPs get rate-limited there (HTTP 429 killed a CI run).
-    # Restore the file from cache so the task's checksum check short-circuits
-    # the download; keyed on the build script so a version/SHA bump refetches.
-    - name: Cache tessdata
+    # fetchRapidOcrModels pulls ~15 MB from files.pythonhosted.org on a clean
+    # run. Restore the extracted ONNX models from cache so the task's checksum
+    # check short-circuits the download; keyed on the build script so a
+    # version/SHA bump refetches.
+    - name: Cache RapidOCR models
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
       with:
-        path: core/scan/src/main/assets/tessdata
-        key: tessdata-${{ hashFiles('core/scan/build.gradle.kts') }}
+        path: core/scan/src/main/assets/rapidocr
+        key: rapidocr-${{ hashFiles('core/scan/build.gradle.kts') }}
 
     # Tool-version pins below match fdroiddata's sh.haven.app.yml recipe —
     # the F-Droid buildserver is the authoritative environment (failing

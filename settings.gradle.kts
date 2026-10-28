@@ -12,21 +12,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // JitPack hosts the only published artifact of adaptech-cz/Tesseract4Android
-        // (used by core:scan for on-device OCR). Scoped to that group so the
-        // resolver doesn't fall back to JitPack for any other dependency.
-        //
-        // NOTE for F-Droid: prebuilt AARs from JitPack are tolerated but
-        // not preferred. See project_scan_module memory + the open follow-up
-        // to build Tesseract4Android from source in the F-Droid recipe
-        // (same shape as the rclone-android / IronRDP source builds).
+        // JitPack hosts mik3y/usb-serial-for-android (not on Maven Central).
+        // Scoped to that group so the resolver doesn't fall back to JitPack
+        // for any other dependency.
         maven {
             url = uri("https://jitpack.io")
             content {
-                // adaptech-cz/Tesseract4Android is a multi-module project,
-                // so JitPack publishes children under com.github.adaptech-cz.*
-                // as well as the parent group itself.
-                includeGroupByRegex("com\\.github\\.adaptech-cz.*")
                 // mik3y/usb-serial-for-android — the USB-serial terminal driver
                 // (CDC-ACM + CH34x/FTDI/CP21xx). JitPack-only, not on Central.
                 includeGroup("com.github.mik3y")
