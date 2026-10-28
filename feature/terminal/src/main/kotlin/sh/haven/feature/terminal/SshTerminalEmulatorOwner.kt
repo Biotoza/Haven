@@ -82,12 +82,16 @@ class SshTerminalEmulatorOwner @Inject constructor(
         lateinit var feedOutput: (ByteArray, Int, Int) -> Unit
 
         @Volatile var session: TerminalSession? = null
+        @Volatile var closed: Boolean = false
 
         /** Swapped between connect-default (→session) and UI-adopt (→VM) routing. */
         @Volatile var inputSink: (ByteArray) -> Unit = {}
         @Volatile var resizeSink: (TerminalDimensions) -> Unit = {}
 
-        fun emulatorOrNull(): TerminalEmulator? = if (::emulator.isInitialized) emulator else null
+        internal fun isEmulatorInitialized(): Boolean = ::emulator.isInitialized
+
+        fun emulatorOrNull(): TerminalEmulator? =
+            if (!closed && ::emulator.isInitialized) emulator else null
     }
 
     /** Swap point for tests — defaults to the real (JNI) emulator factory. */
@@ -183,11 +187,17 @@ class SshTerminalEmulatorOwner @Inject constructor(
         // recreation (detachTerminalSession, which keeps shellChannel non-null)
         // retain the bundle.
         scope.launch {
-            sshSessionManager.sessions.collect { map ->
-                bundles.keys.filter { id ->
-                    val s = map[id]
-                    s == null || (s.tunnelOpened && s.shellChannel == null && s.terminalSession == null)
-                }.forEach { dispose(it) }
+            sshSessionManager.sessions.collect {
+                for ((id, b) in bundles.entries.toList()) {
+                    // Check the live session state rather than the emitted snapshot:
+                    // ensureShellForProfile emits storeConnectionConfig (while
+                    // shellChannel is still null) right before openShellAndAwaitReady
+                    // calls attachShellChannel + attach(id) (#764).
+                    val s = sshSessionManager.sessions.value[id]
+                    if (s == null || (s.tunnelOpened && s.shellChannel == null && s.terminalSession == null)) {
+                        dispose(id, b)
+                    }
+                }
             }
         }
     }
@@ -253,7 +263,10 @@ class SshTerminalEmulatorOwner @Inject constructor(
             },
         )
         bundle.emulator = emulator
-        bundles[sessionId] = bundle
+        val previous = bundles.put(sessionId, bundle)
+        if (previous != null && previous !== bundle) {
+            closeBundleResources(previous)
+        }
 
         // Pre-register so MCP reads (read_terminal_snapshot / feed_terminal_output)
         // work from connect time, before any UI tab mounts.
@@ -299,20 +312,39 @@ class SshTerminalEmulatorOwner @Inject constructor(
         b.resizeSink = if (s != null) ({ dims -> s.resize(dims.columns, dims.rows) }) else ({})
     }
 
-    internal fun dispose(sessionId: String) {
-        val b = bundles.remove(sessionId) ?: return
+    internal fun dispose(sessionId: String, expected: Bundle? = null) {
+        val b = if (expected != null) {
+            if (bundles.remove(sessionId, expected)) expected else return
+        } else {
+            bundles.remove(sessionId) ?: return
+        }
+        b.closed = true
         b.recorder?.close()
         registry.unregister(sessionId, b.profileId, b.label)
         // Deny + free the consent state: a prompt parked on this emulator's
         // gate must not outlive it (#583).
         inlineImageConsent.drop(sessionId)
         // Frees the native terminal now rather than whenever the collector next
-        // runs (#509). Unregistering first matters: it is what stops the MCP
-        // agent handing out this emulator, so nothing new can arrive between
-        // here and the close. `emulatorOrNull` because a bundle can be disposed
-        // before `attach` ever built one.
-        b.emulatorOrNull()?.close()
+        // runs (#509). Unregistering and marking closed first matters: it stops
+        // the MCP agent and EmulatorWriteBuffer from handing out or writing to
+        // this emulator before close runs.
+        closeEmulatorSafely(b)
         Log.d(TAG, "Disposed SSH emulator bundle for $sessionId")
+    }
+
+    private fun closeBundleResources(b: Bundle) {
+        b.closed = true
+        b.recorder?.close()
+        closeEmulatorSafely(b)
+    }
+
+    private fun closeEmulatorSafely(b: Bundle) {
+        if (!b.isEmulatorInitialized()) return
+        val em = b.emulator
+        val looper = android.os.Looper.getMainLooper()
+        if (looper == null || !android.os.Handler(looper).post { runCatching { em.close() } }) {
+            runCatching { em.close() }
+        }
     }
 
     private fun createRecorderIfEnabled(sessionId: String): TerminalRecorder? {

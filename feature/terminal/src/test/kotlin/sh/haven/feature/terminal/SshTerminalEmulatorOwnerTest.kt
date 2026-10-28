@@ -177,4 +177,50 @@ class SshTerminalEmulatorOwnerTest {
         assertNull("bundle disposed when session becomes shell-less tunnel carrier", owner.bundleFor("s1"))
         assertNull("registry entry cleared when session becomes shell-less tunnel carrier", registry.get("s1"))
     }
+
+    @Test
+    fun `reattaching shell on tunnel carrier replaces bundle without disposing new emulator`() {
+        val sessionsFlow = MutableStateFlow(
+            mapOf("s1" to state("s1").copy(tunnelOpened = true, shellChannel = null, terminalSession = null)),
+        )
+        val registry = TerminalSessionRegistry()
+        val ssh = mockk<SshSessionManager>(relaxed = true) {
+            every { this@mockk.sessions } returns sessionsFlow
+        }
+        val repo = mockk<ConnectionRepository>(relaxed = true) {
+            every { observeAll() } returns flowOf(emptyList())
+        }
+        val prefs = mockk<UserPreferencesRepository>(relaxed = true) {
+            every { verboseLoggingEnabled } returns flowOf(false)
+            every { terminalScrollbackRows } returns flowOf(UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS)
+            every { terminalColorScheme } returns flowOf(UserPreferencesRepository.TerminalColorScheme.HAVEN)
+            every { terminalBellNotification } returns flowOf(true)
+            every { terminalInlineImages } returns flowOf(UserPreferencesRepository.TerminalInlineImages.ASK)
+            every { terminalAmbiwidthMode } returns flowOf(UserPreferencesRepository.TerminalAmbiwidthMode.NARROW)
+        }
+        val emulators = mutableListOf<TerminalEmulator>()
+        val owner = SshTerminalEmulatorOwner(ssh, repo, mockk(relaxed = true), prefs, registry, InlineImageConsentRegistry())
+        owner.emulatorFactory = SshTerminalEmulatorOwner.EmulatorFactory { _, _, _, _, _, _, _, _ ->
+            mockk<TerminalEmulator>(relaxed = true).also { emulators.add(it) }
+        }
+        owner.start()
+
+        // Simulate ensureShellForProfile -> openShellAndAwaitReady:
+        // attachShellChannel sets shellChannel non-null before createTerminalSession -> attach("s1").
+        sessionsFlow.value = mapOf(
+            "s1" to state("s1").copy(tunnelOpened = true, shellChannel = mockk(relaxed = true), terminalSession = null),
+        )
+        owner.attach("s1")
+        val bundle = owner.bundleFor("s1")
+        assertNotNull("re-attached bundle should remain active", bundle)
+        assertNotNull("emulatorOrNull should be non-null while open", bundle!!.emulatorOrNull())
+        Thread.sleep(100)
+        assertNotNull("collector must not dispose bundle while shellChannel is non-null", owner.bundleFor("s1"))
+        verify(exactly = 0) { emulators.last().close() }
+
+        // Disposing marks bundle closed so emulatorOrNull returns null immediately.
+        owner.dispose("s1", bundle)
+        assertNull("emulatorOrNull returns null after dispose", bundle.emulatorOrNull())
+        verify(exactly = 1) { emulators.last().close() }
+    }
 }

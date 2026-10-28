@@ -109,6 +109,13 @@ data class ConnectionConfig(
             result = 31 * result + (certBytes?.contentHashCode() ?: 0)
             return result
         }
+
+        fun deepCopy(): AgentIdentity = copy(
+            keyBytes = keyBytes.copyOf(),
+            passphrase = passphrase?.copyOf(),
+            skKeyData = skKeyData?.copyOf(),
+            certBytes = certBytes?.copyOf(),
+        )
     }
 
     /**
@@ -140,6 +147,51 @@ data class ConnectionConfig(
             is FidoKey -> true
             is Multi -> methods.any { it.containsFidoKey() }
             else -> false
+        }
+
+        /**
+         * Deep-copy all mutable credential arrays (`password`, `keyBytes`,
+         * `passphrase`, `certificateBytes`, nested [Multi] / [PrivateKeys]
+         * entries) so tearing down one session and zeroing its auth material
+         * cannot corrupt another session sharing the same profile (#764).
+         */
+        fun deepCopy(): AuthMethod = when (this) {
+            is Password -> Password(password.copyOf())
+            is PrivateKey -> copy(
+                keyBytes = keyBytes.copyOf(),
+                passphrase = passphrase.copyOf(),
+                certificateBytes = certificateBytes?.copyOf(),
+            )
+            is PrivateKeys -> PrivateKeys(
+                keys.map { entry ->
+                    entry.copy(
+                        keyBytes = entry.keyBytes.copyOf(),
+                        certificateBytes = entry.certificateBytes?.copyOf(),
+                        passphrase = entry.passphrase?.copyOf(),
+                    )
+                },
+            )
+            is Multi -> Multi(methods.map { it.deepCopy() })
+            is ProviderKey -> copy(keyData = keyData.copyOf())
+            is FidoKey -> copy(skKeyData = skKeyData.copyOf(), certBytes = certBytes?.copyOf())
+            is HardwareKey -> copy(certBytes = certBytes?.copyOf())
+        }
+
+        /** Zero out in-memory secret material (`password`, `keyBytes`, `passphrase`). */
+        fun clearSensitiveMaterial() {
+            when (this) {
+                is Password -> clear()
+                is PrivateKey -> {
+                    keyBytes.fill(0)
+                    clear()
+                }
+                is PrivateKeys -> keys.forEach { entry ->
+                    entry.keyBytes.fill(0)
+                    entry.passphrase?.fill(0)
+                }
+                is Multi -> methods.forEach { it.clearSensitiveMaterial() }
+                is ProviderKey, is FidoKey, is HardwareKey -> {}
+            }
         }
 
         /**

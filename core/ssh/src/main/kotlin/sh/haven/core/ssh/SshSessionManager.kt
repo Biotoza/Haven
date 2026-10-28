@@ -1352,9 +1352,12 @@ class SshSessionManager @Inject constructor(
         _sessions.update { map ->
             val existing = map[sessionId] ?: return@update map
             map + (sessionId to existing.copy(
+                status = if (existing.client.isConnected) SessionState.Status.CONNECTED else existing.status,
                 shellChannel = null,
                 terminalSession = null,
                 tunnelOpened = true,
+                chosenSessionName = null,
+                bypassSessionManager = false,
             ))
         }
         agentScrollback.remove(sessionId)
@@ -1548,15 +1551,10 @@ class SshSessionManager @Inject constructor(
         // Deep-copy auth material so tearDown() zeroing one session's bytes
         // doesn't corrupt the config for other sessions sharing the same profile.
         val config = session.connectionConfig!!
-        val safeCopy = when (val auth = config.authMethod) {
-            is ConnectionConfig.AuthMethod.Password -> config.copy(
-                authMethod = ConnectionConfig.AuthMethod.Password(auth.password.copyOf())
-            )
-            is ConnectionConfig.AuthMethod.PrivateKey -> config.copy(
-                authMethod = auth.copy(keyBytes = auth.keyBytes.copyOf())
-            )
-            else -> config
-        }
+        val safeCopy = config.copy(
+            authMethod = config.authMethod.deepCopy(),
+            agentIdentities = config.agentIdentities.map { it.deepCopy() },
+        )
         return safeCopy to session.sessionManager
     }
 
@@ -2190,13 +2188,10 @@ class SshSessionManager @Inject constructor(
             }
         }
         // Zero out auth material so it doesn't linger in heap
-        when (val auth = session.connectionConfig?.authMethod) {
-            is ConnectionConfig.AuthMethod.Password -> auth.clear()
-            is ConnectionConfig.AuthMethod.PrivateKey -> {
-                auth.keyBytes.fill(0)
-                auth.clear()
-            }
-            else -> {}
+        session.connectionConfig?.authMethod?.clearSensitiveMaterial()
+        session.connectionConfig?.agentIdentities?.forEach { identity ->
+            identity.keyBytes.fill(0)
+            identity.passphrase?.fill(0)
         }
     }
 }

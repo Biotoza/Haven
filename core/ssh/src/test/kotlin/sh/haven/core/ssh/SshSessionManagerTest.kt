@@ -1074,6 +1074,63 @@ class SshSessionManagerTest {
         assertTrue(manager.getSession(s2)!!.activeForwards.isEmpty())
     }
 
+    @Test
+    fun `getConnectionConfigForProfile deep-copies PrivateKey passphrase and Multi auth so sibling tearDown does not zero jump carrier passphrase`() {
+        val jumpClient = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val tab2Client = mockk<SshClient>(relaxed = true) { every { isConnected } returns true }
+        val jumpId = manager.registerSession("jump-prof", "Server 1", jumpClient)
+        val originalConfig = ConnectionConfig(
+            host = "jump.example.com",
+            port = 22,
+            username = "root",
+            authMethod = ConnectionConfig.AuthMethod.Multi(
+                listOf(
+                    ConnectionConfig.AuthMethod.PrivateKey(
+                        keyBytes = byteArrayOf(1, 2, 3, 4),
+                        passphrase = "secret-passphrase".toCharArray(),
+                    ),
+                    ConnectionConfig.AuthMethod.PrivateKeys(
+                        listOf(
+                            ConnectionConfig.AuthMethod.PrivateKeys.KeyEntry(
+                                label = "k1",
+                                keyBytes = byteArrayOf(5, 6, 7),
+                                passphrase = "pool-secret".toByteArray(Charsets.UTF_8),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        manager.storeConnectionConfig(jumpId, originalConfig, SessionManager.NONE)
+        manager.updateStatus(jumpId, SshSessionManager.SessionState.Status.CONNECTED)
+
+        // Open a 2nd session on jump-prof using getConnectionConfigForProfile, then remove it
+        // (which runs tearDown and zeroes the 2nd session's auth arrays).
+        val (copiedConfig, _) = manager.getConnectionConfigForProfile("jump-prof")!!
+        val tab2Id = manager.registerSession("jump-prof", "Server 1 (2)", tab2Client)
+        manager.storeConnectionConfig(tab2Id, copiedConfig, SessionManager.NONE)
+        manager.removeSession(tab2Id)
+
+        // Wait for tearDown on ioExecutor to zero tab2's auth material.
+        val copyMulti = copiedConfig.authMethod as ConnectionConfig.AuthMethod.Multi
+        val copyPk = copyMulti.methods[0] as ConnectionConfig.AuthMethod.PrivateKey
+        val deadline = System.currentTimeMillis() + 2_000
+        while (copyPk.passphrase.any { it != '\u0000' } && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10)
+        }
+        assertTrue("removed sibling session's passphrase copy should be zeroed", copyPk.passphrase.all { it == '\u0000' })
+
+        // The primary jump carrier's passphrase must remain intact for subsequent connections (#764).
+        val (nextConfig, _) = manager.getConnectionConfigForProfile("jump-prof")!!
+        val nextMulti = nextConfig.authMethod as ConnectionConfig.AuthMethod.Multi
+        val nextPk = nextMulti.methods[0] as ConnectionConfig.AuthMethod.PrivateKey
+        val nextPool = nextMulti.methods[1] as ConnectionConfig.AuthMethod.PrivateKeys
+        assertEquals("secret-passphrase", String(nextPk.passphrase))
+        org.junit.Assert.assertArrayEquals(byteArrayOf(1, 2, 3, 4), nextPk.keyBytes)
+        assertEquals("pool-secret", String(nextPool.keys[0].passphrase!!, Charsets.UTF_8))
+        org.junit.Assert.assertArrayEquals(byteArrayOf(5, 6, 7), nextPool.keys[0].keyBytes)
+    }
+
     private fun configWithPolicy(
         autoReconnect: Boolean = true,
         maxAttempts: Int = 5,

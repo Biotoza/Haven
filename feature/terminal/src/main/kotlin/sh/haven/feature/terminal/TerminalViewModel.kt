@@ -1685,8 +1685,10 @@ class TerminalViewModel @Inject constructor(
         // intact with no scrollback replay (the old #272-SSH replay path is gone).
         for (sessionId in activeSshIds) {
             if (sessionId in trackedSessionIds) continue
-            val b = sshEmulatorOwner.bundleFor(sessionId) ?: continue
             val session = sshSessions[sessionId] ?: continue
+            if (session.tunnelOpened && session.shellChannel == null && session.terminalSession == null) continue
+            val b = sshEmulatorOwner.bundleFor(sessionId) ?: continue
+            if (b.closed) continue
             val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs, sessionName = session.chosenSessionName)
             val sshProfile = profilesById[session.profileId]
 
@@ -2480,6 +2482,16 @@ class TerminalViewModel @Inject constructor(
         if (index >= 0) {
             _activeTabIndex.value = index
         } else {
+            val shellLess = sessionManager.getSessionsForProfile(profileId).firstOrNull {
+                !it.headless &&
+                    it.status == SessionState.Status.CONNECTED &&
+                    it.shellChannel == null &&
+                    it.terminalSession == null
+            }
+            if (shellLess != null) {
+                addSshTabForProfile(profileId)
+                return
+            }
             // Navigation now only happens after the connect path confirmed a
             // live terminal (ConnectionsViewModel.finishConnect awaits the
             // shell outcome), so the tab will appear momentarily — this is a
@@ -3011,7 +3023,19 @@ class TerminalViewModel @Inject constructor(
             // latter would force a second authentication (e.g. a FIDO/YubiKey tap,
             // whose prompt isn't surfaced in the terminal screen, so it would hang).
             // Only "None" keeps independent-per-tab shells.
-            val reuseClient = if (
+            // If this profile already has a CONNECTED shell-less session (e.g.
+            // an auto-opened jump host or a jump carrier whose terminal tab was
+            // closed via closeShellOnly, #764), attach a shell directly to that
+            // session instead of registering a second session and dialing again.
+            val existingShellLess = sessionManager.getSessionsForProfile(profileId).firstOrNull {
+                !it.headless &&
+                    it.status == SessionState.Status.CONNECTED &&
+                    it.shellChannel == null &&
+                    it.terminalSession == null
+            }
+            val reuseClient = if (existingShellLess != null) {
+                existingShellLess.client
+            } else if (
                 connectionRepository.getById(profileId)?.tunnelConfigId != null ||
                 sshSessionMgr.listCommand != null
             ) {
@@ -3025,9 +3049,12 @@ class TerminalViewModel @Inject constructor(
                 hardwareKeySigner = this@TerminalViewModel.keystoreSshKeySigner
                 openKeychainClients = OpenKeychainClientFactory.from(appContext)
             }
-            val sessionId = sessionManager.registerSession(profileId, label, client)
+            val sessionId = existingShellLess?.sessionId
+                ?: sessionManager.registerSession(profileId, label, client)
             try {
-                if (reuseClient != null) {
+                if (existingShellLess != null) {
+                    Log.i(TAG, "Opening shell on existing shell-less session $sessionId for $label")
+                } else if (reuseClient != null) {
                     Log.i(TAG, "Reusing live SSH connection to $label for a new tab (no new dial)")
                     sessionManager.storeReuseConfig(sessionId, profileId, sshSessionMgr)
                 } else {
@@ -3130,7 +3157,7 @@ class TerminalViewModel @Inject constructor(
                 finishNewSshTab(sessionId)
             } catch (e: Exception) {
                 Log.e(TAG, "addSshTabForProfile failed", e)
-                sessionManager.removeSession(sessionId)
+                sessionManager.closeShellOrRemoveSession(sessionId)
                 val detail = e.message ?: e.javaClass.simpleName
                 _newTabMessage.value = appContext.getString(R.string.terminal_new_tab_connection_failed, detail)
             } finally {
@@ -3309,7 +3336,7 @@ class TerminalViewModel @Inject constructor(
                 finishNewSshTab(sessionId)
             } catch (e: Exception) {
                 Log.e(TAG, "onNewTabPlainShellSelected failed", e)
-                sessionManager.removeSession(sessionId)
+                sessionManager.closeShellOrRemoveSession(sessionId)
                 _newTabMessage.value = appContext.getString(
                     R.string.terminal_new_tab_shell_failed,
                     e.message ?: e.javaClass.simpleName,
@@ -3334,7 +3361,7 @@ class TerminalViewModel @Inject constructor(
                 finishNewSshTab(sessionId)
             } catch (e: Exception) {
                 Log.e(TAG, "onNewTabSessionSelected failed", e)
-                sessionManager.removeSession(sessionId)
+                sessionManager.closeShellOrRemoveSession(sessionId)
                 _newTabMessage.value = appContext.getString(
                     R.string.terminal_new_tab_shell_failed,
                     e.message ?: e.javaClass.simpleName,
@@ -3850,7 +3877,7 @@ class TerminalViewModel @Inject constructor(
     fun dismissNewTabSessionPicker() {
         val sel = _newTabSessionPicker.value ?: return
         _newTabSessionPicker.value = null
-        sessionManager.removeSession(sel.sessionId)
+        sessionManager.closeShellOrRemoveSession(sel.sessionId)
     }
 
     private suspend fun finishNewSshTab(sessionId: String) {
@@ -3868,11 +3895,11 @@ class TerminalViewModel @Inject constructor(
                 selectTabBySessionId(sessionId)
             }
             is sh.haven.core.ssh.ShellOutcome.ShellClosed -> {
-                sessionManager.removeSession(sessionId)
+                sessionManager.closeShellOrRemoveSession(sessionId)
                 userMessageBus.error("Shell closed — is your session manager (tmux/zellij/screen) installed on this host?")
             }
             is sh.haven.core.ssh.ShellOutcome.Failed -> {
-                sessionManager.removeSession(sessionId)
+                sessionManager.closeShellOrRemoveSession(sessionId)
                 userMessageBus.error(outcome.reason.ifBlank { "Failed to open the remote shell" })
             }
         }

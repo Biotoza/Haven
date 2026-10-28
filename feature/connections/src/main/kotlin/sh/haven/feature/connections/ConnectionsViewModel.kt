@@ -4841,7 +4841,7 @@ class ConnectionsViewModel @Inject constructor(
             } catch (e: Exception) {
                 sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.ERROR)
                 _error.value = e.message ?: "Connection failed"
-                sshSessionManager.removeSession(sessionId)
+                sshSessionManager.closeShellOrRemoveSession(sessionId)
             } finally {
                 _connectingProfileId.value = null
             }
@@ -4942,7 +4942,7 @@ class ConnectionsViewModel @Inject constructor(
             } catch (e: Exception) {
                 sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.ERROR)
                 _error.value = e.message ?: "Connection failed"
-                sshSessionManager.removeSession(sessionId)
+                sshSessionManager.closeShellOrRemoveSession(sessionId)
             } finally {
                 _connectingProfileId.value = null
             }
@@ -5302,13 +5302,13 @@ class ConnectionsViewModel @Inject constructor(
                 is sh.haven.core.ssh.ShellOutcome.Ready -> { /* proceed below */ }
                 is sh.haven.core.ssh.ShellOutcome.ShellClosed -> {
                     connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = "shell closed (exit ${outcome.exitStatus})", verboseLog = verboseLog)
-                    sshSessionManager.removeSession(sessionId)
+                    sshSessionManager.closeShellOrRemoveSession(sessionId)
                     userMessageBus.error("Shell closed — is your session manager (tmux/zellij/screen) installed on this host?")
                     return false
                 }
                 is sh.haven.core.ssh.ShellOutcome.Failed -> {
                     connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = outcome.reason, verboseLog = verboseLog)
-                    sshSessionManager.removeSession(sessionId)
+                    sshSessionManager.closeShellOrRemoveSession(sessionId)
                     userMessageBus.error(outcome.reason.ifBlank { "Failed to open the remote shell" })
                     return false
                 }
@@ -5319,7 +5319,9 @@ class ConnectionsViewModel @Inject constructor(
         // Skipped for connection-reuse sessions — the primary session already
         // holds these forwards on the shared SSH client, so re-binding them here
         // only produces "port already registered" failures.
-        if (!sshSessionManager.isClientShared(sessionId)) {
+        if (!sshSessionManager.isClientShared(sessionId) &&
+            sshSessionManager.getSession(sessionId)?.activeForwards.isNullOrEmpty()
+        ) {
             withContext(Dispatchers.IO) {
                 val mcpEndpointId = preferencesRepository.mcpTunnelEndpointProfileId.first()
                 val rules = portForwardRepository.getEnabledForProfile(profileId)
