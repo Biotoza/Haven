@@ -1,6 +1,7 @@
 package sh.haven.feature.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -8,7 +9,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -19,8 +23,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.core.data.agent.ConsentLevel
@@ -36,11 +44,10 @@ import sh.haven.core.data.agent.McpToolInfo
  * error. The endpoint master switch, pairing and per-call consent all still
  * apply — this only subtracts from the surface.
  *
- * Tools are grouped by subsystem, each group headed by a master switch that
- * flips the whole category at once — with ~230 tools, turning off e.g. GPS or
- * rclone one row at a time was the same wall of rows the screen exists to
- * reduce. A category switch reads on only when every tool in it is on, and
- * individual rows stay editable underneath it.
+ * Tools are grouped by subsystem into collapsible sections (collapsed by
+ * default so the screen opens as a compact category list rather than ~230
+ * switches), each headed by a master switch that flips the whole category on
+ * or off at once.
  *
  * Mounted as an overlay over the pager from [SettingsScreen], same as
  * [PairedClientsScreen]; hence the opaque background.
@@ -53,6 +60,7 @@ fun McpToolsScreen(
 ) {
     val tools by viewModel.mcpTools.collectAsState()
     val disabled by viewModel.mcpDisabledTools.collectAsState()
+    var expandedCategories by rememberSaveable { mutableStateOf(emptySet<String>()) }
 
     Column(
         modifier = Modifier
@@ -96,55 +104,79 @@ fun McpToolsScreen(
                 if (inCategory.isEmpty()) return@forEach
                 val names = inCategory.map { it.name }
                 val offCount = names.count { it in disabled }
+                val enabledCount = names.size - offCount
+                val isExpanded = category.name in expandedCategories
                 item(key = "header_${category.name}") {
                     ListItem(
+                        modifier = Modifier.clickable(role = Role.Button) {
+                            expandedCategories = if (isExpanded) {
+                                expandedCategories - category.name
+                            } else {
+                                expandedCategories + category.name
+                            }
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
                         headlineContent = {
                             Text(
                                 text = stringResource(categoryLabelRes(category)),
-                                style = MaterialTheme.typography.titleSmall,
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         },
                         supportingContent = {
-                            if (offCount > 0) {
-                                Text(
-                                    text = stringResource(
-                                        R.string.settings_mcp_tools_category_off_count,
-                                        offCount,
-                                    ),
+                            val summary = if (offCount > 0) {
+                                val offLabel = stringResource(
+                                    R.string.settings_mcp_tools_category_off_count,
+                                    offCount,
                                 )
+                                "$enabledCount / ${names.size} · $offLabel"
+                            } else {
+                                "$enabledCount / ${names.size}"
                             }
+                            Text(text = summary)
                         },
                         trailingContent = {
                             Switch(
-                                checked = offCount == 0,
+                                checked = enabledCount > 0,
                                 onCheckedChange = { viewModel.setMcpToolsEnabled(names, it) },
                             )
                         },
                     )
                 }
-                items(inCategory, key = { it.name }) { tool ->
-                    val enabled = tool.name !in disabled
-                    ListItem(
-                        headlineContent = { Text(tool.name) },
-                        supportingContent = {
-                            Text(
-                                when (tool.consentLevel) {
-                                    ConsentLevel.EVERY_CALL ->
-                                        stringResource(R.string.settings_mcp_tools_consent_every_call)
-                                    ConsentLevel.ONCE_PER_SESSION ->
-                                        stringResource(R.string.settings_mcp_tools_consent_once)
-                                    ConsentLevel.NEVER ->
-                                        stringResource(R.string.settings_mcp_tools_consent_never)
-                                },
-                            )
-                        },
-                        trailingContent = {
-                            Switch(
-                                checked = enabled,
-                                onCheckedChange = { viewModel.setMcpToolEnabled(tool.name, it) },
-                            )
-                        },
-                    )
+                if (isExpanded) {
+                    items(inCategory, key = { it.name }) { tool ->
+                        val enabled = tool.name !in disabled
+                        ListItem(
+                            modifier = Modifier.padding(start = 24.dp),
+                            headlineContent = { Text(tool.name) },
+                            supportingContent = {
+                                Text(
+                                    when (tool.consentLevel) {
+                                        ConsentLevel.EVERY_CALL ->
+                                            stringResource(R.string.settings_mcp_tools_consent_every_call)
+                                        ConsentLevel.ONCE_PER_SESSION ->
+                                            stringResource(R.string.settings_mcp_tools_consent_once)
+                                        ConsentLevel.NEVER ->
+                                            stringResource(R.string.settings_mcp_tools_consent_never)
+                                    },
+                                )
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = enabled,
+                                    onCheckedChange = { viewModel.setMcpToolEnabled(tool.name, it) },
+                                )
+                            },
+                        )
+                    }
+                }
+                item(key = "divider_${category.name}") {
+                    HorizontalDivider()
                 }
             }
         }
