@@ -71,7 +71,7 @@ sideloads track the GitHub Releases key.
 ## At a glance
 
 - **[Terminal](features/terminal.md)** — Mosh / Eternal Terminal / SSH, USB / Bluetooth / BLE serial consoles with a serial↔TCP bridge, tmux session restore, configurable keyboard toolbar, OSC 7/8/9/52/133/777 integration.
-- **[Desktops](features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), SPICE (QEMU/KVM, GLZ/QUIC), a GPU-accelerated native Wayland compositor, and a multi-distro local-desktop manager.
+- **[Desktops](features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), SPICE (QEMU/KVM, GLZ/QUIC), GLKVM / PiKVM out-of-band HDMI+HID, a GPU-accelerated native Wayland compositor, and a multi-distro local-desktop manager.
 - **[Files & cloud](features/files-and-cloud.md)** — SFTP/SCP, SMB, 60+ cloud providers (rclone), cross-filesystem copy/move; plus FFmpeg transcode, HLS, and DLNA.
 - **[Connections](features/connections.md)** — port forwarding (-L/-R/-D/-J), SOCKS/HTTP/Tor proxies, per-app WireGuard & Tailscale tunnels, port knocking + fwknop SPA, SSH keys & FIDO2.
 - **[Email](features/email.md)** — ProtonMail + IMAP/SMTP, compose/reply/forward, multi-account, Mail Rules automation.
@@ -80,7 +80,7 @@ sideloads track the GitHub Releases key.
 - **[USB card rescue console](features/usb-recovery-live.md)** — a failing SD card's raw device reaches a Linux guest in seconds, ready for `ddrescue`.
 - **[USB forwarding](features/usb.md)** — broker a USB device to the agent, the Linux guest, or a remote host over USB/IP.
 - **[Reticulum](features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` forwarding over mesh. The one transport that keeps working with no internet at all.
-- **[Agent transport (MCP)](mcp-tools.md)** — ~230 consent-gated tools; the agent can even drive Haven's own UI.
+- **[Agent transport (MCP)](mcp-tools.md)** — ~230 consent-gated tools, including on-device RapidOCR + 2D k-d tree spatial indexing for remote desktops and tools to drive Haven's own UI.
 - **[Security](features/security.md)** — biometric lock, no telemetry, encrypted backup/restore (AES-256-GCM).
 
 Browse the [full feature index](FEATURES.md).

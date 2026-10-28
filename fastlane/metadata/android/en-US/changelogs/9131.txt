@@ -1,0 +1,1 @@
+- RapidOCR + 2D k-d tree spatial indexing for remote desktops (VNC, RDP, SPICE, GLKVM), new desktop MCP tools (`inspect_desktop_tab`, `tap_desktop_text`, `move_desktop_mouse`, `drag_desktop_tab`), collaborative user-interaction reporting, pulsing robot indicator on the Desktop tab, and GLKVM horizontal mouse auto-calibration.

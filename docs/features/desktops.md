@@ -6,9 +6,10 @@ title: Desktops
 # Desktops
 
 Remote and on-device desktops: a VNC viewer, an RDP client, a SPICE client, a
-GPU-accelerated native Wayland compositor that runs inside Haven, and a
-multi-distro manager for full Linux desktops on the phone. For the local *shell*
-side of the on-device distros, see [Local Linux](local-linux.md).
+GLKVM / PiKVM out-of-band console client, a GPU-accelerated native Wayland
+compositor that runs inside Haven, and a multi-distro manager for full Linux
+desktops on the phone. For the local *shell* side of the on-device distros, see
+[Local Linux](local-linux.md).
 
 ## Desktop (VNC)
 
@@ -21,6 +22,23 @@ Remote Desktop Protocol client built on [IronRDP](https://github.com/Devolutions
 ## Desktop (SPICE)
 
 [SPICE](https://www.spice-space.org/) client for QEMU/KVM and libvirt virtual machines, built on a vendored Rust SPICE core exposed through UniFFI Kotlin bindings (the same approach as the RDP client). The display channel decodes the SPICE image codecs — raw bitmap, **LZ**, **GLZ** and **ZLIB-GLZ** dictionary compression, and **QUIC** (SFALIC), plus the image cache — alongside server draw operations, hardware-cursor shape and position, and multiple display surfaces. Input covers the keyboard (scancodes), an absolute pointer, mouse buttons and the scroll wheel. The viewer shares the VNC/RDP gestures: two-finger pinch-zoom and pan, and a soft keyboard. SSH tunnelling is supported — the SPICE core dials its own TCP socket, so Haven opens a local `-L` forward through a saved SSH profile and points the client at `127.0.0.1`. Decoding is verified pixel-correct against QEMU and Windows Server 2025 guests (the GLZ and QUIC paths). Configure SPICE connections in the Connections tab or via the agent (MCP).
+
+## Desktop (GLKVM / PiKVM)
+
+Out-of-band hardware KVM client for GL.iNet GLKVM units (a PiKVM `kvmd` fork) over HTTPS. Opens as a desktop tab alongside VNC, RDP, and SPICE: pulls full-resolution HDMI snapshots from `/streamer/snapshot` and sends touches, drags, scroll wheel notches, and keyboard input as USB HID events (`/api/hid/events/*`), so a phone can control a target machine with no software agent installed on the target.
+
+- **Trust-on-first-use TLS & tunnel routing** — pins the unit's self-signed TLS leaf certificate on first connect (stored in the shared TOFU store) and routes over any per-profile SSH, WireGuard, Tailscale, or SOCKS tunnel.
+- **Target keyboard layout table** — maps ASCII characters to physical `KeyboardEvent.code` key positions + `Shift` for UK or US target OS layouts (preventing `kvmd`'s US-only `/api/hid/print` printer from swapping `"`, `@`, `#`, and `\` on UK targets), falling back to `hid/print` for non-ASCII characters.
+- **Automatic horizontal pillarbox calibration** — detects symmetric black pillarbox bars on decoded frames (such as a 16:10 laptop display mirrored inside a 16:9 `2560x1440` HDMI signal) and maps the USB HID absolute digitizer across the active desktop bounds while keeping full-bleed 16:9 displays unscaled.
+
+## Agent-driven desktop control (RapidOCR + 2D k-d tree)
+
+Every remote desktop tab (VNC, RDP, SPICE, and GLKVM) can be inspected and driven through the [MCP agent endpoint](../mcp-tools.md):
+
+- **On-device RapidOCR + 2D k-d tree spatial index** — `inspect_desktop_tab` and `tap_desktop_text` run PP-OCRv5 mobile text detection and recognition on-device via ONNX Runtime (`RapidOcrEngine`) and build a cached 2D k-d tree (`OcrScreenIndex`) over `block`, `line`, and `word` bounding boxes.
+- **Coordinate, text, and tree queries** — query `(x, y)` to find which text bounding box contains a point plus the `k` nearest UI labels (with both center and rectangle-edge distances), search text by substring or exact match (including a space-insensitive pass for narrow kerning) optionally anchored near `(nearX, nearY)`, or dump the full hierarchical `block -> line -> word` tree.
+- **Pointer, anchor, and keyboard verbs** — click a matched label by text (`tap_desktop_text` with `anchor = center|left|right|top|bottom` and `nearX`/`nearY` disambiguation), move or drag the pointer (`move_desktop_mouse`, `drag_desktop_tab`), and send text or special key chords (`type_desktop_text` with `key` names like `Enter`/`Tab`/`Escape`/`Backspace`/arrows/`F1`–`F12` and `ctrl`/`alt`/`shift`/`meta` modifiers).
+- **Shared-session collaboration & visual indicator** — user clicks, pointer moves, scroll gestures, and keystrokes on the desktop viewer are recorded in a per-tab ring buffer and returned in `inspect_desktop_tab` and `capture_desktop_tab` (`userInteractedSinceLastAgentAction`, `recentUserInteractions`), with each user click or move resolved through the 2D k-d tree to report the text label under or nearest to the user's touch. While the agent is interacting with a desktop tab, the pulsing red-eyed blue robot icon appears on the Desktop navigation tab, tab chip, top action bar, and fullscreen corner overlay; rotating the phone or toggling fullscreen does not affect MCP coordinates.
 
 ## Native Wayland Desktop
 

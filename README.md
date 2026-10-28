@@ -6,7 +6,7 @@
 
 <p align="center">
   Free, open-source remote access &amp; mobile workspace for Android —<br/>
-  SSH · Mosh · VNC · RDP · SFTP · SMB · email · cloud storage, a local Linux shell and a full Linux kernel (UML), mesh networking, and a consent-gated AI-agent endpoint
+  SSH · Mosh · VNC · RDP · SPICE · GLKVM · SFTP · SMB · email · cloud storage, a local Linux shell and a full Linux kernel (UML), mesh networking, and a consent-gated AI-agent endpoint
 </p>
 
 > *"Haven is an interesting vibe coding experiment. Let's see what comes out of it."* — DBP
@@ -57,7 +57,7 @@
 ## At a glance
 
 - **[Terminal](docs/features/terminal.md)** — Mosh / Eternal Terminal / SSH, USB / Bluetooth / BLE serial consoles with a serial↔TCP bridge, tmux-aware session restore, configurable keyboard toolbar, OSC 7/8/9/52/133/777 integration.
-- **[Desktops](docs/features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), SPICE (QEMU/KVM, GLZ/QUIC), a GPU-accelerated native Wayland compositor, and a multi-distro local-desktop manager.
+- **[Desktops](docs/features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), SPICE (QEMU/KVM, GLZ/QUIC), GLKVM / PiKVM out-of-band HDMI+HID, a GPU-accelerated native Wayland compositor, and a multi-distro local-desktop manager.
 - **[Files & cloud](docs/features/files-and-cloud.md)** — unified browser for SFTP/SCP, SMB, and 60+ cloud providers; cross-filesystem copy/move, editor and image tools; plus on-device FFmpeg transcode, HLS streaming, and DLNA.
 - **[Connections](docs/features/connections.md)** — port forwarding (-L/-R/-D/-J), SOCKS/HTTP/Tor proxies, per-app WireGuard, Tailscale, NetBird & Cisco AnyConnect tunnels, port knocking and fwknop SPA, and SSH keys (incl. FIDO2/SK).
 - **[Email](docs/features/email.md)** — ProtonMail (bridge protocol) and any IMAP/SMTP mailbox; compose / reply / forward, multi-account, attachments; plus **Mail Rules** inbound automation.
@@ -67,7 +67,7 @@
 - **[USB card rescue console](docs/features/usb-recovery-live.md)** — plug in a failing SD card and the raw device reaches a Linux guest in seconds, ready for `ddrescue`; the rescued image lands in app storage.
 - **[USB forwarding](docs/features/usb.md)** — broker an attached USB device through Android and re-expose it to the agent, into the Linux guest, or over USB/IP to a **remote host** (e.g. a phone-hosted YubiKey, touch on the phone).
 - **[Reticulum](docs/features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` port forwarding over Reticulum mesh, pure Kotlin. The one transport that keeps working with no internet at all.
-- **[Agent transport (MCP)](docs/mcp-tools.md)** — an optional MCP server exposing ~230 consent-gated, audited tools; the agent can even **see and operate Haven itself** for a self-hosting build → install → verify loop.
+- **[Agent transport (MCP)](docs/mcp-tools.md)** — an optional MCP server exposing ~230 consent-gated, audited tools — including on-device RapidOCR + 2D k-d tree spatial indexing for driving remote desktops (VNC, RDP, SPICE, GLKVM) and tools to see and operate Haven itself for a self-hosting build → install → verify loop.
 - **[Security](docs/features/security.md)** — biometric lock, no telemetry, encrypted backup/restore (AES-256-GCM).
 
 See [docs/FEATURES.md](docs/FEATURES.md) for the full feature index.
@@ -176,6 +176,7 @@ Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
 | [labwc](https://labwc.github.io) | Wayland compositor (native desktop) | GPL-2.0 |
 | [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) | Wayland compositor library | MIT |
 | [virglrenderer](https://gitlab.freedesktop.org/virgl/virglrenderer) | GPU virtualization (OpenGL passthrough to PRoot apps) | MIT |
+| [RapidOCR](https://github.com/RapidAI/RapidOCR) / [ONNX Runtime](https://onnxruntime.ai) | On-device OCR for desktop & document tools (PP-OCRv5 mobile) | Apache-2.0 / MIT |
 | [Jetpack Compose](https://developer.android.com/jetpack/compose) | UI toolkit | Apache-2.0 |
 
 ## Backing
