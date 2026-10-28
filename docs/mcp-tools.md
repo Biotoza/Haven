@@ -228,6 +228,8 @@ Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, S
 - `emailSmtpPort` (integer) — EMAIL/imap only: SMTP port. Default 465.
 - `emailSmtpServer` (string) — EMAIL/imap only: SMTP submission host, when it differs from the IMAP host (e.g. smtp.gmail.com vs imap.gmail.com). Optional — defaults to emailServer.
 - `emailTls` (boolean) — EMAIL/imap only: implicit TLS (SSL). Default true.
+- `forwardPulseAudio` (boolean) — SSH only (#605): one-tap PulseAudio forwarding toggle. Starts the phone's PulseAudio bridge, tunnels remote 127.0.0.1:14713 to local port 4713, and exports PULSE_SERVER=tcp:127.0.0.1:14713 in the remote shell.
+- `forwardX11` (boolean) — SSH only (#605): one-tap X11 forwarding toggle. Tunnels remote 127.0.0.1:6010 to the phone's X11 display, auto-starts an installed X11 desktop if needed, and exports DISPLAY=localhost:10.0 in the remote shell.
 - `glkvmPassword` (string) — GLKVM only: the device's web-UI password (stored encrypted).
 - `glkvmPort` (integer) — GLKVM only: HTTPS port (default 443). Overrides the generic `port`.
 - `glkvmSshForward` (boolean) — GLKVM only: tunnel through a saved SSH profile (set glkvmSshProfileId). The GLKVM device is reached at 127.0.0.1:<port> from the SSH server. Default false.
@@ -337,6 +339,8 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 - `profileId` (string, required) — Profile id from list_connections.
 - `bindAddress` (string) — SSH only (#636): local address the outgoing SSH socket binds to (ssh -b). Direct connections only — refused on profiles with a proxy or jump host. Empty string clears.
 - `forwardAgent` (boolean) — SSH only: enable SSH agent forwarding. Keys with a stored passphrase (or none) are exposed to the remote's ssh-agent socket (#377).
+- `forwardPulseAudio` (boolean) — SSH only (#605): enable or disable one-tap PulseAudio forwarding (PULSE_SERVER=tcp:127.0.0.1:14713 over -R 14713:127.0.0.1:4713).
+- `forwardX11` (boolean) — SSH only (#605): enable or disable one-tap X11 forwarding (DISPLAY=localhost:10.0 over -R 6010).
 - `glkvmPassword` (string) — GLKVM only: web-UI password (stored encrypted). Empty string clears.
 - `glkvmPort` (integer) — GLKVM only: HTTPS port (default 443).
 - `glkvmSshForward` (boolean) — GLKVM only: tunnel through a saved SSH profile (set glkvmSshProfileId).

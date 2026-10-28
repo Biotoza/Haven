@@ -7,6 +7,8 @@ compare link is appended automatically — don't add it here.
 
 ## v5.90.1
 
+- One-tap X11 and PulseAudio forwarding toggles on SSH connections (#605), jump-host shell reopen race and passphrase deep-copy fix (#764), and Linux RDP slow-path input, multi-hop redirect chains, and IME diffing (#765).
+
 - **One-tap X11 and PulseAudio forwarding toggles on SSH connections (#605).**
   - Added **Forward X11 display** (`HavenForwardX11 yes`) and **Forward PulseAudio** (`HavenForwardPulseAudio yes`) toggles to the SSH connection profile editor (and `forwardX11` / `forwardPulseAudio` fields on `create_connection`, `update_connection`, and `list_connections`), with one-tap copyable `export DISPLAY=localhost:10.0` and `export PULSE_SERVER=tcp:127.0.0.1:14713` snippets.
   - When **Forward X11 display** is enabled, connecting automatically resolves or starts an installed Haven X11/VNC desktop (now launched with `-listen tcp -ac` on loopback) or detects an external `:0` X server on port `6000`, registers a self-healing reverse tunnel (`-R 127.0.0.1:6010:127.0.0.1:<localX11Port>`), and exports `DISPLAY=localhost:10.0` in the remote shell and inside attached `tmux`/`zellij`/`screen` sessions.
@@ -14,6 +16,9 @@ compare link is appended automatically — don't add it here.
 - **Reopening a jump host's terminal tab no longer crashes or reports `"Incorrect passphrase provided."` (#764).**
   - Opening an additional session on a jump profile previously shared the `passphrase` buffer of the active jump session's `ConnectionConfig` by reference; closing that sibling tab zeroed the shared passphrase in place and caused subsequent jump-profile connects to fail with `Incorrect passphrase provided.`. `ConnectionConfig.AuthMethod.deepCopy()` now clones all passphrase and certificate buffers, and opening a terminal on a connected jump carrier that currently has no shell attaches directly to that session instead of dialing a second SSH connection.
   - Fixed two races between `TerminalViewModel.syncSessions()` and `SshTerminalEmulatorOwner` when closing and reopening a jump carrier's shell where a shell-less carrier bundle could be re-adopted while closing or a stale `storeConnectionConfig` emission could dispose the newly created native `TerminalEmulator` while the terminal screen was mounting it.
+- **Linux RDP server input, multi-hop server redirection, IME text diffing, and per-variant DocumentsProvider authority (#765).**
+  - Compositor-backed Linux RDP servers (such as GNOME Remote Desktop on Wayland) that do not advertise `INPUT_FLAG_TS_QOE_TIMESTAMPS` now use slow-path `TS_INPUT` PDUs instead of fast-path input PDUs, preventing dropped clicks and repeated keypresses, and the RDP connector now follows chains of up to 4 server redirections (`MAX_REDIRECT_HOPS`) so GNOME Remote Desktop greeter-to-session handoffs succeed.
+  - `RdpScreen` now diffs soft-keyboard IME commits via prefix/suffix comparison (`diffRdpImeCommit`), preserves IME focus across canvas taps, adds an `Enter` button to the key toolbar, and scopes `HavenDocumentsProvider` authority to `${applicationId}.provider` so debug/variant builds can be installed alongside release builds.
 
 ## v5.90.0
 

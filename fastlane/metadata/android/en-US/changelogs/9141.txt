@@ -1,0 +1,1 @@
+- One-tap X11 and PulseAudio forwarding toggles on SSH connections (#605), jump-host shell reopen race and passphrase deep-copy fix (#764), and Linux RDP slow-path input, multi-hop redirect chains, and IME diffing (#765).
