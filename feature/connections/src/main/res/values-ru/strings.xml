@@ -612,4 +612,8 @@
     <string name="connections_section_glkvm">Настройки GLKVM</string>
     <string name="connections_field_glkvm_layout">Раскладка клавиатуры цели</string>
     <string name="connections_helper_glkvm">GLKVM (KVM в стиле PiKVM через HTTPS) — управляет физической мышью и клавиатурой целевой машины. TLS использует доверие при первом использовании; раскладка клавиатуры цели определяет вводимые символы. Через SSH-туннель или профиль WireGuard/Tailscale доступен и из-за пределами LAN.</string>
+    <string name="connections_toggle_forward_x11">Перенаправлять дисплей X11</string>
+    <string name="connections_helper_forward_x11">Туннелирует удалённый порт 6010 на X11-сервер телефона, при необходимости запускает установленный рабочий стол X11 и экспортирует DISPLAY=localhost:10.0 в оболочке SSH.</string>
+    <string name="connections_toggle_forward_pulseaudio">Перенаправлять PulseAudio</string>
+    <string name="connections_helper_forward_pulseaudio">Запускает мост PulseAudio на телефоне, туннелирует удалённый порт 14713 на локальный порт 4713 и экспортирует PULSE_SERVER=tcp:127.0.0.1:14713 в оболочке SSH.</string>
 </resources>

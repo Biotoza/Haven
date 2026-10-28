@@ -612,4 +612,8 @@
     <string name="connections_section_glkvm">Configurações de GLKVM</string>
     <string name="connections_field_glkvm_layout">Layout de teclado do alvo</string>
     <string name="connections_helper_glkvm">GLKVM (KVM no estilo PiKVM via HTTPS) — controla o teclado e o mouse físicos da máquina alvo. O TLS usa confiança no primeiro uso; o layout do teclado do alvo define os caracteres digitados. Use um túnel SSH ou um perfil WireGuard/Tailscale para alcançá-lo fora da LAN.</string>
+    <string name="connections_toggle_forward_x11">Encaminhar tela X11</string>
+    <string name="connections_helper_forward_x11">Encaminha a porta remota 6010 para o servidor X11 do telefone, inicia uma área de trabalho X11 instalada se necessário e exporta DISPLAY=localhost:10.0 no shell SSH.</string>
+    <string name="connections_toggle_forward_pulseaudio">Encaminhar PulseAudio</string>
+    <string name="connections_helper_forward_pulseaudio">Inicia a ponte PulseAudio do telefone, encaminha a porta remota 14713 para a porta local 4713 e exporta PULSE_SERVER=tcp:127.0.0.1:14713 no shell SSH.</string>
 </resources>

@@ -19859,6 +19859,86 @@
       "sr": "Тај фајл није могао да се чита.",
       "zh": "无法读取该文件。"
      }
+    },
+    {
+     "name": "connections_toggle_forward_x11",
+     "en": "Forward X11 display",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "توجيه عرض X11",
+      "bn": "X11 ডিসপ্লে ফরোয়ার্ড করুন",
+      "de": "X11-Anzeige weiterleiten",
+      "es": "Reenviar pantalla X11",
+      "fr": "Transférer l\\'affichage X11",
+      "hi": "X11 डिस्प्ले फ़ॉरवर्ड करें",
+      "ja": "X11 ディスプレイを転送",
+      "ko": "X11 디스플레이 포워딩",
+      "pt": "Encaminhar tela X11",
+      "ru": "Перенаправлять дисплей X11",
+      "sr": "Prosledi X11 ekran",
+      "zh": "转发 X11 显示"
+     }
+    },
+    {
+     "name": "connections_helper_forward_x11",
+     "en": "Tunnels remote port 6010 to your phone\\'s X11 server, starts an installed X11 desktop if needed, and exports DISPLAY=localhost:10.0 in the SSH shell.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "يمرر المنفذ البعيد 6010 إلى خادم X11 على هاتفك، ويشغل سطح مكتب X11 مثبتاً عند الحاجة، ويصدّر DISPLAY=localhost:10.0 في جلسة SSH.",
+      "bn": "রিমোট পোর্ট 6010 আপনার ফোনের X11 সার্ভারে টানেল করে, প্রয়োজনে ইনস্টল করা X11 ডেস্কটপ চালু করে এবং SSH শেলে DISPLAY=localhost:10.0 এক্সপোর্ট করে।",
+      "de": "Tunnelt den entfernten Port 6010 zum X11-Server Ihres Telefons, startet bei Bedarf einen installierten X11-Desktop und exportiert DISPLAY=localhost:10.0 in der SSH-Shell.",
+      "es": "Tuneliza el puerto remoto 6010 al servidor X11 del teléfono, inicia un escritorio X11 instalado si es necesario y exporta DISPLAY=localhost:10.0 en el shell SSH.",
+      "fr": "Achemine le port distant 6010 vers le serveur X11 du téléphone, démarre un bureau X11 installé si nécessaire et exporte DISPLAY=localhost:10.0 dans le shell SSH.",
+      "hi": "रिमोट पोर्ट 6010 को आपके फ़ोन के X11 सर्वर पर टनल करता है, ज़रूरत पड़ने पर इंस्टॉल किया गया X11 डेस्कटॉप शुरू करता है और SSH शेल में DISPLAY=localhost:10.0 एक्सपोर्ट करता है।",
+      "ja": "リモートポート 6010 を端末の X11 サーバーにトンネルし、必要に応じてインストール済み X11 デスクトップを起動して SSH シェルで DISPLAY=localhost:10.0 をエクスポートします。",
+      "ko": "원격 포트 6010을 휴대폰의 X11 서버로 터널링하고 필요한 경우 설치된 X11 데스크톱을 시작한 뒤 SSH 셸에서 DISPLAY=localhost:10.0을 내보냅니다.",
+      "pt": "Encaminha a porta remota 6010 para o servidor X11 do telefone, inicia uma área de trabalho X11 instalada se necessário e exporta DISPLAY=localhost:10.0 no shell SSH.",
+      "ru": "Туннелирует удалённый порт 6010 на X11-сервер телефона, при необходимости запускает установленный рабочий стол X11 и экспортирует DISPLAY=localhost:10.0 в оболочке SSH.",
+      "sr": "Tuneluje udaljeni port 6010 ka X11 serveru na telefonu, pokreće instalirano X11 radno okruženje po potrebi i izvozi DISPLAY=localhost:10.0 u SSH školjci.",
+      "zh": "将远程端口 6010 隧道转发到手机的 X11 服务器，按需启动已安装的 X11 桌面，并在 SSH shell 中导出 DISPLAY=localhost:10.0。"
+     }
+    },
+    {
+     "name": "connections_toggle_forward_pulseaudio",
+     "en": "Forward PulseAudio",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "توجيه PulseAudio",
+      "bn": "PulseAudio ফরোয়ার্ড করুন",
+      "de": "PulseAudio weiterleiten",
+      "es": "Reenviar PulseAudio",
+      "fr": "Transférer PulseAudio",
+      "hi": "PulseAudio फ़ॉरवर्ड करें",
+      "ja": "PulseAudio を転送",
+      "ko": "PulseAudio 포워딩",
+      "pt": "Encaminhar PulseAudio",
+      "ru": "Перенаправлять PulseAudio",
+      "sr": "Prosledi PulseAudio",
+      "zh": "转发 PulseAudio"
+     }
+    },
+    {
+     "name": "connections_helper_forward_pulseaudio",
+     "en": "Starts the phone\\'s PulseAudio bridge, tunnels remote port 14713 to local port 4713, and exports PULSE_SERVER=tcp:127.0.0.1:14713 in the SSH shell.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "يشغل جسر PulseAudio على الهاتف، ويمرر المنفذ البعيد 14713 إلى المنفذ المحلي 4713، ويصدّر PULSE_SERVER=tcp:127.0.0.1:14713 في جلسة SSH.",
+      "bn": "ফোনের PulseAudio ব্রিজ চালু করে, রিমোট পোর্ট 14713 লোকাল পোর্ট 4713-এ টানেল করে এবং SSH শেলে PULSE_SERVER=tcp:127.0.0.1:14713 এক্সপোর্ট করে।",
+      "de": "Startet die PulseAudio-Brücke des Telefons, tunnelt den entfernten Port 14713 zum lokalen Port 4713 und exportiert PULSE_SERVER=tcp:127.0.0.1:14713 in der SSH-Shell.",
+      "es": "Inicia el puente PulseAudio del teléfono, tuneliza el puerto remoto 14713 al puerto local 4713 y exporta PULSE_SERVER=tcp:127.0.0.1:14713 en el shell SSH.",
+      "fr": "Démarre le pont PulseAudio du téléphone, achemine le port distant 14713 vers le port local 4713 et exporte PULSE_SERVER=tcp:127.0.0.1:14713 dans le shell SSH.",
+      "hi": "फ़ोन का PulseAudio ब्रिज शुरू करता है, रिमोट पोर्ट 14713 को लोकल पोर्ट 4713 पर टनल करता है और SSH शेल में PULSE_SERVER=tcp:127.0.0.1:14713 एक्सपोर्ट करता है।",
+      "ja": "端末の PulseAudio ブリッジを起動し、リモートポート 14713 をローカルポート 4713 にトンネルして SSH シェルで PULSE_SERVER=tcp:127.0.0.1:14713 をエクスポートします。",
+      "ko": "휴대폰의 PulseAudio 브리지를 시작하고 원격 포트 14713을 로컬 포트 4713으로 터널링한 뒤 SSH 셸에서 PULSE_SERVER=tcp:127.0.0.1:14713을 내보냅니다.",
+      "pt": "Inicia a ponte PulseAudio do telefone, encaminha a porta remota 14713 para a porta local 4713 e exporta PULSE_SERVER=tcp:127.0.0.1:14713 no shell SSH.",
+      "ru": "Запускает мост PulseAudio на телефоне, туннелирует удалённый порт 14713 на локальный порт 4713 и экспортирует PULSE_SERVER=tcp:127.0.0.1:14713 в оболочке SSH.",
+      "sr": "Pokreće PulseAudio most na telefonu, tuneluje udaljeni port 14713 ka lokalnom portu 4713 i izvozi PULSE_SERVER=tcp:127.0.0.1:14713 u SSH školjci.",
+      "zh": "启动手机的 PulseAudio 音频桥接，将远程端口 14713 隧道转发到本地端口 4713，并在 SSH shell 中导出 PULSE_SERVER=tcp:127.0.0.1:14713。"
+     }
     }
    ]
   },

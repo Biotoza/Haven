@@ -612,4 +612,8 @@
     <string name="connections_section_glkvm">GLKVM সেটিংস</string>
     <string name="connections_field_glkvm_layout">লক্ষ্য কীবোর্ড লেআউট</string>
     <string name="connections_helper_glkvm">GLKVM (PiKVM-স্টাইল HTTPS KVM) — লক্ষ্য মেশিনের ফিজিক্যাল মাউস ও কীবোর্ড নিয়ন্ত্রণ করে। TLS ব্যবহার করে trust-on-first-use, এবং টাইপ করা অক্ষর নির্ধারণ করে লক্ষ্য মেশিনের কীবোর্ড লেআউট। SSH টানেল বা WireGuard/Tailscale প্রোফাইলের মাধ্যমে LAN-এর বাইরে থেকে পৌঁছান।</string>
+    <string name="connections_toggle_forward_x11">X11 ডিসপ্লে ফরোয়ার্ড করুন</string>
+    <string name="connections_helper_forward_x11">রিমোট পোর্ট 6010 আপনার ফোনের X11 সার্ভারে টানেল করে, প্রয়োজনে ইনস্টল করা X11 ডেস্কটপ চালু করে এবং SSH শেলে DISPLAY=localhost:10.0 এক্সপোর্ট করে।</string>
+    <string name="connections_toggle_forward_pulseaudio">PulseAudio ফরোয়ার্ড করুন</string>
+    <string name="connections_helper_forward_pulseaudio">ফোনের PulseAudio ব্রিজ চালু করে, রিমোট পোর্ট 14713 লোকাল পোর্ট 4713-এ টানেল করে এবং SSH শেলে PULSE_SERVER=tcp:127.0.0.1:14713 এক্সপোর্ট করে।</string>
 </resources>

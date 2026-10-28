@@ -612,4 +612,8 @@
     <string name="connections_section_glkvm">GLKVM-Einstellungen</string>
     <string name="connections_field_glkvm_layout">Tastaturlayout des Ziels</string>
     <string name="connections_helper_glkvm">GLKVM (PiKVM-artiges KVM über HTTPS) — steuert die physische Maus und Tastatur des Ziels. TLS nutzt Trust-on-first-use; das Tastaturlayout des Ziels bestimmt die getippten Zeichen. Über einen SSH-Tunnel oder ein WireGuard/Tailscale-Profil auch von außerhalb des LANs erreichbar.</string>
+    <string name="connections_toggle_forward_x11">X11-Anzeige weiterleiten</string>
+    <string name="connections_helper_forward_x11">Tunnelt den entfernten Port 6010 zum X11-Server Ihres Telefons, startet bei Bedarf einen installierten X11-Desktop und exportiert DISPLAY=localhost:10.0 in der SSH-Shell.</string>
+    <string name="connections_toggle_forward_pulseaudio">PulseAudio weiterleiten</string>
+    <string name="connections_helper_forward_pulseaudio">Startet die PulseAudio-Brücke des Telefons, tunnelt den entfernten Port 14713 zum lokalen Port 4713 und exportiert PULSE_SERVER=tcp:127.0.0.1:14713 in der SSH-Shell.</string>
 </resources>

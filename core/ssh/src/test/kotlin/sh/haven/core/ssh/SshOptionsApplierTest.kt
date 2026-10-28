@@ -60,9 +60,15 @@ class SshOptionsApplierTest {
         SshOptionsApplier.apply(target, mapOf(
             "HavenSshEngine" to "sshlib",
             "havensshengine" to "sshlib",
+            "HavenForwardX11" to "yes",
+            "HavenForwardPulseAudio" to "yes",
+            "ForwardX11" to "yes",
+            "ForwardX11Trusted" to "yes",
+            "ForwardPulseAudio" to "yes",
             "ServerAliveInterval" to "30",
         ))
-        assertFalse("HavenSshEngine leaked", target.store.keys.any { it.lowercase().startsWith("haven") })
+        assertFalse("Haven* directive leaked", target.store.keys.any { it.lowercase().startsWith("haven") })
+        assertFalse("ForwardX11 leaked", target.store.keys.any { it.lowercase().startsWith("forward") })
         // ServerAliveInterval routes to the real setter (seconds -> ms),
         // never to the inert setConfig map (#537).
         assertEquals(30_000, target.aliveIntervalMs)

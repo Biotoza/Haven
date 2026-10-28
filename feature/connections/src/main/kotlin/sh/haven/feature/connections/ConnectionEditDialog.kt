@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -2995,6 +2996,36 @@ fun ConnectionEditDialog(
                         }
                     }
 
+                    // One-tap X11 & PulseAudio forwarding over SSH (#605) — persisted as
+                    // HavenForwardX11 / HavenForwardPulseAudio directives in sshOptions.
+                    Spacer(Modifier.height(8.dp))
+                    val forwardX11Enabled = sh.haven.core.ssh.sshForwardX11FromOptionsText(sshOptions)
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_forward_x11),
+                        checked = forwardX11Enabled,
+                        onCheckedChange = {
+                            sshOptions = sh.haven.core.ssh.setForwardX11InOptions(sshOptions, it)
+                        },
+                        description = stringResource(R.string.connections_helper_forward_x11),
+                    )
+                    if (forwardX11Enabled) {
+                        ForwardingExportSnippetRow(snippet = sh.haven.core.ssh.SSH_X11_DISPLAY_EXPORT)
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+                    val forwardPulseEnabled = sh.haven.core.ssh.sshForwardPulseAudioFromOptionsText(sshOptions)
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_forward_pulseaudio),
+                        checked = forwardPulseEnabled,
+                        onCheckedChange = {
+                            sshOptions = sh.haven.core.ssh.setForwardPulseAudioInOptions(sshOptions, it)
+                        },
+                        description = stringResource(R.string.connections_helper_forward_pulseaudio),
+                    )
+                    if (forwardPulseEnabled) {
+                        ForwardingExportSnippetRow(snippet = sh.haven.core.ssh.SSH_PULSE_SERVER_EXPORT)
+                    }
+
                     // File transport picker — Auto / SFTP / SCP (legacy)
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -4744,6 +4775,44 @@ internal fun setSshEngineInOptions(options: String, engine: String): String {
         engine != "SSHLIB" -> base
         base.isBlank() -> "HavenSshEngine sshlib"
         else -> "$base\nHavenSshEngine sshlib"
+    }
+}
+
+@Composable
+private fun ForwardingExportSnippetRow(snippet: String) {
+    val context = LocalContext.current
+    val copiedToast = stringResource(R.string.connections_vm_copied_short)
+    val copyDescription = stringResource(R.string.common_copy)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = snippet,
+            fontFamily = FontFamily.Monospace,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(
+            onClick = {
+                val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("ssh-export", snippet))
+                android.widget.Toast.makeText(context, copiedToast, android.widget.Toast.LENGTH_SHORT).show()
+            },
+            modifier = Modifier.size(28.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ContentCopy,
+                contentDescription = copyDescription,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }
 

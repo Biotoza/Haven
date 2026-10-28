@@ -612,4 +612,8 @@
     <string name="connections_section_glkvm">GLKVM सेटिंग्स</string>
     <string name="connections_field_glkvm_layout">लक्ष्य कीबोर्ड लेआउट</string>
     <string name="connections_helper_glkvm">GLKVM (HTTPS पर PiKVM-शैली KVM) — लक्ष्य मशीन के भौतिक माउस और कीबोर्ड को संचालित करता है। TLS trust-on-first-use का उपयोग करता है; टाइप किए गए अक्षर लक्ष्य के कीबोर्ड लेआउट से तय होते हैं। LAN के बाहर पहुँचने के लिए SSH टनल या WireGuard/Tailscale प्रोफ़ाइल से रूट करें।</string>
+    <string name="connections_toggle_forward_x11">X11 डिस्प्ले फ़ॉरवर्ड करें</string>
+    <string name="connections_helper_forward_x11">रिमोट पोर्ट 6010 को आपके फ़ोन के X11 सर्वर पर टनल करता है, ज़रूरत पड़ने पर इंस्टॉल किया गया X11 डेस्कटॉप शुरू करता है और SSH शेल में DISPLAY=localhost:10.0 एक्सपोर्ट करता है।</string>
+    <string name="connections_toggle_forward_pulseaudio">PulseAudio फ़ॉरवर्ड करें</string>
+    <string name="connections_helper_forward_pulseaudio">फ़ोन का PulseAudio ब्रिज शुरू करता है, रिमोट पोर्ट 14713 को लोकल पोर्ट 4713 पर टनल करता है और SSH शेल में PULSE_SERVER=tcp:127.0.0.1:14713 एक्सपोर्ट करता है।</string>
 </resources>

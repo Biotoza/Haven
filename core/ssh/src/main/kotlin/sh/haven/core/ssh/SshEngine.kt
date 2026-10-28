@@ -46,3 +46,154 @@ fun sshEngineFromOptionsText(sshOptions: String?): SshEngine =
 /** Engine choice carried by this config's SSH Options; [SshEngine.JSCH] unless valid. */
 val ConnectionConfig.sshEngine: SshEngine
     get() = sshEngineFrom(sshOptions)
+
+// ── One-tap X11 & PulseAudio forwarding over SSH (#605) ───────────────────
+
+private val FORWARD_X11_DIRECTIVES = setOf("havenforwardx11", "forwardx11")
+private val FORWARD_PULSE_DIRECTIVES = setOf("havenforwardpulseaudio", "forwardpulseaudio")
+private val TRUTHY_OPTION_VALUES = setOf("yes", "true", "on", "1")
+
+/** Remote loopback TCP port bound for X11 display `:10.0` (`6000 + 10`). */
+const val SSH_X11_REMOTE_PORT = 6010
+
+/** Default phone-side X11 loopback TCP port (`:0` -> `6000`). */
+const val SSH_X11_DEFAULT_LOCAL_PORT = 6000
+
+/** Remote shell export snippet for SSH-forwarded X11 display `:10.0`. */
+const val SSH_X11_DISPLAY_EXPORT = "export DISPLAY=localhost:10.0"
+
+/** Remote loopback TCP port bound for forwarded PulseAudio native protocol. */
+const val SSH_PULSE_REMOTE_PORT = 14713
+
+/** Phone-side loopback TCP port exposed by `AudioBridge` (`module-native-protocol-tcp`). */
+const val SSH_PULSE_LOCAL_PORT = 4713
+
+/** Remote shell export snippet for SSH-forwarded PulseAudio server. */
+const val SSH_PULSE_SERVER_EXPORT = "export PULSE_SERVER=tcp:127.0.0.1:$SSH_PULSE_REMOTE_PORT"
+
+/** Whether one-tap X11 forwarding (#605) is enabled in a parsed SSH Options map. */
+fun sshForwardX11From(sshOptions: Map<String, String>): Boolean {
+    val value = sshOptions.entries
+        .lastOrNull { it.key.trim().lowercase() in FORWARD_X11_DIRECTIVES }
+        ?.value?.trim()?.lowercase() ?: return false
+    return value in TRUTHY_OPTION_VALUES
+}
+
+/** Whether one-tap X11 forwarding (#605) is enabled in raw `ConnectionProfile.sshOptions` text. */
+fun sshForwardX11FromOptionsText(sshOptions: String?): Boolean =
+    sshForwardX11From(ConnectionConfig.parseSshOptions(sshOptions))
+
+/** Whether one-tap X11 forwarding (#605) is enabled on this [ConnectionConfig]. */
+val ConnectionConfig.forwardX11: Boolean
+    get() = sshForwardX11From(sshOptions)
+
+/** Rewrite [options] text with `HavenForwardX11 yes` enabled or removed (#605). */
+fun setForwardX11InOptions(options: String, enabled: Boolean): String =
+    setBooleanDirectiveInOptions(
+        options = options,
+        canonicalKey = "HavenForwardX11",
+        matchKeys = FORWARD_X11_DIRECTIVES,
+        enabled = enabled,
+    )
+
+/** Whether one-tap PulseAudio forwarding (#605) is enabled in a parsed SSH Options map. */
+fun sshForwardPulseAudioFrom(sshOptions: Map<String, String>): Boolean {
+    val value = sshOptions.entries
+        .lastOrNull { it.key.trim().lowercase() in FORWARD_PULSE_DIRECTIVES }
+        ?.value?.trim()?.lowercase() ?: return false
+    return value in TRUTHY_OPTION_VALUES
+}
+
+/** Whether one-tap PulseAudio forwarding (#605) is enabled in raw `ConnectionProfile.sshOptions` text. */
+fun sshForwardPulseAudioFromOptionsText(sshOptions: String?): Boolean =
+    sshForwardPulseAudioFrom(ConnectionConfig.parseSshOptions(sshOptions))
+
+/** Whether one-tap PulseAudio forwarding (#605) is enabled on this [ConnectionConfig]. */
+val ConnectionConfig.forwardPulseAudio: Boolean
+    get() = sshForwardPulseAudioFrom(sshOptions)
+
+/** Rewrite [options] text with `HavenForwardPulseAudio yes` enabled or removed (#605). */
+fun setForwardPulseAudioInOptions(options: String, enabled: Boolean): String =
+    setBooleanDirectiveInOptions(
+        options = options,
+        canonicalKey = "HavenForwardPulseAudio",
+        matchKeys = FORWARD_PULSE_DIRECTIVES,
+        enabled = enabled,
+    )
+
+private fun setBooleanDirectiveInOptions(
+    options: String,
+    canonicalKey: String,
+    matchKeys: Set<String>,
+    enabled: Boolean,
+): String {
+    val kept = options.lines().filterNot { line ->
+        val trimmed = line.trim()
+        if (trimmed.startsWith("#")) return@filterNot false
+        val sep = trimmed.indexOfFirst { it == ' ' || it == '=' || it == '\t' }
+        sep > 0 && trimmed.substring(0, sep).trim().lowercase() in matchKeys
+    }
+    val base = kept.joinToString("\n").trim('\n')
+    return when {
+        !enabled -> base
+        base.isBlank() -> "$canonicalKey yes"
+        else -> "$base\n$canonicalKey yes"
+    }
+}
+
+/**
+ * Combined remote shell export command for enabled X11 / PulseAudio forwarding (#605),
+ * or `null` when neither toggle is enabled.
+ */
+fun buildForwardingEnvExportCommand(
+    forwardX11: Boolean,
+    forwardPulseAudio: Boolean,
+): String? {
+    val exports = buildList {
+        if (forwardX11) add(SSH_X11_DISPLAY_EXPORT)
+        if (forwardPulseAudio) add(SSH_PULSE_SERVER_EXPORT)
+    }
+    return if (exports.isEmpty()) null else exports.joinToString(" ; ")
+}
+
+/**
+ * Build the implicit reverse (`-R`) port-forward rules for one-tap X11 and/or
+ * PulseAudio forwarding (#605). Both forwards are non-critical and self-heal
+ * stale `sshd` listeners on reconnect.
+ */
+fun buildMediaPortForwards(
+    forwardX11: Boolean,
+    localX11Port: Int = SSH_X11_DEFAULT_LOCAL_PORT,
+    forwardPulseAudio: Boolean,
+    localPulsePort: Int = SSH_PULSE_LOCAL_PORT,
+): List<SshSessionManager.PortForwardInfo> = buildList {
+    if (forwardX11) {
+        add(
+            SshSessionManager.PortForwardInfo(
+                ruleId = "haven-x11-forward",
+                type = SshSessionManager.PortForwardType.REMOTE,
+                bindAddress = "127.0.0.1",
+                bindPort = SSH_X11_REMOTE_PORT,
+                targetHost = "127.0.0.1",
+                targetPort = localX11Port,
+                critical = false,
+                selfHealOnBindFailure = true,
+            ),
+        )
+    }
+    if (forwardPulseAudio) {
+        add(
+            SshSessionManager.PortForwardInfo(
+                ruleId = "haven-pulse-forward",
+                type = SshSessionManager.PortForwardType.REMOTE,
+                bindAddress = "127.0.0.1",
+                bindPort = SSH_PULSE_REMOTE_PORT,
+                targetHost = "127.0.0.1",
+                targetPort = localPulsePort,
+                critical = false,
+                selfHealOnBindFailure = true,
+            ),
+        )
+    }
+}
+

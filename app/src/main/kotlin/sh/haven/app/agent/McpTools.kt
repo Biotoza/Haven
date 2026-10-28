@@ -1758,6 +1758,8 @@ internal class McpTools(
                 boolean("useMosh", "SSH only: when true, the profile uses Mosh on top of the SSH bootstrap. SSH execs `mosh-server new -s`, parses MOSH CONNECT, then the UDP transport takes over. Default false.")
                 string("keyId", "SSH only: id of a saved SSH key (from list_ssh_keys) to authenticate with. Mutually optional with password.")
                 string("sshOptions", "SSH only: ssh_config-style option lines ('Key value' or 'Key=value', newline-separated) applied to this profile — e.g. 'ServerAliveInterval 60' or the Haven-internal 'HavenSshEngine sshlib' engine toggle (#58).")
+                boolean("forwardX11", "SSH only (#605): one-tap X11 forwarding toggle. Tunnels remote 127.0.0.1:6010 to the phone's X11 display, auto-starts an installed X11 desktop if needed, and exports DISPLAY=localhost:10.0 in the remote shell.")
+                boolean("forwardPulseAudio", "SSH only (#605): one-tap PulseAudio forwarding toggle. Starts the phone's PulseAudio bridge, tunnels remote 127.0.0.1:14713 to local port 4713, and exports PULSE_SERVER=tcp:127.0.0.1:14713 in the remote shell.")
                 string("remoteCommand", "SSH only (#436): run this command via an SSH exec request instead of opening a login shell — it executes before shell startup files, so e.g. 'tmux new -A -s work' attaches to/creates that named session without racing a .bashrc auto-tmux hook. Omit for the normal interactive shell.")
                 string("bindAddress", "SSH only (#636): local address the outgoing SSH socket binds to (ssh -b) — pin a multi-homed host to one interface. Direct connections only; a connect from a profile with a proxy or jump host is refused. Omit to let the system choose the source address.")
                 boolean("requestPty", "SSH only (#436): allocate a PTY for remoteCommand. Default true (tmux and other interactive programs need one); ignored when remoteCommand is omitted.")
@@ -1828,6 +1830,8 @@ internal class McpTools(
                 string("glkvmSshProfileId", "GLKVM only: SSH profile id to tunnel through. Empty string clears.")
                 string("moshServerCommand", "Mosh only: override the command Haven runs over SSH to start mosh-server (default 'mosh-server new -s -c 256 …'). It must print a 'MOSH CONNECT <port> <key>' line, which Haven parses to find the session — so a wrapper can point Haven at a different port (e.g. scripts/mosh-fault-rig.py bootstrap, which puts a fault-injecting relay in front). Empty string restores the default.")
                 string("usbForwardVidPid", "SSH only: VID:PID of a phone-attached USB device (e.g. '1050:0406' — see list_usb_devices) to auto-export over USB/IP whenever this profile connects. Haven opens the device, starts the usbip server on loopback, adds the remote forward, and runs `usbip attach` on the host, re-attaching after a tunnel drop. Empty string clears (no auto-forward).")
+                boolean("forwardX11", "SSH only (#605): enable or disable one-tap X11 forwarding (DISPLAY=localhost:10.0 over -R 6010).")
+                boolean("forwardPulseAudio", "SSH only (#605): enable or disable one-tap PulseAudio forwarding (PULSE_SERVER=tcp:127.0.0.1:14713 over -R 14713:127.0.0.1:4713).")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args ->
@@ -2699,6 +2703,8 @@ internal class McpTools(
         if (!p.sshOptions.isNullOrBlank()) put("sshOptions", p.sshOptions)
         if (p.connectionType == "SSH") {
             put("sshEngine", sh.haven.core.ssh.sshEngineFromOptionsText(p.sshOptions).name.lowercase())
+            put("forwardX11", sh.haven.core.ssh.sshForwardX11FromOptionsText(p.sshOptions))
+            put("forwardPulseAudio", sh.haven.core.ssh.sshForwardPulseAudioFromOptionsText(p.sshOptions))
             if (!p.bindAddress.isNullOrBlank()) put("bindAddress", p.bindAddress)
         }
         // VNC-specific fields
@@ -6888,7 +6894,16 @@ internal class McpTools(
                 } else existing.aiProtocol
             } else existing.aiProtocol,
             keyId = newKeyId,
-            sshOptions = if (existing.connectionType == "SSH") str("sshOptions", existing.sshOptions) else existing.sshOptions,
+            sshOptions = if (existing.connectionType == "SSH") {
+                var opts = str("sshOptions", existing.sshOptions).orEmpty()
+                if (args.has("forwardX11")) {
+                    opts = sh.haven.core.ssh.setForwardX11InOptions(opts, args.optBoolean("forwardX11"))
+                }
+                if (args.has("forwardPulseAudio")) {
+                    opts = sh.haven.core.ssh.setForwardPulseAudioInOptions(opts, args.optBoolean("forwardPulseAudio"))
+                }
+                opts.ifBlank { null }
+            } else existing.sshOptions,
             remoteCommand = if (existing.connectionType == "SSH") str("remoteCommand", existing.remoteCommand) else existing.remoteCommand,
             bindAddress = if (existing.connectionType == "SSH") str("bindAddress", existing.bindAddress) else existing.bindAddress,
             requestPty = if (existing.connectionType == "SSH") bool("requestPty", existing.requestPty) else existing.requestPty,
@@ -7029,7 +7044,16 @@ internal class McpTools(
                 connectionType = "SSH",
                 useMosh = args.optBoolean("useMosh", false),
                 keyId = args.optString("keyId").ifBlank { null },
-                sshOptions = args.optString("sshOptions").ifBlank { null },
+                sshOptions = run {
+                    var opts = args.optString("sshOptions")
+                    if (args.has("forwardX11")) {
+                        opts = sh.haven.core.ssh.setForwardX11InOptions(opts, args.optBoolean("forwardX11"))
+                    }
+                    if (args.has("forwardPulseAudio")) {
+                        opts = sh.haven.core.ssh.setForwardPulseAudioInOptions(opts, args.optBoolean("forwardPulseAudio"))
+                    }
+                    opts.ifBlank { null }
+                },
                 remoteCommand = args.optString("remoteCommand").ifBlank { null },
                 bindAddress = args.optString("bindAddress").ifBlank { null },
                 requestPty = args.optBoolean("requestPty", true),

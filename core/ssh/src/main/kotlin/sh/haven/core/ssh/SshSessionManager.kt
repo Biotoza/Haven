@@ -910,6 +910,7 @@ class SshSessionManager @Inject constructor(
             port = ref?.port ?: 22,
             username = ref?.username ?: "reused",
             authMethod = ConnectionConfig.AuthMethod.Password(""),
+            sshOptions = ref?.sshOptions ?: emptyMap(),
             remoteCommand = ref?.remoteCommand,
             requestPty = ref?.requestPty ?: true,
             reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = false),
@@ -2103,20 +2104,39 @@ class SshSessionManager @Inject constructor(
      * detected shell prompt. By default: session manager first, then post-login
      * command (runs inside the session manager). When [beforeSessionManager] is
      * true, the post-login command runs first (in the raw SSH shell).
+     *
+     * When one-tap X11 or PulseAudio forwarding (#605) is enabled on the
+     * session's [ConnectionConfig], the `export DISPLAY=...` / `export PULSE_SERVER=...`
+     * snippet is queued in the raw shell and, if a session manager is used,
+     * queued inside the attached session as well so re-attached tmux/zellij/screen
+     * windows also pick up the forwarded endpoints.
      */
-    private fun buildPendingCommands(
+    internal fun buildPendingCommands(
         sessionId: String,
         manager: SessionManager,
         postLoginCommand: String?,
         beforeSessionManager: Boolean = false,
     ): List<String> = buildList {
+        val cfg = _sessions.value[sessionId]?.connectionConfig
+        val envCmd = buildForwardingEnvExportCommand(
+            forwardX11 = cfg?.forwardX11 == true,
+            forwardPulseAudio = cfg?.forwardPulseAudio == true,
+        )
         val sessionCmd = buildSessionManagerCommand(sessionId, manager)
         val loginCmd = postLoginCommand?.takeIf { it.isNotBlank() }
         if (beforeSessionManager) {
+            envCmd?.let { add(it) }
             loginCmd?.let { add(it) }
-            sessionCmd?.let { add(it) }
+            sessionCmd?.let {
+                add(it)
+                envCmd?.let { env -> add(env) }
+            }
         } else {
-            sessionCmd?.let { add(it) }
+            envCmd?.let { add(it) }
+            sessionCmd?.let {
+                add(it)
+                envCmd?.let { env -> add(env) }
+            }
             loginCmd?.let { add(it) }
         }
     }

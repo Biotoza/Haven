@@ -4148,6 +4148,7 @@ class ConnectionsViewModel @Inject constructor(
                             port = profile.port,
                             username = effectiveUsername,
                             authMethod = ConnectionConfig.AuthMethod.Password(""),
+                            sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                             remoteCommand = profile.remoteCommand,
                             requestPty = profile.requestPty,
                             reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = false),
@@ -5330,10 +5331,28 @@ class ConnectionsViewModel @Inject constructor(
                     // tunnel owns the -R 8730 — skip the per-connection rule so the two
                     // don't collide on the remote sshd bind.
                     .filterNot { mcpEndpointId == profileId && it.isMcpReverseTunnel() }
-                if (rules.isNotEmpty()) {
+                val profileForMedia = repository.getById(profileId)
+                val forwardX11 = sh.haven.core.ssh.sshForwardX11FromOptionsText(profileForMedia?.sshOptions)
+                val forwardPulse = sh.haven.core.ssh.sshForwardPulseAudioFromOptionsText(profileForMedia?.sshOptions)
+                val localX11Port = if (forwardX11) {
+                    localSessionManager.desktopManager.ensureLocalX11TcpPort()
+                } else {
+                    sh.haven.core.ssh.SSH_X11_DEFAULT_LOCAL_PORT
+                }
+                val explicitForwards = rules.map { it.toForwardInfo() }
+                val mediaForwards = sh.haven.core.ssh.buildMediaPortForwards(
+                    forwardX11 = forwardX11,
+                    localX11Port = localX11Port,
+                    forwardPulseAudio = forwardPulse,
+                    localPulsePort = sh.haven.core.local.AudioBridge.NATIVE_TCP_PORT,
+                ).filterNot { media ->
+                    explicitForwards.any { it.type == media.type && it.bindPort == media.bindPort }
+                }
+                val allForwards = explicitForwards + mediaForwards
+                if (allForwards.isNotEmpty()) {
                     sshSessionManager.applyPortForwards(
                         sessionId,
-                        rules.map { it.toForwardInfo() },
+                        allForwards,
                     )
                 }
             }
@@ -5348,19 +5367,33 @@ class ConnectionsViewModel @Inject constructor(
         }
         sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.CONNECTED)
         repository.markConnected(profileId)
-        // USB/IP auto-forward (Slice 1): if this profile pins a USB device, export
-        // it and attach it on the remote. Off the connect path and best-effort —
-        // it never blocks or fails the connection.
+        // USB/IP auto-forward (Slice 1) and one-tap PulseAudio bridge startup (#605):
+        // off the connect path and best-effort so package install / USB attach never
+        // blocks or fails the SSH login.
         viewModelScope.launch(Dispatchers.IO) {
             val profile = repository.getById(profileId) ?: return@launch
-            val vidPid = profile.usbForwardVidPid
-            if (vidPid.isNullOrBlank() || !profile.isSsh) return@launch
+            if (!profile.isSsh) return@launch
             if (sshSessionManager.getSession(sessionId) == null) return@launch
-            usbipForwarder.attach(sessionId, vidPid) { msg ->
-                userMessageBus.emit(
-                    sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
-                )
-            }?.let { usbForwardHandles[sessionId] = it }
+            if (sh.haven.core.ssh.sshForwardPulseAudioFromOptionsText(profile.sshOptions)) {
+                localSessionManager.audioBridge.start()
+                val audioStatus = localSessionManager.audioBridge.status.value
+                if (audioStatus.state == sh.haven.core.local.AudioBridge.State.ERROR) {
+                    userMessageBus.emit(
+                        sh.haven.core.data.message.UserMessage(
+                            "PulseAudio forwarding: ${audioStatus.error ?: "failed to start local audio bridge"}",
+                            sh.haven.core.data.message.UserMessage.Severity.INFO,
+                        ),
+                    )
+                }
+            }
+            val vidPid = profile.usbForwardVidPid
+            if (!vidPid.isNullOrBlank()) {
+                usbipForwarder.attach(sessionId, vidPid) { msg ->
+                    userMessageBus.emit(
+                        sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+                    )
+                }?.let { usbForwardHandles[sessionId] = it }
+            }
         }
         // Persist all open session names for this profile (pipe-delimited)
         sshSessionManager.getSession(sessionId)?.let { session ->

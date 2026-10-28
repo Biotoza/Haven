@@ -78,4 +78,12 @@ class XvncReapMatchTest {
         assertFalse("whole-token display", xvncMatches(prootHost, display = 10))
         assertTrue(xvncMatches(prootHost, display = null))
     }
+
+    @Test
+    fun `buildXvncCommand enables TCP listener and -ac while staying reap-matchable`() {
+        val cmd = buildXvncCommand(display = 1, securityArg = "-SecurityTypes None")
+        assertTrue("Expected -listen tcp -ac in: $cmd", cmd.contains("-listen tcp -ac"))
+        assertTrue(xvncMatches(cmd, display = 1))
+        assertFalse(xvncMatches(cmd, display = 10))
+    }
 }

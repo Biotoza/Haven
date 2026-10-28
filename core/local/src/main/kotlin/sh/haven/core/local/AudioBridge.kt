@@ -86,21 +86,14 @@ class AudioBridge @Inject constructor(
      * + `--exit-idle-time=-1` keep it resident. Writes a PULSE_SERVER export
      * to /etc/profile.d so terminal / run_in_proot apps (login shells) pick
      * up the daemon, mirroring the DISPLAY export the native compositor does.
+     *
+     * Also loads `module-native-protocol-tcp` on `127.0.0.1:4713` (#605) so
+     * remote SSH sessions with PulseAudio forwarding enabled (`-R 14713:127.0.0.1:4713`,
+     * `PULSE_SERVER=tcp:127.0.0.1:14713`) can stream audio into the same
+     * `haven_out` sink that feeds Android [AudioTrack].
      */
-    private fun paCommand(): String =
-        "mkdir -p /var/run/pulse /etc/profile.d ; " +
-            // Clear any stale pid file: PulseAudio can't verify the recorded pid
-            // under proot ("Could not check to see if pid N is a pulseaudio
-            // process. Assuming it is") and refuses to start. reapOrphanPulse
-            // kills stray *processes*; this removes the leftover *file*.
-            "rm -f /var/run/pulse/pid /run/pulse/pid 2>/dev/null ; " +
-            "echo 'export PULSE_SERVER=unix:/var/run/pulse/native' > /etc/profile.d/pulse.sh ; " +
-            "exec pulseaudio --system --disallow-exit=true --exit-idle-time=-1 --disable-shm=true -n " +
-            "--log-target=newfile:/tmp/haven-pulse.log " +
-            "-L \"module-null-sink sink_name=haven_out rate=$sampleRate channels=2\" " +
-            "-L \"module-native-protocol-unix socket=/var/run/pulse/native auth-anonymous=true\" " +
-            "-L \"module-simple-protocol-tcp record=true source=haven_out.monitor " +
-            "format=s16le rate=$sampleRate channels=2 listen=127.0.0.1 port=$pcmPort\""
+    internal fun paCommand(): String =
+        buildPulseAudioCommand(sampleRate = sampleRate, pcmPort = pcmPort, nativeTcpPort = NATIVE_TCP_PORT)
 
     /** The PULSE_SERVER value desktop launch scripts should export. */
     val pulseServerEnv: String = "unix:/var/run/pulse/native"
@@ -308,6 +301,8 @@ class AudioBridge @Inject constructor(
 
     companion object {
         private const val TAG = "AudioBridge"
+        /** Loopback TCP port for PulseAudio native protocol (`module-native-protocol-tcp`, #605). */
+        const val NATIVE_TCP_PORT = 4713
     }
 }
 
@@ -348,3 +343,23 @@ internal const val TRACK_BUF_FLOOR_BYTES = 16 * 1024
 
 internal fun trackBufferSizeBytes(minBuf: Int): Int =
     (minBuf * 3).coerceAtLeast(TRACK_BUF_FLOOR_BYTES)
+
+internal fun buildPulseAudioCommand(
+    sampleRate: Int = 48000,
+    pcmPort: Int = 4712,
+    nativeTcpPort: Int = AudioBridge.NATIVE_TCP_PORT,
+): String =
+    "mkdir -p /var/run/pulse /etc/profile.d ; " +
+        // Clear any stale pid file: PulseAudio can't verify the recorded pid
+        // under proot ("Could not check to see if pid N is a pulseaudio
+        // process. Assuming it is") and refuses to start. reapOrphanPulse
+        // kills stray *processes*; this removes the leftover *file*.
+        "rm -f /var/run/pulse/pid /run/pulse/pid 2>/dev/null ; " +
+        "echo 'export PULSE_SERVER=unix:/var/run/pulse/native' > /etc/profile.d/pulse.sh ; " +
+        "exec pulseaudio --system --disallow-exit=true --exit-idle-time=-1 --disable-shm=true -n " +
+        "--log-target=newfile:/tmp/haven-pulse.log " +
+        "-L \"module-null-sink sink_name=haven_out rate=$sampleRate channels=2\" " +
+        "-L \"module-native-protocol-unix socket=/var/run/pulse/native auth-anonymous=true\" " +
+        "-L \"module-native-protocol-tcp listen=127.0.0.1 port=$nativeTcpPort auth-ip-acl=127.0.0.1 auth-anonymous=true\" " +
+        "-L \"module-simple-protocol-tcp record=true source=haven_out.monitor " +
+        "format=s16le rate=$sampleRate channels=2 listen=127.0.0.1 port=$pcmPort\""

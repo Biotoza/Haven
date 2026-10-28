@@ -610,4 +610,8 @@
     <string name="connections_section_glkvm">GLKVM 设置</string>
     <string name="connections_field_glkvm_layout">目标键盘布局</string>
     <string name="connections_helper_glkvm">GLKVM（基于 HTTPS 的 PiKVM 式 KVM）— 直接操控目标机的物理鼠标和键盘。TLS 使用首次信任；录入的字符由目标机的键盘布局决定。通过 SSH 隧道或 WireGuard/Tailscale 配置文件即可从局域网之外访问。</string>
+    <string name="connections_toggle_forward_x11">转发 X11 显示</string>
+    <string name="connections_helper_forward_x11">将远程端口 6010 隧道转发到手机的 X11 服务器，按需启动已安装的 X11 桌面，并在 SSH shell 中导出 DISPLAY=localhost:10.0。</string>
+    <string name="connections_toggle_forward_pulseaudio">转发 PulseAudio</string>
+    <string name="connections_helper_forward_pulseaudio">启动手机的 PulseAudio 音频桥接，将远程端口 14713 隧道转发到本地端口 4713，并在 SSH shell 中导出 PULSE_SERVER=tcp:127.0.0.1:14713。</string>
 </resources>

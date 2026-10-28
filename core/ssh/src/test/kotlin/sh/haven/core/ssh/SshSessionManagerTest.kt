@@ -1131,6 +1131,32 @@ class SshSessionManagerTest {
         org.junit.Assert.assertArrayEquals(byteArrayOf(5, 6, 7), nextPool.keys[0].keyBytes)
     }
 
+    @Test
+    fun `buildPendingCommands exports DISPLAY and PULSE_SERVER before and inside session manager`() {
+        val client = mockk<SshClient>(relaxed = true)
+        val sid = manager.registerSession("p-media", "MediaHost", client)
+        val cfg = ConnectionConfig(
+            host = "media.example",
+            port = 22,
+            username = "u",
+            sshOptions = ConnectionConfig.parseSshOptions(
+                "HavenForwardX11 yes\nHavenForwardPulseAudio yes",
+            ),
+        )
+        manager.storeConnectionConfig(sid, cfg, SessionManager.TMUX, postLoginCommand = "htop")
+
+        val expectedExport = "export DISPLAY=localhost:10.0 ; export PULSE_SERVER=tcp:127.0.0.1:14713"
+        val plainCmds = manager.buildPendingCommands(sid, SessionManager.NONE, "htop", beforeSessionManager = false)
+        assertEquals(listOf(expectedExport, "htop"), plainCmds)
+
+        val tmuxCmds = manager.buildPendingCommands(sid, SessionManager.TMUX, "htop", beforeSessionManager = false)
+        assertEquals(4, tmuxCmds.size)
+        assertEquals(expectedExport, tmuxCmds[0])
+        assertTrue(tmuxCmds[1].contains("tmux"))
+        assertEquals(expectedExport, tmuxCmds[2])
+        assertEquals("htop", tmuxCmds[3])
+    }
+
     private fun configWithPolicy(
         autoReconnect: Boolean = true,
         maxAttempts: Int = 5,

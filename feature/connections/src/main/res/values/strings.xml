@@ -648,4 +648,8 @@
     <string name="connections_identity_not_an_identity">That file is not a Reticulum identity. Nothing was changed.</string>
     <string name="connections_identity_install_failed">Could not install the identity: %1$s. The previous one is still in place.</string>
     <string name="connections_identity_unreadable">Could not read that file.</string>
+    <string name="connections_toggle_forward_x11">Forward X11 display</string>
+    <string name="connections_helper_forward_x11">Tunnels remote port 6010 to your phone\'s X11 server, starts an installed X11 desktop if needed, and exports DISPLAY=localhost:10.0 in the SSH shell.</string>
+    <string name="connections_toggle_forward_pulseaudio">Forward PulseAudio</string>
+    <string name="connections_helper_forward_pulseaudio">Starts the phone\'s PulseAudio bridge, tunnels remote port 14713 to local port 4713, and exports PULSE_SERVER=tcp:127.0.0.1:14713 in the SSH shell.</string>
 </resources>

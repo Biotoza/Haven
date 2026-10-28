@@ -14,6 +14,8 @@ import sh.haven.core.local.proot.LaunchSpec
 import sh.haven.core.local.proot.PackageFamily
 import sh.haven.core.wayland.WaylandBridge
 import java.io.File
+import java.net.InetSocketAddress
+import java.net.Socket
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -338,6 +340,77 @@ class DesktopManager @Inject constructor(
             } else current
         }
     }
+
+    /**
+     * Resolve (or auto-start) the phone-side X11 TCP port (`6000 + display`)
+     * for one-tap SSH X11 forwarding (#605):
+     * 1. If a Haven X11/VNC desktop is already `RUNNING` or `STARTING`, return
+     *    its X11 TCP port (`6000 + displayNumber`).
+     * 2. If an external phone X11 server (e.g. Termux:X11 `:0` with TCP
+     *    enabled) is listening on `127.0.0.1:6000`, return `6000`.
+     * 3. If an X11/VNC desktop environment is installed in the active proot
+     *    distro, auto-start it in the background (and poll its VNC port to
+     *    transition it to `RUNNING`) and return `6000 + displayNumber`.
+     * 4. Otherwise fall back to `6000`.
+     */
+    fun ensureLocalX11TcpPort(): Int {
+        val activeX11 = _desktops.value.values.firstOrNull { instance ->
+            instance.de.spec.launch is LaunchSpec.X11Vnc &&
+                (instance.state == DesktopState.RUNNING || instance.state == DesktopState.STARTING) &&
+                instance.displayNumber > 0
+        }
+        if (activeX11 != null) {
+            return 6000 + activeX11.displayNumber
+        }
+
+        if (isLoopbackPortOpen(6000)) {
+            return 6000
+        }
+
+        if (prootManager.isReady) {
+            val installedX11De = ProotManager.DesktopEnvironment.entries.firstOrNull { de ->
+                de.spec.launch is LaunchSpec.X11Vnc && prootManager.isDesktopInstalled(de)
+            }
+            if (installedX11De != null) {
+                startDesktop(installedX11De)
+                val instance = _desktops.value[installedX11De]
+                if (instance != null && instance.displayNumber > 0) {
+                    val vncPort = instance.vncPort
+                    Thread({
+                        val deadline = System.currentTimeMillis() + 15_000L
+                        while (System.currentTimeMillis() < deadline) {
+                            if (_desktops.value[installedX11De]?.state == DesktopState.ERROR) break
+                            if (isLoopbackPortOpen(vncPort)) {
+                                markRunning(installedX11De)
+                                break
+                            }
+                            try {
+                                Thread.sleep(400)
+                            } catch (_: InterruptedException) {
+                                break
+                            }
+                        }
+                    }, "x11-autostart-${installedX11De.id}").apply {
+                        isDaemon = true
+                        start()
+                    }
+                    return 6000 + instance.displayNumber
+                }
+            }
+        }
+
+        return 6000
+    }
+
+    private fun isLoopbackPortOpen(port: Int, timeoutMs: Int = 150): Boolean =
+        try {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress("127.0.0.1", port), timeoutMs)
+            }
+            true
+        } catch (_: Exception) {
+            false
+        }
 
     /**
      * Runtime log of a nested-Wayland desktop's compositor — the contents
@@ -918,10 +991,7 @@ class DesktopManager @Inject constructor(
             // lives) never exited: the RUNNING-forever zombie of #550/#551.
             "rm -f /tmp/.X${display}-lock /tmp/.X11-unix/X${display} ; " +
                 "mkdir -p /tmp/.X11-unix ; chmod 1777 /tmp/.X11-unix 2>/dev/null || true ; " +
-                "Xvnc :${display} -geometry 1280x720 " +
-                "$securityArg " +
-                "-BlacklistThreshold 10000 " +
-                "-localhost 0 & " +
+                "${buildXvncCommand(display, securityArg)} & " +
                 // The Custom-X11 tail kills this PID when the session command
                 // exits (#550/#551); catalog DEs never reference it.
                 "XVNC_PID=\$! ; " +
@@ -2141,6 +2211,20 @@ internal data class ProcessCmdline(val pid: String, val cmdline: String)
  * The display is compared as a whole argument, not a substring, or stopping
  * `:1` would take `:10` and `:11` down with it.
  */
+/**
+ * Build the TigerVNC `Xvnc` command line for display `:display` (#605).
+ *
+ * Includes `-listen tcp -ac` so local and SSH reverse-forwarded X11 clients
+ * (`-R 127.0.0.1:6010:127.0.0.1:<6000+display>`, `DISPLAY=localhost:10.0`)
+ * can open windows on the display without copying `.Xauthority` to the remote
+ * host.
+ */
+internal fun buildXvncCommand(display: Int, securityArg: String): String =
+    "Xvnc :$display -geometry 1280x720 " +
+        "$securityArg " +
+        "-BlacklistThreshold 10000 " +
+        "-localhost 0 -listen tcp -ac"
+
 internal fun xvncMatches(cmdline: String, display: Int?): Boolean {
     // Two shapes are kill candidates: a plain Xvnc argv, and a proot HOST
     // process — whose argv[0] is libproot.so with the whole guest launch

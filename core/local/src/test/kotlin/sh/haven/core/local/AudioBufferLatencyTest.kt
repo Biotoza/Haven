@@ -1,6 +1,7 @@
 package sh.haven.core.local
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -57,5 +58,14 @@ class TrackBufferSizeTest {
     fun `measured CPH2655 minimum lands at 360 ms`() {
         assertEquals(69192, trackBufferSizeBytes(23064))
         assertEquals(360L, pcmBufferMillis(69192, 48000))
+    }
+
+    @Test
+    fun `PulseAudio command loads native TCP module on 127_0_0_1 4713 for SSH audio forwarding`() {
+        val cmd = buildPulseAudioCommand()
+        assertTrue(
+            "Expected module-native-protocol-tcp on 127.0.0.1:4713 in: $cmd",
+            cmd.contains("-L \"module-native-protocol-tcp listen=127.0.0.1 port=4713 auth-ip-acl=127.0.0.1 auth-anonymous=true\""),
+        )
     }
 }
