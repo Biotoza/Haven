@@ -888,12 +888,16 @@ class McpServer @Inject constructor(
      * port), so the WG endpoint is silently unreachable. Needs
      * `ACCESS_NETWORK_STATE` (held); returns null on any lookup failure.
      */
-    private fun detectVpnAddressCollision(address: String?): sh.haven.core.data.agent.WgCollisionInfo? {
+    private fun detectVpnAddressCollision(
+        address: String?,
+        ignoredNetwork: Network? = null,
+    ): sh.haven.core.data.agent.WgCollisionInfo? {
         if (address.isNullOrBlank()) return null
         val cm = connectivityManager ?: return null
         val target = runCatching { InetAddress.getByName(address) }.getOrNull() ?: return null
         return try {
             val iface = cm.allNetworks.firstNotNullOfOrNull { net ->
+                if (net == ignoredNetwork) return@firstNotNullOfOrNull null
                 val caps = cm.getNetworkCapabilities(net)
                 if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) != true) return@firstNotNullOfOrNull null
                 val lp = cm.getLinkProperties(net) ?: return@firstNotNullOfOrNull null
@@ -913,13 +917,15 @@ class McpServer @Inject constructor(
      * listener and carrier hold so the userspace device stops handshaking on
      * the shared peer key.
      */
-    private fun refreshWireguardCollision() {
+    private fun refreshWireguardCollision(lostNetwork: Network? = null) {
         val checkAddr = wireguardBoundAddress ?: mcpStatusHolder.wireguardCollision.value?.address
-        val info = detectVpnAddressCollision(checkAddr)
+        val info = detectVpnAddressCollision(checkAddr, ignoredNetwork = lostNetwork)
         if (info != mcpStatusHolder.wireguardCollision.value) {
             mcpStatusHolder.setWireguardCollision(info)
             if (info != null) {
                 Log.w(TAG, "WG MCP carrier shadowed: system VPN (${info.vpnInterface}) holds ${info.address} — tearing down userspace tunnel to avoid peer session conflict")
+            } else {
+                Log.i(TAG, "WG MCP carrier collision cleared")
             }
         }
         if (info != null && wireguardListener != null) {
@@ -938,7 +944,7 @@ class McpServer @Inject constructor(
         val cm = connectivityManager ?: return
         val cb = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) = refreshWireguardCollision()
-            override fun onLost(network: Network) = refreshWireguardCollision()
+            override fun onLost(network: Network) = refreshWireguardCollision(lostNetwork = network)
             override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) =
                 refreshWireguardCollision()
         }

@@ -332,6 +332,39 @@ class WireGuardConflictTest {
         assertEquals(2, closeCalls)
     }
 
+    @Test
+    fun `reviveIfNetworkChanged ignores unchanged network and bounces only on network switch`() {
+        var nowMs = 10_000L
+        var currentNet = 100L
+        var startTunnelCalls = 0
+        val tunnel = WireguardTunnel(
+            sampleConfig,
+            nativeStarter = { _ ->
+                startTunnelCalls++
+                FakeNative()
+            },
+            clockMs = { nowMs },
+            networkKeyProvider = { currentNet },
+        )
+        assertEquals(1, startTunnelCalls)
+
+        // Periodic tick on the same network handle (100L) is a no-op.
+        nowMs += 60_000L
+        org.junit.Assert.assertFalse(tunnel.reviveIfNetworkChanged("periodic tick"))
+        assertEquals(1, startTunnelCalls)
+
+        // Switching to cellular (200L) bounces once and records 200L.
+        currentNet = 200L
+        nowMs += 5_000L
+        assertTrue(tunnel.reviveIfNetworkChanged("network available"))
+        assertEquals(2, startTunnelCalls)
+
+        // Subsequent ticks on 200L are a no-op again.
+        nowMs += 60_000L
+        org.junit.Assert.assertFalse(tunnel.reviveIfNetworkChanged("periodic tick"))
+        assertEquals(2, startTunnelCalls)
+    }
+
     private class FakeNative(
         private val onDial: () -> WgNativeConn? = { null },
         private val onClose: () -> Unit = {},

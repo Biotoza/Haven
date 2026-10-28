@@ -140,9 +140,21 @@ class WireguardTunnel internal constructor(
     private val clockMs: () -> Long = {
         SystemClock.elapsedRealtime().takeIf { it > 0L } ?: (System.nanoTime() / 1_000_000L)
     },
+    /**
+     * Returns an opaque identifier for the host's current default network
+     * (`ConnectivityManager.activeNetwork?.networkHandle ?: 0L`). Used by
+     * [reviveIfNetworkChanged] so periodic foreground-revive ticks are a
+     * no-op while the phone remains on the same network (avoiding tearing
+     * down active tunneled connections), while an actual Wi-Fi ↔ Cellular
+     * transition bounces the handle immediately.
+     */
+    private val networkKeyProvider: () -> Long = { 0L },
 ) : Tunnel {
 
     private val nativeLock = Any()
+
+    @Volatile
+    private var boundNetworkKey: Long = networkKeyProvider()
 
     @Volatile
     private var native: WgNativeDevice = try {
@@ -242,6 +254,18 @@ class WireguardTunnel internal constructor(
     }
 
     /**
+     * Bounce the native tunnel handle only if the host's active network
+     * identifier has changed since the current handle was started. Safe to
+     * call from periodic watchdog ticks without disrupting live sessions on
+     * an unchanged network.
+     */
+    fun reviveIfNetworkChanged(reason: String = "network change"): Boolean {
+        val currentKey = networkKeyProvider()
+        if (currentKey == 0L || currentKey == boundNetworkKey) return false
+        return revive("$reason ($boundNetworkKey -> $currentKey)")
+    }
+
+    /**
      * Proactively recreate the native tunnel handle when the host's active
      * network changes (Wi-Fi ↔ Cellular, VPN teardown, return to foreground).
      * Uses a short debounce ([REVIVE_COOLDOWN_MS]) to coalesce back-to-back
@@ -264,6 +288,7 @@ class WireguardTunnel internal constructor(
             val fresh = launchNative(ensurePeerKeepalive(configText))
             native.close()
             native = fresh
+            boundNetworkKey = networkKeyProvider()
             consecutiveDialTimeouts = 0
             socksCached = null // the old SOCKS listener died with the old netstack
             Log.i(TAG, "WG tunnel bounced ($why): endpoint re-resolved, bind re-homed")
@@ -327,12 +352,38 @@ class WireguardTunnel internal constructor(
 
     private fun launchNative(prepared: String): WgNativeDevice {
         val starter = nativeStarter
-            ?: return GomobileWgNative.start(prepared)
+            ?: run {
+                val summary = summarizeConfigForLog(prepared)
+                Log.i(TAG, "Starting native WireGuard tunnel ($summary)")
+                return GomobileWgNative.start(prepared)
+            }
         return starter(prepared)
     }
 
     companion object {
         private const val TAG = "WireguardTunnel"
+
+        internal fun summarizeConfigForLog(configText: String): String {
+            var addr = ""
+            var dns = ""
+            var endpoint = ""
+            var allowedIps = ""
+            var keepalive = ""
+            for (raw in configText.lineSequence()) {
+                val line = raw.trim()
+                if (line.isEmpty() || line.startsWith("#") || line.startsWith("[")) continue
+                val key = line.substringBefore('=').trim().lowercase()
+                val value = line.substringAfter('=', "").trim()
+                when (key) {
+                    "address" -> addr = value
+                    "dns" -> dns = value
+                    "endpoint" -> endpoint = value
+                    "allowedips" -> allowedIps = value
+                    "persistentkeepalive" -> keepalive = value
+                }
+            }
+            return "address=$addr endpoint=$endpoint allowedIps=$allowedIps dns=$dns keepalive=$keepalive"
+        }
 
         /**
          * WireGuard's standard NAT/firewall keepalive interval (seconds). Injected

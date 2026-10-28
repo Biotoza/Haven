@@ -239,7 +239,7 @@ class TunnelManager @Inject constructor(
                 }
                 when (tunnel) {
                     is AnyConnectTunnel -> tunnel.revive()
-                    is WireguardTunnel -> tunnel.revive("network change")
+                    is WireguardTunnel -> tunnel.reviveIfNetworkChanged("network change")
                 }
             }
         }
@@ -328,7 +328,7 @@ class DefaultTunnelFactory @Inject constructor(
             // lives here, before the native device exists, so acquire() fails
             // fast and the resolver falls through to direct dialling.
             SystemVpnAddressProbe.collides(text, systemVpnAddressProbe)?.let { throw it }
-            WireguardTunnel(text)
+            WireguardTunnel(text, networkKeyProvider = ::activeNetworkKey)
         }
         TunnelConfigType.TAILSCALE -> {
             val parsed = TailscaleConfigBlob.parse(config.configText)
@@ -376,6 +376,11 @@ class DefaultTunnelFactory @Inject constructor(
      * because Tailscale enforces that and it is a sensible default
      * everywhere else.
      */
+    private fun activeNetworkKey(): Long = runCatching {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+        cm?.activeNetwork?.networkHandle ?: 0L
+    }.getOrDefault(0L)
+
     private fun deriveHostname(label: String): String {
         val safe = label.lowercase()
             .map { if (it.isLetterOrDigit()) it else '-' }
