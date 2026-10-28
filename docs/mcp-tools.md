@@ -41,8 +41,8 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (80 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (64 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (77 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (67 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (92 tools).
 
 ## Sections
@@ -1310,7 +1310,7 @@ Stop the haven-usb guest proxy started by usb_attach_to_guest and release the br
 </details>
 
 <details markdown="1">
-<summary><code>drag_desktop_tab</code> · asks every call</summary>
+<summary><code>drag_desktop_tab</code> · asks once per session</summary>
 
 Drag the mouse on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) from (startX, startY) to (endX, endY) in remote framebuffer pixel coordinates — moves to start, presses the mouse button, interpolates intermediate motion steps over durationMs, and releases the button. Use for moving windows, selecting text/regions, or dragging sliders. Returns { profileId, protocol, startX, startY, endX, endY, button, steps, durationMs }.
 
@@ -1396,7 +1396,7 @@ Import a bootable disk image as a system VM (#326). `source` is an http(s) URL o
 <details markdown="1">
 <summary><code>inspect_desktop_tab</code> · asks once per session</summary>
 
-Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode="at" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].
+Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Also reports recentUserInteractions (with 2D k-d tree OCR lookup at each user click/scroll/move coordinate) and userInteractedSinceLastAgentAction so the agent can detect user collaboration or intervention on the shared session. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode="at" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true, including narrow-kerning space-insensitive matches), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].
 
 - `exact` (boolean) — Require exact normalized text equality for query instead of substring match. Default false.
 - `forceRefresh` (boolean) — Force a fresh RapidOCR pass even if the framebuffer hash matches the cached index. Default false.
@@ -1709,7 +1709,7 @@ Power off / kill the running system VM (#326) and release its loopback VNC port.
 </details>
 
 <details markdown="1">
-<summary><code>tap_desktop_tab</code> · asks every call</summary>
+<summary><code>tap_desktop_tab</code> · asks once per session</summary>
 
 Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab and inspect_desktop_tab report: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Pass clicks=2 for a double-click. Returns { profileId, protocol, x, y, button, clicks }.
 
@@ -1722,15 +1722,16 @@ Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a 
 </details>
 
 <details markdown="1">
-<summary><code>tap_desktop_text</code> · asks every call</summary>
+<summary><code>tap_desktop_text</code> · asks once per session</summary>
 
-Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.
+Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center or edge anchor (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Set anchor="right" (plus e.g. dx=12) to click a split-button dropdown chevron or icon adjacent to a label without manual width math. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.
 
 - `query` (string, required) — Visible text label to find and click.
+- `anchor` (string, one of: center | left | right | top | bottom) — Point on the matched bounding box before applying (dx,dy): "center" (default), "left", "right", "top", or "bottom".
 - `button` (integer) — X11 mouse button: 1=left (default), 2=middle, 3=right.
 - `clicks` (integer) — Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).
-- `dx` (integer) — Horizontal pixel offset added to the matched element's center X before clicking. Default 0.
-- `dy` (integer) — Vertical pixel offset added to the matched element's center Y before clicking. Default 0.
+- `dx` (integer) — Horizontal pixel offset added to the anchor X before clicking. Default 0.
+- `dy` (integer) — Vertical pixel offset added to the anchor Y before clicking. Default 0.
 - `exact` (boolean) — Require exact normalized text match instead of substring match. Default false.
 - `forceRefresh` (boolean) — Force a fresh RapidOCR pass before matching. Default false.
 - `level` (string, one of: all | word | line) — Granularity to match: "all" (default, prefers tight word boxes), "word", or "line".
@@ -1744,10 +1745,16 @@ Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) usi
 <details markdown="1">
 <summary><code>type_desktop_text</code> · asks once per session</summary>
 
-Type text into a remote-desktop VIEWER tab as real keystrokes. GLKVM only today: GLKVM's HID path types mapped characters as physical position keys (the target OS applies its own keyboard layout — UK/US set on the profile) and falls back to the device's US-layout printer for accents; VNC/RDP/SPICE have no keyboard verb yet and error out here (use send_desktop_clipboard). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, chars }.
+Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as real keystrokes (GLKVM HID). Pass text to type characters (with optional pressEnter=true to tap Enter after typing), or pass key (e.g. "Enter", "Tab", "Escape", "Backspace", "Delete", "Space", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", or "a".."z" / "KeyA".."KeyZ") with optional ctrl/alt/shift/meta modifiers (e.g. key="a", ctrl=true for Ctrl+A; key="v", ctrl=true for Ctrl+V). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open.
 
-- `text` (string, required) — Text to type as keystrokes.
+- `alt` (boolean) — Hold AltLeft while tapping key. Default false.
+- `ctrl` (boolean) — Hold ControlLeft while tapping key. Default false.
+- `key` (string) — Optional special key or key code to tap (e.g. "Enter", "Tab", "Escape", "Backspace", "Delete", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "a", "v", "KeyA").
+- `meta` (boolean) — Hold MetaLeft (Windows/Super) while tapping key. Default false.
+- `pressEnter` (boolean) — Tap Enter after typing text. Default false.
 - `profileId` (string) — Profile id (from list_desktop_sessions). Omit when exactly one is open.
+- `shift` (boolean) — Hold ShiftLeft while tapping key. Default false.
+- `text` (string) — Text to type as keystrokes. Optional when key is provided.
 
 </details>
 

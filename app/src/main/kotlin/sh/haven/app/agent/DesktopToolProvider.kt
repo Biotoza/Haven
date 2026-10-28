@@ -232,7 +232,7 @@ internal class DesktopToolProvider(
                 integer("button", "X11 button: 1=left (default), 2=middle, 3=right.")
                 integer("clicks", "Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).")
             },
-            consentLevel = ConsentLevel.EVERY_CALL,
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
                 val pid = args.optString("profileId").takeIf { it.isNotBlank() }
                 val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
@@ -243,7 +243,7 @@ internal class DesktopToolProvider(
         ) { args -> tapDesktopTab(args) },
 
         "inspect_desktop_tab" to ToolHandler(
-            description = "Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode=\"at\" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].",
+            description = "Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Also reports recentUserInteractions (with 2D k-d tree OCR lookup at each user click/scroll/move coordinate) and userInteractedSinceLastAgentAction so the agent can detect user collaboration or intervention on the shared session. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode=\"at\" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true, including narrow-kerning space-insensitive matches), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
                 string("mode", "Query mode: \"auto\" (default: coordinate lookup if x/y set, text search if query set, else full tree), \"at\" (coordinate k-d tree lookup at x,y or the current pointer if x/y omitted), \"find\" (text search for query), or \"tree\" (full blocks/lines/words hierarchy).", enum = listOf("auto", "at", "find", "tree"))
@@ -267,7 +267,7 @@ internal class DesktopToolProvider(
         ) { args -> inspectDesktopTab(args) },
 
         "tap_desktop_text" to ToolHandler(
-            description = "Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.",
+            description = "Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center or edge anchor (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Set anchor=\"right\" (plus e.g. dx=12) to click a split-button dropdown chevron or icon adjacent to a label without manual width math. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
                 string("query", "Visible text label to find and click.", required = true)
@@ -275,14 +275,15 @@ internal class DesktopToolProvider(
                 integer("nearX", "Optional anchor X to rank matches by proximity.")
                 integer("nearY", "Optional anchor Y to rank matches by proximity.")
                 integer("nth", "0-based index among ranked matches to click. Default 0 (best/closest match).")
-                integer("dx", "Horizontal pixel offset added to the matched element's center X before clicking. Default 0.")
-                integer("dy", "Vertical pixel offset added to the matched element's center Y before clicking. Default 0.")
+                string("anchor", "Point on the matched bounding box before applying (dx,dy): \"center\" (default), \"left\", \"right\", \"top\", or \"bottom\".", enum = listOf("center", "left", "right", "top", "bottom"))
+                integer("dx", "Horizontal pixel offset added to the anchor X before clicking. Default 0.")
+                integer("dy", "Vertical pixel offset added to the anchor Y before clicking. Default 0.")
                 integer("button", "X11 mouse button: 1=left (default), 2=middle, 3=right.")
                 integer("clicks", "Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).")
                 string("level", "Granularity to match: \"all\" (default, prefers tight word boxes), \"word\", or \"line\".", enum = listOf("all", "word", "line"))
                 boolean("forceRefresh", "Force a fresh RapidOCR pass before matching. Default false.")
             },
-            consentLevel = ConsentLevel.EVERY_CALL,
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
                 val pid = args.optString("profileId").takeIf { it.isNotBlank() }
                 val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
@@ -317,7 +318,7 @@ internal class DesktopToolProvider(
                 integer("steps", "Number of interpolated motion steps between start and end. Default 12 (clamped 1..100).")
                 integer("durationMs", "Total drag duration in milliseconds. Default 180 (clamped 0..5000).")
             },
-            consentLevel = ConsentLevel.EVERY_CALL,
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
                 val pid = args.optString("profileId").takeIf { it.isNotBlank() }
                 val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
@@ -326,16 +327,27 @@ internal class DesktopToolProvider(
         ) { args -> dragDesktopTab(args) },
 
         "type_desktop_text" to ToolHandler(
-            description = "Type text into a remote-desktop VIEWER tab as real keystrokes. GLKVM only today: GLKVM's HID path types mapped characters as physical position keys (the target OS applies its own keyboard layout — UK/US set on the profile) and falls back to the device's US-layout printer for accents; VNC/RDP/SPICE have no keyboard verb yet and error out here (use send_desktop_clipboard). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, chars }.",
+            description = "Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as real keystrokes (GLKVM HID). Pass text to type characters (with optional pressEnter=true to tap Enter after typing), or pass key (e.g. \"Enter\", \"Tab\", \"Escape\", \"Backspace\", \"Delete\", \"Space\", \"ArrowDown\", \"ArrowUp\", \"ArrowLeft\", \"ArrowRight\", \"Home\", \"End\", \"PageUp\", \"PageDown\", or \"a\"..\"z\" / \"KeyA\"..\"KeyZ\") with optional ctrl/alt/shift/meta modifiers (e.g. key=\"a\", ctrl=true for Ctrl+A; key=\"v\", ctrl=true for Ctrl+V). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id (from list_desktop_sessions). Omit when exactly one is open.")
-                string("text", "Text to type as keystrokes.", required = true)
+                string("text", "Text to type as keystrokes. Optional when key is provided.")
+                string("key", "Optional special key or key code to tap (e.g. \"Enter\", \"Tab\", \"Escape\", \"Backspace\", \"Delete\", \"ArrowDown\", \"ArrowUp\", \"ArrowLeft\", \"ArrowRight\", \"a\", \"v\", \"KeyA\").")
+                boolean("ctrl", "Hold ControlLeft while tapping key. Default false.")
+                boolean("alt", "Hold AltLeft while tapping key. Default false.")
+                boolean("shift", "Hold ShiftLeft while tapping key. Default false.")
+                boolean("meta", "Hold MetaLeft (Windows/Super) while tapping key. Default false.")
+                boolean("pressEnter", "Tap Enter after typing text. Default false.")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
                 val pid = args.optString("profileId").takeIf { it.isNotBlank() }
                 val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
-                "Type ${args.optString("text").length} chars into $who"
+                val key = args.optString("key").takeIf { it.isNotBlank() }
+                if (key != null) {
+                    "Send key '$key' to $who"
+                } else {
+                    "Type ${args.optString("text").length} chars into $who"
+                }
             },
         ) { args -> typeDesktopText(args) },
 
@@ -876,6 +888,14 @@ internal class DesktopToolProvider(
             Triple(Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP), fullW, fullH)
         }
 
+        val lastAgentAt = desktopSessionRegistry.lastAgentActionAt(pid)
+        val recentUser = desktopSessionRegistry.recentUserInteractions(pid, limit = 8)
+        val nowMs = System.currentTimeMillis()
+        val userInteractedSinceLastAgent = recentUser.any { u ->
+            lastAgentAt == null || u.timestampMs > lastAgentAt
+        }
+        desktopSessionRegistry.recordAgentAction(pid, nowMs)
+
         return ToolResult.Image(
             base64 = b64,
             mimeType = if (format == "jpeg") "image/jpeg" else "image/png",
@@ -894,6 +914,7 @@ internal class DesktopToolProvider(
                     put("pointerY", py)
                 }
                 put("format", format)
+                put("userInteractedSinceLastAgentAction", userInteractedSinceLastAgent)
             },
         )
     }
@@ -964,6 +985,42 @@ internal class DesktopToolProvider(
         put("dy", (nb.dy * 10.0).roundToInt() / 10.0)
     }
 
+    private fun buildUserInteractionsJson(
+        pid: String,
+        index: OcrScreenIndex?,
+        nowMs: Long,
+        lastAgentAt: Long?,
+    ): Pair<Boolean, JSONArray> {
+        val recent = desktopSessionRegistry.recentUserInteractions(pid, limit = 8)
+        val sinceLastAgent = recent.any { u -> lastAgentAt == null || u.timestampMs > lastAgentAt }
+        val arr = JSONArray()
+        for (u in recent) {
+            arr.put(JSONObject().apply {
+                put("type", u.type)
+                put("timestampMs", u.timestampMs)
+                put("ageMs", (nowMs - u.timestampMs).coerceAtLeast(0L))
+                put("afterLastAgentAction", lastAgentAt == null || u.timestampMs > lastAgentAt)
+                val ux = u.x
+                val uy = u.y
+                if (ux != null) put("x", ux)
+                if (uy != null) put("y", uy)
+                u.detail?.let { put("detail", it) }
+                if (index != null && ux != null && uy != null) {
+                    val spatial = index.queryAt(ux.toDouble(), uy.toDouble(), k = 2)
+                    spatial.containing.firstOrNull()?.let { hit ->
+                        put("targetText", hit.text)
+                        put("targetBbox", bboxToJson(hit.bbox))
+                    }
+                    spatial.nearest.firstOrNull()?.let { nb ->
+                        put("nearestText", nb.node.text)
+                        put("nearestDistance", (nb.rectDistance * 10.0).roundToInt() / 10.0)
+                    }
+                }
+            })
+        }
+        return sinceLastAgent to arr
+    }
+
     private suspend fun buildOrGetOcrIndex(
         pid: String,
         handle: DesktopFrameHandle,
@@ -1011,6 +1068,11 @@ internal class DesktopToolProvider(
 
         val index = buildOrGetOcrIndex(pid, handle, forceRefresh)
         val (pointerX, pointerY) = handle.pointer()
+        val nowMs = System.currentTimeMillis()
+        val lastAgentAt = desktopSessionRegistry.lastAgentActionAt(pid)
+        val (userInteractedSinceLastAgent, recentUserJson) =
+            buildUserInteractionsJson(pid, index, nowMs, lastAgentAt)
+        desktopSessionRegistry.recordAgentAction(pid, nowMs)
 
         val base = JSONObject().apply {
             put("profileId", pid)
@@ -1025,6 +1087,8 @@ internal class DesktopToolProvider(
             put("pointerX", pointerX)
             put("pointerY", pointerY)
             put("mode", resolvedMode)
+            put("userInteractedSinceLastAgentAction", userInteractedSinceLastAgent)
+            put("recentUserInteractions", recentUserJson)
         }
 
         when (resolvedMode) {
@@ -1127,6 +1191,7 @@ internal class DesktopToolProvider(
         val nearX = if (args.has("nearX") && !args.isNull("nearX")) args.getInt("nearX").toDouble() else null
         val nearY = if (args.has("nearY") && !args.isNull("nearY")) args.getInt("nearY").toDouble() else null
         val nth = args.optInt("nth", 0).coerceAtLeast(0)
+        val anchor = args.optString("anchor", "center").trim().lowercase()
         val dx = args.optInt("dx", 0)
         val dy = args.optInt("dy", 0)
         val button = args.optInt("button", 1).coerceIn(1, 7)
@@ -1157,9 +1222,19 @@ internal class DesktopToolProvider(
             )
         }
         val chosen = matches[nth]
-        val clickX = (chosen.node.bbox.cx.roundToInt() + dx).coerceIn(0, (index.frameWidth - 1).coerceAtLeast(0))
-        val clickY = (chosen.node.bbox.cy.roundToInt() + dy).coerceIn(0, (index.frameHeight - 1).coerceAtLeast(0))
+        val box = chosen.node.bbox
+        val (baseX, baseY) = when (anchor) {
+            "", "center" -> box.cx.roundToInt() to box.cy.roundToInt()
+            "left" -> box.x to box.cy.roundToInt()
+            "right" -> box.right to box.cy.roundToInt()
+            "top" -> box.cx.roundToInt() to box.y
+            "bottom" -> box.cx.roundToInt() to box.bottom
+            else -> throw McpError(-32602, "anchor must be one of center, left, right, top, bottom")
+        }
+        val clickX = (baseX + dx).coerceIn(0, (index.frameWidth - 1).coerceAtLeast(0))
+        val clickY = (baseY + dy).coerceIn(0, (index.frameHeight - 1).coerceAtLeast(0))
 
+        desktopSessionRegistry.recordAgentAction(pid)
         repeat(clicks) { i ->
             if (i > 0) kotlinx.coroutines.delay(60)
             inputHandle.mouseClick(clickX, clickY, button)
@@ -1174,6 +1249,7 @@ internal class DesktopToolProvider(
             put("clicks", clicks)
             put("query", query)
             put("nth", nth)
+            put("anchor", anchor.ifEmpty { "center" })
             put("matchCount", matches.size)
             put("matched", nodeToJson(chosen.node).apply {
                 chosen.anchorDistance?.let { d ->
@@ -1192,6 +1268,7 @@ internal class DesktopToolProvider(
         val y = requireIntArg(args, "y")
         val button = args.optInt("button", 1).coerceIn(1, 7)
         val clicks = args.optInt("clicks", 1).coerceIn(1, 3)
+        desktopSessionRegistry.recordAgentAction(pid)
         repeat(clicks) { i ->
             if (i > 0) kotlinx.coroutines.delay(60)
             h.mouseClick(x, y, button)
@@ -1206,6 +1283,7 @@ internal class DesktopToolProvider(
         val (pid, h) = resolveDesktopInput(args)
         val x = requireIntArg(args, "x")
         val y = requireIntArg(args, "y")
+        desktopSessionRegistry.recordAgentAction(pid)
         h.mouseMove(x, y)
         return JSONObject().apply {
             put("profileId", pid); put("protocol", h.protocol)
@@ -1224,6 +1302,7 @@ internal class DesktopToolProvider(
         val durationMs = args.optInt("durationMs", 180).coerceIn(0, 5000)
         val stepDelayMs = if (steps > 0) (durationMs / steps).toLong() else 0L
 
+        desktopSessionRegistry.recordAgentAction(pid)
         h.mouseMove(startX, startY)
         h.mouseButton(button, true)
         try {
@@ -1254,25 +1333,106 @@ internal class DesktopToolProvider(
     private fun scrollDesktopTab(args: JSONObject): JSONObject {
         val (pid, h) = resolveDesktopInput(args)
         val deltaY = requireIntArg(args, "deltaY")
+        desktopSessionRegistry.recordAgentAction(pid)
         h.mouseWheel(deltaY)
         return JSONObject().apply {
             put("profileId", pid); put("protocol", h.protocol); put("deltaY", deltaY)
         }
     }
 
-    private fun typeDesktopText(args: JSONObject): JSONObject {
+    private fun normalizeKeyCode(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.length == 1) {
+            val ch = trimmed[0]
+            if (ch in 'a'..'z' || ch in 'A'..'Z') return "Key${ch.uppercaseChar()}"
+            if (ch in '0'..'9') return "Digit$ch"
+        }
+        return when (trimmed.lowercase()) {
+            "enter", "return" -> "Enter"
+            "tab" -> "Tab"
+            "esc", "escape" -> "Escape"
+            "backspace", "bs" -> "Backspace"
+            "del", "delete" -> "Delete"
+            "space", "spacebar" -> "Space"
+            "up", "arrowup" -> "ArrowUp"
+            "down", "arrowdown" -> "ArrowDown"
+            "left", "arrowleft" -> "ArrowLeft"
+            "right", "arrowright" -> "ArrowRight"
+            "home" -> "Home"
+            "end" -> "End"
+            "pageup", "pgup" -> "PageUp"
+            "pagedown", "pgdn" -> "PageDown"
+            "insert", "ins" -> "Insert"
+            else -> trimmed
+        }
+    }
+
+    private suspend fun typeDesktopText(args: JSONObject): JSONObject {
         val (pid, h) = resolveDesktopInput(args)
         val text = args.optString("text")
-        if (text.isEmpty()) throw McpError(-32602, "text is required")
-        val type = h.typeText
-            ?: throw McpError(
-                -32602,
-                "${h.protocol} does not support text typing (no keyboard verb yet); " +
-                    "use send_desktop_clipboard on this tab instead.",
-            )
-        type(text)
+        val rawKey = args.optString("key").trim()
+        val ctrl = args.optBoolean("ctrl", false)
+        val alt = args.optBoolean("alt", false)
+        val shift = args.optBoolean("shift", false)
+        val meta = args.optBoolean("meta", false)
+        val pressEnter = args.optBoolean("pressEnter", false)
+
+        if (text.isEmpty() && rawKey.isEmpty()) {
+            throw McpError(-32602, "Either text or key is required")
+        }
+        desktopSessionRegistry.recordAgentAction(pid)
+
+        if (text.isNotEmpty()) {
+            val type = h.typeText
+                ?: throw McpError(
+                    -32602,
+                    "${h.protocol} does not support text typing (no keyboard verb yet); " +
+                        "use send_desktop_clipboard on this tab instead.",
+                )
+            type(text)
+        }
+
+        if (rawKey.isNotEmpty() || pressEnter) {
+            val sendKey = h.sendKey
+                ?: if (pressEnter && h.typeText != null && rawKey.isEmpty()) {
+                    null
+                } else {
+                    throw McpError(
+                        -32602,
+                        "${h.protocol} does not support raw key codes yet.",
+                    )
+                }
+            if (rawKey.isNotEmpty() && sendKey != null) {
+                val code = normalizeKeyCode(rawKey)
+                val mods = buildList {
+                    if (ctrl) add("ControlLeft")
+                    if (alt) add("AltLeft")
+                    if (shift) add("ShiftLeft")
+                    if (meta) add("MetaLeft")
+                }
+                for (m in mods) sendKey(m, true)
+                sendKey(code, true)
+                kotlinx.coroutines.delay(20)
+                sendKey(code, false)
+                for (m in mods.asReversed()) sendKey(m, false)
+            }
+            if (pressEnter) {
+                if (sendKey != null) {
+                    sendKey("Enter", true)
+                    kotlinx.coroutines.delay(20)
+                    sendKey("Enter", false)
+                } else {
+                    h.typeText?.invoke("\n")
+                }
+            }
+        }
+
         return JSONObject().apply {
-            put("profileId", pid); put("protocol", h.protocol); put("chars", text.length)
+            put("profileId", pid)
+            put("protocol", h.protocol)
+            put("chars", text.length)
+            if (rawKey.isNotEmpty()) put("key", normalizeKeyCode(rawKey))
+            if (pressEnter) put("pressEnter", true)
         }
     }
 
@@ -1280,6 +1440,7 @@ internal class DesktopToolProvider(
         val (pid, h) = resolveDesktopInput(args)
         if (!args.has("text")) throw McpError(-32602, "text is required")
         val text = args.optString("text")
+        desktopSessionRegistry.recordAgentAction(pid)
         h.clipboard(text)
         return JSONObject().apply {
             put("profileId", pid); put("protocol", h.protocol); put("chars", text.length)

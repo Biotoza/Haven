@@ -78,4 +78,23 @@ class OcrScreenIndexTest {
         // And its k-d tree neighbors include Dialog 2's "OK" button
         assertTrue(anchoredMatches[0].neighbors.any { it.node.text == "OK" && it.node.bbox.x == 990 })
     }
+
+    @Test
+    fun `findText matches narrow-kerning joined words when query has spaces`() {
+        val idx = OcrScreenIndex.build(
+            detections = listOf(
+                OcrLineDetection(OcrBbox(2149, 209, 102, 19), "Meetnow", 0.91f),
+                OcrLineDetection(OcrBbox(1140, 210, 120, 20), "Pod sharedgoal", 0.93f),
+            ),
+            frameWidth = 2560,
+            frameHeight = 1440,
+        )
+        val meet = idx.findText("Meet now")
+        assertTrue(meet.isNotEmpty())
+        assertEquals("Meetnow", meet.first().node.text)
+
+        val goal = idx.findText("Pod shared goal")
+        assertTrue(goal.isNotEmpty())
+        assertEquals("Pod sharedgoal", goal.first().node.text)
+    }
 }

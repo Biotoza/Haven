@@ -56,6 +56,15 @@ class GlkvmClient private constructor(
     @Volatile var frameWidth: Int = 2560
     @Volatile var frameHeight: Int = 1440
 
+    /**
+     * Active non-pillarboxed horizontal bounds `[activeLeftPx, activeLeftPx + activeWidthPx]`
+     * within [frameWidth]. Defaults to full width (`0..frameWidth`); updated by
+     * `GlkvmDesktopSession` when symmetric horizontal pillarbox bars (e.g. a 16:10
+     * display mirrored inside a 16:9 HDMI signal) are detected on decoded frames.
+     */
+    @Volatile var activeLeftPx: Int = 0
+    @Volatile var activeWidthPx: Int = 2560
+
     @Volatile
     private var token: String? = null
     private val tokenLock = Any()
@@ -196,7 +205,10 @@ class GlkvmClient private constructor(
 
     /** Absolute mouse move in target-screen px, device int16s from [frameWidth]/[frameHeight]. */
     fun sendMouseMove(x: Int, y: Int) {
-        val vx = GlkvmGeometry.vFromPxX(x.toDouble(), frameWidth)
+        val w = frameWidth
+        val activeW = activeWidthPx.takeIf { it in 1..w } ?: w
+        val activeL = activeLeftPx.coerceIn(0, (w - activeW).coerceAtLeast(0))
+        val vx = GlkvmGeometry.vFromPxX(x.toDouble(), w, activeLeftPx = activeL, activeWidthPx = activeW)
         val vy = GlkvmGeometry.vFromPxY(y.toDouble(), frameHeight)
         postOk(
             "/api/hid/events/send_mouse_move",
@@ -207,7 +219,7 @@ class GlkvmClient private constructor(
     /** Move to (x, y) then full press+release (device default when state omitted). */
     fun sendMouseClick(x: Int, y: Int, button: String = "left") {
         sendMouseMove(x, y)
-        Thread.sleep(20)
+        Thread.sleep(35)
         postOk("/api/hid/events/send_mouse_button", mapOf("button" to button))
     }
 

@@ -58,9 +58,35 @@ class GlkvmGeometryTest {
     @Test
     fun `values match linear full-width mapping for known points`() {
         // At 2560x1440, x=850 maps to round(850 * 65535 / 2560) - 32768 = -11007,
-        // which lands at 850px on the target OS (verified live on RM10 kvmd 4.82;
-        // the old 0.05/0.90 formula sent -12231 which landed at 802px, 48px left).
+        // which lands at 850px on a full-bleed 16:9 target display.
         val expected = Math.round(850.0 * 65535.0 / 2560.0) - 32768
         assertEquals(expected, GlkvmGeometry.vFromPxX(850.0, w).toLong())
+    }
+
+    @Test
+    fun `detectHorizontalPillarbox identifies symmetric 16_10 bars in 16_9 frame`() {
+        // 16:10 display (2304x1440) centered inside 2560x1440 has 128px black bars on each side.
+        val (activeLeft, activeWidth) = GlkvmGeometry.detectHorizontalPillarbox(w) { x ->
+            x < 128 || x >= 2432
+        }
+        assertEquals(128, activeLeft)
+        assertEquals(2304, activeWidth)
+
+        // Left active edge (128) -> -32768, center (1280) -> 0, right active edge (2432) -> 32767
+        assertEquals(-32768, GlkvmGeometry.vFromPxX(128.0, w, activeLeft, activeWidth))
+        assertTrue(abs(GlkvmGeometry.vFromPxX(1280.0, w, activeLeft, activeWidth)) < 2)
+        assertEquals(32767, GlkvmGeometry.vFromPxX(2432.0, w, activeLeft, activeWidth))
+    }
+
+    @Test
+    fun `detectHorizontalPillarbox returns full width when no symmetric bars exist`() {
+        val (fullLeft, fullWidth) = GlkvmGeometry.detectHorizontalPillarbox(w) { false }
+        assertEquals(0, fullLeft)
+        assertEquals(w, fullWidth)
+
+        // Asymmetric dark side (e.g. dark sidebar on left only) must not trigger pillarbox rescaling
+        val (asymLeft, asymWidth) = GlkvmGeometry.detectHorizontalPillarbox(w) { x -> x < 180 }
+        assertEquals(0, asymLeft)
+        assertEquals(w, asymWidth)
     }
 }

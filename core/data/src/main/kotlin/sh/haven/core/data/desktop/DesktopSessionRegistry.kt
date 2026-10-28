@@ -52,6 +52,21 @@ class DesktopInputHandle(
     val clipboard: (text: String) -> Unit,
     var typeText: ((text: String) -> Unit)? = null,
     val mouseButton: (button: Int, pressed: Boolean) -> Unit = { _, _ -> },
+    var sendKey: ((code: String, pressed: Boolean) -> Unit)? = null,
+)
+
+/**
+ * A single user-originated input event on a live remote-desktop tab (distinct
+ * from MCP-injected agent input), surfaced by `inspect_desktop_tab` and
+ * `capture_desktop_tab` so an agent sharing the session can tell whether the
+ * user has collaborated or intervened.
+ */
+data class DesktopUserInteraction(
+    val timestampMs: Long,
+    val type: String,
+    val x: Int? = null,
+    val y: Int? = null,
+    val detail: String? = null,
 )
 
 /**
@@ -149,4 +164,68 @@ class DesktopSessionRegistry @Inject constructor() {
 
     /** The close handle for [profileId], or null if none registered. */
     fun closeHandle(profileId: String): (() -> Unit)? = closeHandles[profileId]
+
+    // --- User vs. Agent interaction log (for collaborative MCP inspection) ---
+
+    private val userInteractions = ConcurrentHashMap<String, ArrayDeque<DesktopUserInteraction>>()
+    private val lastAgentActionMs = ConcurrentHashMap<String, Long>()
+
+    /**
+     * Record a user-originated input action on [profileId]. Rapid consecutive
+     * `"move"` / `"drag"` samples within 250ms coalesce into the latest position
+     * so clicks, scrolls, and keystrokes remain visible in the bounded ring buffer.
+     */
+    fun recordUserInteraction(
+        profileId: String?,
+        type: String,
+        x: Int? = null,
+        y: Int? = null,
+        detail: String? = null,
+        atMs: Long = System.currentTimeMillis(),
+    ) {
+        if (profileId.isNullOrBlank()) return
+        val deque = userInteractions.getOrPut(profileId) { ArrayDeque() }
+        synchronized(deque) {
+            val last = deque.lastOrNull()
+            if (last != null && last.type == type &&
+                (type == "move" || type == "drag") &&
+                (atMs - last.timestampMs) in 0L..250L
+            ) {
+                deque.removeLast()
+            }
+            deque.addLast(
+                DesktopUserInteraction(
+                    timestampMs = atMs,
+                    type = type,
+                    x = x,
+                    y = y,
+                    detail = detail,
+                ),
+            )
+            while (deque.size > MAX_USER_INTERACTIONS) {
+                deque.removeFirst()
+            }
+        }
+    }
+
+    /** Most recent user interactions on [profileId], newest first. */
+    fun recentUserInteractions(profileId: String, limit: Int = 10): List<DesktopUserInteraction> {
+        val deque = userInteractions[profileId] ?: return emptyList()
+        return synchronized(deque) {
+            deque.toList().asReversed().take(limit.coerceAtLeast(0))
+        }
+    }
+
+    /** Record the timestamp of the latest MCP agent action on [profileId]. */
+    fun recordAgentAction(profileId: String?, atMs: Long = System.currentTimeMillis()) {
+        if (profileId.isNullOrBlank()) return
+        lastAgentActionMs[profileId] = atMs
+    }
+
+    /** Timestamp of the latest MCP agent action on [profileId], or null if none. */
+    fun lastAgentActionAt(profileId: String): Long? = lastAgentActionMs[profileId]
+
+    companion object {
+        const val MAX_USER_INTERACTIONS = 16
+    }
 }

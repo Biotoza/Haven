@@ -20,6 +20,7 @@ sealed class DesktopTab {
     abstract val connected: StateFlow<Boolean>
     abstract val frame: StateFlow<Bitmap?>
     abstract val error: StateFlow<String?>
+    open val profileId: String? = null
 
     /**
      * The protocol-neutral session driver, populated for tabs that
@@ -58,7 +59,7 @@ sealed class DesktopTab {
         val _viewOnly: MutableStateFlow<Boolean> = MutableStateFlow(false),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
-        val profileId: String? = null,
+        override val profileId: String? = null,
         // Original connection params kept so the bandwidth-suggestion banner
         // can do a clean reconnect at the new colour depth without losing
         // tunnel / auth context. Default empty string means "unknown" — the
@@ -96,7 +97,7 @@ sealed class DesktopTab {
         val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
-        val profileId: String? = null,
+        override val profileId: String? = null,
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame
@@ -124,7 +125,7 @@ sealed class DesktopTab {
         val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
-        val profileId: String? = null,
+        override val profileId: String? = null,
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame
@@ -146,7 +147,7 @@ sealed class DesktopTab {
         val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
-        val profileId: String? = null,
+        override val profileId: String? = null,
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame

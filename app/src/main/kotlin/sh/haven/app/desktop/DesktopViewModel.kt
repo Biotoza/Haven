@@ -92,7 +92,12 @@ class DesktopViewModel @Inject constructor(
     private val systemVmManager: sh.haven.core.local.SystemVmManager,
     private val umlDesktopManager: sh.haven.core.local.uml.UmlDesktopManager,
     private val tlsCertVerifier: sh.haven.core.data.agent.TlsCertVerifier,
+    private val agentActivityHolder: sh.haven.core.data.agent.AgentActivityHolder =
+        sh.haven.core.data.agent.AgentActivityHolder(),
 ) : ViewModel() {
+
+    /** Per-connection timestamps of recent MCP agent activity, for the Desktop tab robot indicator. */
+    val agentActiveProfiles: StateFlow<Map<String, Long>> = agentActivityHolder.activeProfiles
 
     // --- Distro / DE management (issue #162 Phase 3c) ---
     //
@@ -2647,6 +2652,7 @@ class DesktopViewModel @Inject constructor(
                         // routes through this.
                         typeText = { text -> session.typeText(text) },
                         mouseButton = { button, pressed -> tab.remoteDesktop.sendMouseButton(button, pressed) },
+                        sendKey = { code, pressed -> session.sendKey(code, pressed) },
                     ),
                 )
                 desktopSessionRegistry.registerCloseHandle(profileId) {
@@ -2708,16 +2714,29 @@ class DesktopViewModel @Inject constructor(
     }
 
     fun sendGlkvmKey(scancode: Int, pressed: Boolean) {
-        val session = (activeTab.value as? DesktopTab.Glkvm)?.session ?: return
+        val tab = activeTab.value as? DesktopTab.Glkvm ?: return
         val code = GlkvmScancodes.codeFor(scancode)
         if (code != null) {
-            inputLane.submit { session.sendKey(code, pressed) }
+            if (pressed) {
+                desktopSessionRegistry.recordUserInteraction(
+                    profileId = tab.profileId,
+                    type = "key",
+                    detail = code,
+                )
+            }
+            inputLane.submit { tab.session.sendKey(code, pressed) }
         }
     }
 
     fun typeGlkvmChar(ch: Char, targetLayout: String?) {
-        val session = (activeTab.value as? DesktopTab.Glkvm)?.session ?: return
+        val tab = activeTab.value as? DesktopTab.Glkvm ?: return
+        val session = tab.session
         val seq = sh.haven.core.glkvm.GlkvmLayout.keySequenceFor(ch, targetLayout) ?: return
+        desktopSessionRegistry.recordUserInteraction(
+            profileId = tab.profileId,
+            type = "text",
+            detail = ch.toString(),
+        )
         // Sequence layout: optional ShiftLeft down, the key tap, optional
         // ShiftLeft up — positional access, not a first-match scan.
         val withShift = seq.size == 3
@@ -2798,6 +2817,12 @@ class DesktopViewModel @Inject constructor(
 
     fun sendPointer(x: Int, y: Int) {
         mirrorPointer(x, y)
+        desktopSessionRegistry.recordUserInteraction(
+            profileId = activeTab.value?.profileId,
+            type = "move",
+            x = x,
+            y = y,
+        )
         sendToActive { it.sendMouseMove(x, y) }
     }
 
@@ -2811,15 +2836,50 @@ class DesktopViewModel @Inject constructor(
 
     fun sendClick(x: Int, y: Int, button: Int = 1) {
         mirrorPointer(x, y)
+        val kind = when (button) {
+            2 -> "middle_click"
+            3 -> "right_click"
+            else -> "click"
+        }
+        desktopSessionRegistry.recordUserInteraction(
+            profileId = activeTab.value?.profileId,
+            type = kind,
+            x = x,
+            y = y,
+        )
         sendToActive { it.sendMouseClick(x, y, button) }
     }
 
     fun scrollUp() {
+        val (px, py) = activePointerPos()
+        desktopSessionRegistry.recordUserInteraction(
+            profileId = activeTab.value?.profileId,
+            type = "scroll",
+            x = px,
+            y = py,
+            detail = "up",
+        )
         sendToActive { it.sendMouseWheel(deltaY = 1) }
     }
 
     fun scrollDown() {
+        val (px, py) = activePointerPos()
+        desktopSessionRegistry.recordUserInteraction(
+            profileId = activeTab.value?.profileId,
+            type = "scroll",
+            x = px,
+            y = py,
+            detail = "down",
+        )
         sendToActive { it.sendMouseWheel(deltaY = -1) }
+    }
+
+    private fun activePointerPos(): Pair<Int?, Int?> = when (val tab = activeTab.value) {
+        is DesktopTab.Vnc -> tab._pointerPos.value.let { it.first to it.second }
+        is DesktopTab.Rdp -> tab._pointerPos.value.let { it.first to it.second }
+        is DesktopTab.Spice -> tab._pointerPos.value.let { it.first to it.second }
+        is DesktopTab.Glkvm -> tab._pointerPos.value.let { it.first to it.second }
+        else -> null to null
     }
 
     fun sendVncKey(keySym: Int, pressed: Boolean) {

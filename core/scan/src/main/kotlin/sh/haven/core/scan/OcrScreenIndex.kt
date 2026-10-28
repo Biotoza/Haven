@@ -208,12 +208,18 @@ class OcrScreenIndex private constructor(
         level: OcrNode.Level? = null,
     ): List<TextMatchResult> {
         val normQuery = normalizeText(query)
+        val compactQuery = compactText(normQuery)
         if (normQuery.isEmpty()) return emptyList()
 
         val rawMatches = nodes.filter { node ->
             if (level != null && node.level != level) return@filter false
             val normNode = normalizeText(node.text)
-            if (exact) normNode == normQuery else normNode.contains(normQuery)
+            val compactNode = compactText(normNode)
+            if (exact) {
+                normNode == normQuery || (compactQuery.isNotEmpty() && compactNode == compactQuery)
+            } else {
+                normNode.contains(normQuery) || (compactQuery.isNotEmpty() && compactNode.contains(compactQuery))
+            }
         }
 
         val sorted = if (nearX != null && nearY != null) {
@@ -228,7 +234,12 @@ class OcrScreenIndex private constructor(
             )
         } else {
             rawMatches.sortedWith(
-                compareBy<OcrNode> { it.level != OcrNode.Level.WORD }
+                compareBy<OcrNode> {
+                    val normNode = normalizeText(it.text)
+                    val directMatch = if (exact) normNode == normQuery else normNode.contains(normQuery)
+                    !directMatch
+                }
+                    .thenBy { it.level != OcrNode.Level.WORD }
                     .thenBy { (it.bbox.cy / 8.0).roundToInt() }
                     .thenBy { it.bbox.x },
             )
@@ -276,6 +287,9 @@ class OcrScreenIndex private constructor(
 
         internal fun normalizeText(s: String): String =
             s.trim().lowercase().replace(WHITESPACE_REGEX, " ")
+
+        internal fun compactText(s: String): String =
+            s.replace(" ", "")
 
         internal fun charRelativeWidth(ch: Char): Double = when {
             ch.code in 0x2E80..0x9FFF || ch.code in 0xFF00..0xFFEF ||

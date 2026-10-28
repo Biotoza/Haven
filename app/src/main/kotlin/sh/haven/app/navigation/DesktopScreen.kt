@@ -27,6 +27,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,8 +35,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,6 +56,9 @@ import sh.haven.app.desktop.DesktopViewModel
 import sh.haven.core.data.preferences.NavBlockMode
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.wayland.WaylandDesktopView
+import sh.haven.feature.connections.AGENT_ACTIVE_WINDOW_MS
+import sh.haven.feature.connections.AgentActiveChip
+import sh.haven.feature.connections.RobotEyesIcon
 import sh.haven.feature.rdp.RdpSessionContent
 import sh.haven.feature.vnc.VncSessionContent
 import sh.haven.feature.vnc.charToKeySym
@@ -98,11 +104,28 @@ fun DesktopScreen(
     fullscreen: Boolean = false,
     onFullscreenChanged: (Boolean) -> Unit = {},
     onConnectedChanged: (Boolean) -> Unit = {},
+    onNavigateToAgentActivity: () -> Unit = {},
 ) {
     val tabs by desktopViewModel.tabs.collectAsState()
     val activeTabIndex by desktopViewModel.activeTabIndex.collectAsState()
     val activeTab by desktopViewModel.activeTab.collectAsState()
     val anyConnected by desktopViewModel.activeTabConnected.collectAsState()
+    val agentActiveProfiles by desktopViewModel.agentActiveProfiles.collectAsState()
+
+    var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(agentActiveProfiles.isNotEmpty()) {
+        if (agentActiveProfiles.isEmpty()) return@LaunchedEffect
+        while (true) {
+            nowMs = System.currentTimeMillis()
+            delay(1_000L)
+        }
+    }
+    fun isProfileAgentActive(profileId: String?): Boolean {
+        val pid = profileId ?: return false
+        val ts = agentActiveProfiles[pid] ?: return false
+        return (nowMs - ts) in 0L..AGENT_ACTIVE_WINDOW_MS
+    }
+    val activeTabAgentActive = isProfileAgentActive(activeTab?.profileId)
 
     LaunchedEffect(anyConnected) { onConnectedChanged(anyConnected) }
 
@@ -190,6 +213,7 @@ fun DesktopScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Spacer(modifier = Modifier.weight(1f))
+                    AgentActiveChip(onClick = onNavigateToAgentActivity)
                     // #723: view-only toggle for the active VNC tab — drops
                     // mouse/keyboard/remote-clipboard input, frame keeps streaming.
                     val vncTab = activeTab as? DesktopTab.Vnc
@@ -231,6 +255,7 @@ fun DesktopScreen(
                 DesktopTabBar(
                     tabs = tabs,
                     activeTabIndex = activeTabIndex,
+                    isTabAgentActive = { isProfileAgentActive(it.profileId) },
                     onSelectTab = { desktopViewModel.selectTab(it) },
                     onMoveTab = { idx, dir -> desktopViewModel.moveTab(idx, dir) },
                     onCloseTab = { desktopViewModel.closeTab(it) },
@@ -429,6 +454,29 @@ fun DesktopScreen(
                             onFullscreenChanged = onFullscreenChanged,
                         )
                     }
+                    // When fullscreen hides the top action row, still surface a small
+                    // floating red-eyed robot badge while the agent is actively
+                    // operating on this desktop tab so the user can watch live.
+                    if (fullscreen && activeTabAgentActive) {
+                        Surface(
+                            onClick = onNavigateToAgentActivity,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp),
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                            tonalElevation = 4.dp,
+                        ) {
+                            Box(modifier = Modifier.padding(6.dp)) {
+                                RobotEyesIcon(
+                                    active = true,
+                                    baseTint = MaterialTheme.colorScheme.onSurface,
+                                    contentDescription = stringResource(sh.haven.feature.connections.R.string.connections_agent_active),
+                                    size = 20.dp,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -459,6 +507,7 @@ private fun DesktopEmptyState() {
 private fun DesktopTabBar(
     tabs: List<DesktopTab>,
     activeTabIndex: Int,
+    isTabAgentActive: (DesktopTab) -> Boolean = { false },
     onSelectTab: (Int) -> Unit,
     onMoveTab: (Int, Int) -> Unit,
     onCloseTab: (String) -> Unit,
@@ -516,6 +565,15 @@ private fun DesktopTabBar(
                             ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            if (isTabAgentActive(tab)) {
+                                RobotEyesIcon(
+                                    active = true,
+                                    baseTint = LocalContentColor.current,
+                                    contentDescription = stringResource(sh.haven.feature.connections.R.string.connections_agent_active),
+                                    size = 16.dp,
+                                )
+                                Spacer(Modifier.width(6.dp))
+                            }
                             Text(
                                 stringResource(R.string.app_desktop_tab_label, tab.protocol, tab.label),
                                 maxLines = 1,

@@ -2165,7 +2165,7 @@ internal class McpTools(
         // Per-connection MCP gate + activity light: if the tool targets a connection
         // (a profileId arg, or a sessionId that maps to one), refuse when the user has
         // disabled MCP for it, otherwise mark it agent-active so its row indicator lights.
-        resolveTargetProfile(arguments)?.let { profileId ->
+        resolveTargetProfile(name, arguments)?.let { profileId ->
             if (connectionRepository.isMcpEnabled(profileId) == false) {
                 throw McpError(-32603, "MCP is disabled for this connection — re-enable it from its MCP icon on the Connections screen.")
             }
@@ -2214,12 +2214,33 @@ internal class McpTools(
     suspend fun call(name: String, arguments: JSONObject, clientHint: String? = null): JSONObject =
         callTyped(name, arguments, clientHint).structured
 
-    /** The connection a tool call targets: an explicit profileId arg, else the profile behind a sessionId. */
-    private fun resolveTargetProfile(args: JSONObject): String? {
+    /**
+     * The connection a tool call targets: an explicit profileId arg, the profile behind a
+     * sessionId, or the single open desktop tab when a desktop viewer tool omits profileId.
+     */
+    private fun resolveTargetProfile(name: String, args: JSONObject): String? {
         args.optString("profileId").ifBlank { null }?.let { return it }
-        val sid = args.optString("sessionId").ifBlank { null } ?: return null
-        return sessionManagerRegistry.allSessions.firstOrNull { it.sessionId == sid }?.profileId
+        args.optString("sessionId").ifBlank { null }?.let { sid ->
+            return sessionManagerRegistry.allSessions.firstOrNull { it.sessionId == sid }?.profileId
+        }
+        if (name in desktopViewerTools) {
+            desktopSessionRegistry.frameHandles().keys.singleOrNull()?.let { return it }
+            desktopSessionRegistry.inputHandles().keys.singleOrNull()?.let { return it }
+        }
+        return null
     }
+
+    private val desktopViewerTools = setOf(
+        "capture_desktop_tab",
+        "inspect_desktop_tab",
+        "tap_desktop_tab",
+        "tap_desktop_text",
+        "move_desktop_mouse",
+        "drag_desktop_tab",
+        "scroll_desktop_tab",
+        "type_desktop_text",
+        "send_desktop_clipboard",
+    )
 
     // --- Tool implementations ---
 

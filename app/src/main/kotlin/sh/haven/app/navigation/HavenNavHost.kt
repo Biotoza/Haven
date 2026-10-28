@@ -25,6 +25,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -43,6 +44,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -79,8 +81,10 @@ import sh.haven.core.data.repository.ConnectionRepository
 import androidx.activity.compose.LocalActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.app.desktop.DesktopViewModel
+import sh.haven.feature.connections.AGENT_ACTIVE_WINDOW_MS
 import sh.haven.feature.connections.ConnectionsScreen
 import sh.haven.feature.connections.ConnectionsViewModel
+import sh.haven.feature.connections.RobotEyesIcon
 import sh.haven.feature.chat.ChatScreen
 import sh.haven.feature.keys.KeysScreen
 import sh.haven.feature.mail.MailScreen
@@ -107,6 +111,21 @@ fun HavenNavHost(
 ) {
     // Desktop multi-session ViewModel — hoisted to nav scope so it survives tab switches
     val desktopViewModel: DesktopViewModel = hiltViewModel()
+    val desktopTabsForAgent by desktopViewModel.tabs.collectAsState()
+    val desktopAgentProfiles by desktopViewModel.agentActiveProfiles.collectAsState()
+    var agentNowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(desktopAgentProfiles.isNotEmpty()) {
+        if (desktopAgentProfiles.isEmpty()) return@LaunchedEffect
+        while (true) {
+            agentNowMs = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1_000L)
+        }
+    }
+    val isDesktopAgentActive = desktopTabsForAgent.any { tab ->
+        val pid = tab.profileId ?: return@any false
+        val ts = desktopAgentProfiles[pid] ?: return@any false
+        (agentNowMs - ts) in 0L..AGENT_ACTIVE_WINDOW_MS
+    }
 
     // Agent activity audit overlay — opened by the AgentActiveChip on the
     // Connections top bar, dismissed via the screen's back arrow. Lifted
@@ -834,6 +853,7 @@ fun HavenNavHost(
                         fullscreen = desktopFullscreen,
                         onFullscreenChanged = { desktopFullscreen = it },
                         onConnectedChanged = { desktopConnected = it },
+                        onNavigateToAgentActivity = { showAgentActivityOverlay = true },
                     )
                 }
                 Screen.Sftp -> {
@@ -991,7 +1011,17 @@ fun HavenNavHost(
                     navScreens.forEachIndexed { index, screen ->
                         val isDragged = index == navDragIndex
                         NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = stringResource(screen.labelRes)) },
+                            icon = {
+                                if (screen == Screen.Desktop && isDesktopAgentActive) {
+                                    RobotEyesIcon(
+                                        active = true,
+                                        baseTint = LocalContentColor.current,
+                                        contentDescription = stringResource(screen.labelRes),
+                                    )
+                                } else {
+                                    Icon(screen.icon, contentDescription = stringResource(screen.labelRes))
+                                }
+                            },
                             label = {
                                 // maxLines = 1 + ellipsis guards against any locale whose
                                 // nav label is too long for the tab slot on narrow devices
@@ -1114,7 +1144,17 @@ fun HavenNavHost(
                             val pageIndex = screens.indexOf(screen)
                             if (pageIndex >= 0) {
                                 NavigationRailItem(
-                                    icon = { Icon(screen.icon, contentDescription = stringResource(screen.labelRes)) },
+                                    icon = {
+                                        if (screen == Screen.Desktop && isDesktopAgentActive) {
+                                            RobotEyesIcon(
+                                                active = true,
+                                                baseTint = LocalContentColor.current,
+                                                contentDescription = stringResource(screen.labelRes),
+                                            )
+                                        } else {
+                                            Icon(screen.icon, contentDescription = stringResource(screen.labelRes))
+                                        }
+                                    },
                                     label = {
                                         Text(
                                             text = stringResource(screen.labelRes),

@@ -112,7 +112,32 @@ class GlkvmDesktopSession(
         // calibration fractions are frame-relative, so keep them fresh.
         client.frameWidth = bmp.width
         client.frameHeight = bmp.height
+        val (activeLeft, activeWidth) = detectActiveHorizontalBounds(bmp)
+        client.activeLeftPx = activeLeft
+        client.activeWidthPx = activeWidth
         onFrame(bmp)
+    }
+
+    private fun detectActiveHorizontalBounds(bmp: Bitmap): Pair<Int, Int> {
+        val w = bmp.width
+        val h = bmp.height
+        if (w < 64 || h < 64) return 0 to w
+        // Sample 16 vertical positions spanning the full height (including top titlebar & bottom taskbar).
+        val sampleYs = IntArray(16) { i -> ((i + 0.5) * h / 16.0).toInt().coerceIn(0, h - 1) }
+        return sh.haven.core.glkvm.GlkvmGeometry.detectHorizontalPillarbox(w) { x ->
+            var allBlack = true
+            for (y in sampleYs) {
+                val c = bmp.getPixel(x, y)
+                val r = (c shr 16) and 0xFF
+                val g = (c shr 8) and 0xFF
+                val b = c and 0xFF
+                if (r > PILLARBOX_BLACK_MAX || g > PILLARBOX_BLACK_MAX || b > PILLARBOX_BLACK_MAX) {
+                    allBlack = false
+                    break
+                }
+            }
+            allBlack
+        }
     }
 
     private var consecutiveFailures = 0
@@ -206,5 +231,8 @@ class GlkvmDesktopSession(
 
         /** Wheel notches sent per abstraction call. */
         const val NOTCH_MAX = 10
+
+        /** Max per-channel intensity (0..255) still considered HDMI black in JPEG pillarbox bars. */
+        private const val PILLARBOX_BLACK_MAX = 6
     }
 }

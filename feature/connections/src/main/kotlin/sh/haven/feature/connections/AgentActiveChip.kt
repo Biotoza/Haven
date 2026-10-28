@@ -41,7 +41,7 @@ import sh.haven.core.data.db.AgentAuditEventDao
 import javax.inject.Inject
 
 /** Window after the most recent agent action during which an indicator stays lit. */
-internal const val AGENT_ACTIVE_WINDOW_MS = 30_000L
+const val AGENT_ACTIVE_WINDOW_MS = 30_000L
 
 /** Glowing-red used for the robot's eyes while the agent is active. */
 private val EYE_RED = Color(0xFFFF1F1F)
@@ -55,7 +55,7 @@ private val ROBOT_BLUE = Color(0xFF4FC3F7)
  * operating" reads the same everywhere.
  */
 @Composable
-internal fun RobotEyesIcon(
+fun RobotEyesIcon(
     active: Boolean,
     baseTint: Color,
     contentDescription: String?,
@@ -119,7 +119,7 @@ internal fun RobotEyesIcon(
  * latest timestamp directly off Room means the chip lights up on every audit insert.
  */
 @HiltViewModel
-internal class AgentActiveChipViewModel @Inject constructor(
+class AgentActiveChipViewModel @Inject constructor(
     dao: AgentAuditEventDao,
 ) : ViewModel() {
     val lastEventAt: StateFlow<Long?> = dao.observeLatestTimestamp()
@@ -145,7 +145,7 @@ private fun rememberNowTicker(): Long {
  * [onClick] navigates to the audit-log surface.
  */
 @Composable
-internal fun AgentActiveChip(
+fun AgentActiveChip(
     onClick: () -> Unit,
     viewModel: AgentActiveChipViewModel = hiltViewModel(),
 ) {
