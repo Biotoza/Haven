@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.90.1
+
+- **Reopening a jump host's terminal tab no longer crashes or reports `"Incorrect passphrase provided."` (#764).**
+  - Opening an additional session on a jump profile previously shared the `passphrase` buffer of the active jump session's `ConnectionConfig` by reference; closing that sibling tab zeroed the shared passphrase in place and caused subsequent jump-profile connects to fail with `Incorrect passphrase provided.`. `ConnectionConfig.AuthMethod.deepCopy()` now clones all passphrase and certificate buffers, and opening a terminal on a connected jump carrier that currently has no shell attaches directly to that session instead of dialing a second SSH connection.
+  - Fixed two races between `TerminalViewModel.syncSessions()` and `SshTerminalEmulatorOwner` when closing and reopening a jump carrier's shell where a shell-less carrier bundle could be re-adopted while closing or a stale `storeConnectionConfig` emission could dispose the newly created native `TerminalEmulator` while the terminal screen was mounting it.
+
 ## v5.90.0
 
 - RapidOCR + 2D k-d tree spatial indexing for remote desktops (VNC, RDP, SPICE, GLKVM), new desktop MCP tools (`inspect_desktop_tab`, `tap_desktop_text`, `move_desktop_mouse`, `drag_desktop_tab`), collaborative user-interaction reporting, pulsing robot indicator on the Desktop tab, GLKVM horizontal mouse auto-calibration, a collapsed MCP capability tree (`mcp://haven/tools/<category>`) for agent context management (#755), and native WireGuard network-roam revival and single-dial self-healing.
