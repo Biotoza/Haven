@@ -4,24 +4,23 @@ import kotlin.math.roundToInt
 
 /**
  * #GLKVM pure coordinate and keyboard-layout math for the GL.iNet GLKVM
- * (PiKVM kvmd fork). Values measured against an RM10 on kvmd 4.82 at
- * 2560x1440 (see ~/Code/glkvm-mcp `kvmd.py`); re-measure on other
- * resolutions before trusting them.
+ * (PiKVM kvmd fork).
  *
- * The device HID mouse takes signed 16-bit absolutes, but GL firmware
- * maps only the middle 90% of the frame width onto the axis range —
- * the outer 5% on each side is unreachable dead margin. Height uses the
- * full range. All fractions are of the current frame size, so a
- * different resolution shifts the dead margins rather than breaking
- * the math outright, but ±1px accuracy must be re-verified per model.
+ * The device HID mouse takes signed 16-bit absolutes (`-32768..32767`) across
+ * the full frame width and height (matching the GLKVM web UI's own `Hs`
+ * mapping). An earlier calibration in `glkvm-mcp` had `X_OFF_FRAC = 0.05` and
+ * `X_SPAN_FRAC = 0.90` because the target machine at the time was mirroring a
+ * 16:10 display pillarboxed inside a 16:9 (2560x1440) HDMI signal
+ * (`(16/10) / (16/9) = 0.90`). On a full-frame target display, that 5%/90%
+ * rescaling shifts clicks horizontally by up to 5% of frameW (128px at 2560w).
  */
 object GlkvmGeometry {
-    const val X_OFF_FRAC = 0.05
-    const val X_SPAN_FRAC = 0.90
+    const val X_OFF_FRAC = 0.0
+    const val X_SPAN_FRAC = 1.0
 
-    /** px → device int for the x axis, clamped to int16. */
+    /** px → device int for the x axis (full width), clamped to int16. */
     fun vFromPxX(x: Double, frameW: Int): Int {
-        val v = ((x - X_OFF_FRAC * frameW) * 65535.0 / (X_SPAN_FRAC * frameW) - 32768.0).roundToInt()
+        val v = (x * 65535.0 / frameW - 32768.0).roundToInt()
         return v.coerceIn(-32768, 32767)
     }
 
@@ -33,7 +32,7 @@ object GlkvmGeometry {
 
     /** Inverse of [vFromPxX]/[vFromPxY] — device ints back to px. */
     fun pxFromV(vx: Int, vy: Int, frameW: Int, frameH: Int): Pair<Double, Double> {
-        val x = X_OFF_FRAC * frameW + X_SPAN_FRAC * frameW * (vx + 32768) / 65535.0
+        val x = frameW * (vx + 32768) / 65535.0
         val y = frameH * (vy + 32768) / 65535.0
         return x to y
     }

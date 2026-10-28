@@ -11,8 +11,8 @@ class GlkvmGeometryTest {
     private val h = 1440
 
     @Test
-    fun `left dead-margin edge maps to axis min`() {
-        assertEquals(-32768, GlkvmGeometry.vFromPxX(0.05 * w, w))
+    fun `left edge maps to axis min`() {
+        assertEquals(-32768, GlkvmGeometry.vFromPxX(0.0, w))
     }
 
     @Test
@@ -34,11 +34,8 @@ class GlkvmGeometryTest {
     }
 
     @Test
-    fun `round trip stays within a pixel inside the reachable band`() {
-        // 1px accuracy claim (kvmd.py) holds within [0.05W, 0.95W]: the GL
-        // absolute-mouse mode maps exactly the middle 90% of width, so pixels
-        // outside the band are simply unreachable (not rounding error).
-        for (x in listOf(128, 400, 1280, 2000, 2432)) {
+    fun `round trip stays within a pixel across the full frame`() {
+        for (x in listOf(0, 30, 128, 400, 850, 1280, 2000, 2432, 2560)) {
             val v = GlkvmGeometry.vFromPxX(x.toDouble(), w)
             val (bx, _) = GlkvmGeometry.pxFromV(v, 0, w, h)
             assertTrue("x=$x round trip ${abs(bx - x)}px", abs(bx - x) <= 1.0)
@@ -51,17 +48,6 @@ class GlkvmGeometryTest {
     }
 
     @Test
-    fun `the five percent side margins clamp at the reachable edge`() {
-        // Documented limitation, same as kvmd.py: vFromPx clamps to int16, so
-        // a coordinate in the outer 5% of width lands at the nearest reachable
-        // pixel (2432 at 2560). The device simply has no axis value there.
-        val (bx, _) = GlkvmGeometry.pxFromV(GlkvmGeometry.vFromPxX(2450.0, w), 0, w, h)
-        assertEquals(2432.0, bx, 1.0)
-        val (lx, _) = GlkvmGeometry.pxFromV(GlkvmGeometry.vFromPxX(30.0, w), 0, w, h)
-        assertEquals(128.0, lx, 1.0)
-    }
-
-    @Test
     fun `clamps stay inside int16`() {
         assertEquals(-32768, GlkvmGeometry.vFromPxX(-50.0, w))
         assertEquals(32767, GlkvmGeometry.vFromPxX(999_999.0, w))
@@ -70,11 +56,11 @@ class GlkvmGeometryTest {
     }
 
     @Test
-    fun `values match the reference python for known points`() {
-        // Hand-computed from the kvmd.py formulas at 2560x1440.
-        // x=640: (640-128)*65535/2304 - 32768 = 512*28.4166.. - 32768 ≈ -18255 (-ish)
-        // verify against the formula directly rather than a magic constant
-        val expected = Math.round((640 - 0.05 * 2560) * 65535.0 / (0.90 * 2560)) - 32768
-        assertEquals(expected, GlkvmGeometry.vFromPxX(640.0, w).toLong())
+    fun `values match linear full-width mapping for known points`() {
+        // At 2560x1440, x=850 maps to round(850 * 65535 / 2560) - 32768 = -11007,
+        // which lands at 850px on the target OS (verified live on RM10 kvmd 4.82;
+        // the old 0.05/0.90 formula sent -12231 which landed at 802px, 48px left).
+        val expected = Math.round(850.0 * 65535.0 / 2560.0) - 32768
+        assertEquals(expected, GlkvmGeometry.vFromPxX(850.0, w).toLong())
     }
 }
