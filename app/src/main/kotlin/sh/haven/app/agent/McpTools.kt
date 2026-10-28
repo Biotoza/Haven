@@ -480,7 +480,12 @@ internal class McpTools(
         toolCatalog?.let { catalog ->
             catalog.publish(tools.map { (name, h) ->
                 val cat = h.category ?: sh.haven.core.data.agent.McpToolCategory.of(name)
-                sh.haven.core.data.agent.McpToolInfo(name, h.consentLevel, cat)
+                sh.haven.core.data.agent.McpToolInfo(
+                    name = name,
+                    consentLevel = h.consentLevel,
+                    category = cat,
+                    summary = firstSentenceSummary(h.description),
+                )
             })
             presentScope.launch {
                 catalog.disabledTools.collect { disabledToolSnapshot = it }
@@ -2058,6 +2063,254 @@ internal class McpTools(
         }
         val guest = guestTools().values.map { it.def }
         return local + guest
+    }
+
+    private fun firstSentenceSummary(description: String): String {
+        val trimmed = description.trim()
+        val endIdx = trimmed.indexOf(". ").let { if (it >= 0) it + 1 else trimmed.length }
+        val sentence = trimmed.substring(0, endIdx).trim()
+        return if (sentence.length <= 160) sentence else sentence.take(157).trimEnd() + "…"
+    }
+
+    private fun categoryTitle(cat: sh.haven.core.data.agent.McpToolCategory): String = when (cat) {
+        sh.haven.core.data.agent.McpToolCategory.TERMINAL -> "Terminal"
+        sh.haven.core.data.agent.McpToolCategory.CONNECTIONS -> "Connections"
+        sh.haven.core.data.agent.McpToolCategory.FILES -> "Files"
+        sh.haven.core.data.agent.McpToolCategory.DESKTOP -> "Desktop"
+        sh.haven.core.data.agent.McpToolCategory.GUEST -> "Linux guest"
+        sh.haven.core.data.agent.McpToolCategory.USB -> "USB and serial"
+        sh.haven.core.data.agent.McpToolCategory.KEYS -> "Keys and credentials"
+        sh.haven.core.data.agent.McpToolCategory.MAIL -> "Mail"
+        sh.haven.core.data.agent.McpToolCategory.RCLONE -> "Cloud storage"
+        sh.haven.core.data.agent.McpToolCategory.SENSES -> "Sensors and location"
+        sh.haven.core.data.agent.McpToolCategory.AGENT -> "Agent and device control"
+        sh.haven.core.data.agent.McpToolCategory.OTHER -> "Other"
+    }
+
+    private fun categoryOverview(cat: sh.haven.core.data.agent.McpToolCategory): String = when (cat) {
+        sh.haven.core.data.agent.McpToolCategory.TERMINAL ->
+            "SSH, Mosh, ET, serial & PRoot shells, scrollback, selection, and clipboard."
+        sh.haven.core.data.agent.McpToolCategory.CONNECTIONS ->
+            "Saved connection profiles, SSH -L/-R/-D forwards, WireGuard/Tailscale/AnyConnect tunnels, port knock/SPA, and headless run_command."
+        sh.haven.core.data.agent.McpToolCategory.FILES ->
+            "SFTP/SCP, SMB, local files, FFmpeg media transcode, HLS streaming, and background directory watches."
+        sh.haven.core.data.agent.McpToolCategory.DESKTOP ->
+            "Remote VNC/RDP/SPICE/GLKVM & local Wayland/PRoot desktops, RapidOCR + 2D k-d tree spatial lookup (inspect_desktop_tab, tap_desktop_text), mouse/drag/keyboard input, and recentUserInteractions."
+        sh.haven.core.data.agent.McpToolCategory.GUEST ->
+            "On-device PRoot Linux distros, app packs, audio bridge, guest services, and guest file I/O."
+        sh.haven.core.data.agent.McpToolCategory.USB ->
+            "Raw USB devices, USB/IP network export, ext4/LUKS USB drives via UML VM, Bluetooth/BLE/USB serial bridges."
+        sh.haven.core.data.agent.McpToolCategory.KEYS ->
+            "SSH keys (software & StrongBox/TEE hardware-backed), known_hosts, Step-CA certificates, TOTP codes, and age encryption."
+        sh.haven.core.data.agent.McpToolCategory.MAIL ->
+            "ProtonMail & IMAP/SMTP mailboxes, message search/compose, and inbound Mail Rules automation."
+        sh.haven.core.data.agent.McpToolCategory.RCLONE ->
+            "60+ cloud storage providers via rclone remotes, directory listing, and sync profiles."
+        sh.haven.core.data.agent.McpToolCategory.SENSES ->
+            "Phone battery/thermal/network state, motion/environment sensors, single-frame camera capture, and precise GPS/NTP."
+        sh.haven.core.data.agent.McpToolCategory.AGENT ->
+            "App info, native crash tombstones, process exit reasons, logcat, standing policies, and Haven UI self-drive (capture_haven_ui, dump_haven_ui, tap_haven_ui)."
+        sh.haven.core.data.agent.McpToolCategory.OTHER ->
+            "Uncategorised tools."
+    }
+
+    private fun categoryEntryTools(cat: sh.haven.core.data.agent.McpToolCategory): List<String> = when (cat) {
+        sh.haven.core.data.agent.McpToolCategory.TERMINAL ->
+            listOf("list_sessions", "read_terminal_snapshot", "send_terminal_input", "await_turn")
+        sh.haven.core.data.agent.McpToolCategory.CONNECTIONS ->
+            listOf("list_connections", "connect_profile", "run_command", "list_tunnels")
+        sh.haven.core.data.agent.McpToolCategory.FILES ->
+            listOf("list_directory", "upload_file", "convert_file", "serve_file")
+        sh.haven.core.data.agent.McpToolCategory.DESKTOP ->
+            listOf("list_desktop_sessions", "inspect_desktop_tab", "tap_desktop_text", "tap_desktop_tab", "type_desktop_text", "capture_desktop_tab")
+        sh.haven.core.data.agent.McpToolCategory.GUEST ->
+            listOf("list_distros", "run_in_proot", "read_guest_file", "write_guest_file")
+        sh.haven.core.data.agent.McpToolCategory.USB ->
+            listOf("list_usb_devices", "start_usbip_export", "open_usb_drive", "bridge_serial_to_tcp")
+        sh.haven.core.data.agent.McpToolCategory.KEYS ->
+            listOf("list_ssh_keys", "generate_ssh_key", "deploy_key", "generate_totp_code")
+        sh.haven.core.data.agent.McpToolCategory.MAIL ->
+            listOf("list_mail_messages", "read_mail_message", "send_mail", "list_mail_rules")
+        sh.haven.core.data.agent.McpToolCategory.RCLONE ->
+            listOf("list_rclone_remotes", "list_rclone_directory", "start_rclone_sync")
+        sh.haven.core.data.agent.McpToolCategory.SENSES ->
+            listOf("get_device_state", "read_sensors", "get_location_precise", "capture_camera_frame")
+        sh.haven.core.data.agent.McpToolCategory.AGENT ->
+            listOf("get_app_info", "capture_haven_ui", "dump_haven_ui", "tap_haven_ui")
+        sh.haven.core.data.agent.McpToolCategory.OTHER -> emptyList()
+    }
+
+    private fun consentShortTag(level: ConsentLevel): String = when (level) {
+        ConsentLevel.NEVER -> "no prompt"
+        ConsentLevel.ONCE_PER_SESSION -> "once/session"
+        ConsentLevel.EVERY_CALL -> "every call"
+    }
+
+    /**
+     * Build a top-level capability summary + collapsed `<details>` tree of enabled
+     * tools grouped by [sh.haven.core.data.agent.McpToolCategory] (#755). Included in
+     * `initialize.instructions` (and served at `mcp://haven/tools`) so an agent sees
+     * a structured subsystem overview first and can expand `mcp://haven/tools/<category>`
+     * or read individual lazy tool schemas only when a category is relevant.
+     */
+    fun buildInstructionsTree(includeCollapsedToolLists: Boolean = true): String {
+        val disabled = disabledToolSnapshot
+        val enabledByCat = tools.entries
+            .filterNot { (name, _) -> name in disabled }
+            .groupBy { (name, h) -> h.category ?: sh.haven.core.data.agent.McpToolCategory.of(name) }
+        val order = sh.haven.core.data.agent.McpToolCategory.entries
+            .sortedBy { if (it == sh.haven.core.data.agent.McpToolCategory.OTHER) 1 else 0 }
+
+        return buildString {
+            appendLine(
+                "Haven is a mobile thin-client OS for distributed compute, storage, and presence. " +
+                    "Use these tools to inspect and drive the user's saved connections, active sessions, " +
+                    "remote/local desktops, Linux guests, USB/serial devices, email, and cloud storage " +
+                    "without disturbing the UI they're looking at.",
+            )
+            appendLine()
+            appendLine("## Enabled MCP Capability Categories")
+            appendLine(
+                "Start from this top-level map. To expand full parameter schemas and consent levels for " +
+                    "a category on demand, read its MCP resource (`mcp://haven/tools/<category>`) or open " +
+                    "only the specific tool schema you need:",
+            )
+            appendLine()
+            for (cat in order) {
+                val entries = enabledByCat[cat].orEmpty().sortedBy { it.key }
+                if (entries.isEmpty()) continue
+                val slug = cat.name.lowercase()
+                val enabledNames = entries.map { it.key }.toSet()
+                val entryPoints = categoryEntryTools(cat).filter { it in enabledNames }
+                val entrySuffix = if (entryPoints.isNotEmpty()) {
+                    " Key tools: " + entryPoints.joinToString(", ") { "`$it`" } + "."
+                } else ""
+                appendLine(
+                    "- **${categoryTitle(cat)}** (${entries.size} tools, `mcp://haven/tools/$slug`) — " +
+                        "${categoryOverview(cat)}$entrySuffix",
+                )
+            }
+            if (includeCollapsedToolLists) {
+                appendLine()
+                appendLine("## Collapsed Tool Tree by Category")
+                for (cat in order) {
+                    val entries = enabledByCat[cat].orEmpty().sortedBy { it.key }
+                    if (entries.isEmpty()) continue
+                    val slug = cat.name.lowercase()
+                    appendLine("<details>")
+                    appendLine("<summary><b>${categoryTitle(cat)}</b> (${entries.size} tools · <code>mcp://haven/tools/$slug</code>)</summary>")
+                    appendLine()
+                    for ((name, handler) in entries) {
+                        appendLine(
+                            "- `$name` [${consentShortTag(handler.consentLevel)}] — " +
+                                firstSentenceSummary(handler.description),
+                        )
+                    }
+                    appendLine("</details>")
+                }
+            }
+        }.trimEnd()
+    }
+
+    /**
+     * MCP resources for the collapsed tool tree (`mcp://haven/tools`) and per-category
+     * expanded reference pages (`mcp://haven/tools/<category>`). Only categories with at
+     * least one enabled tool are listed.
+     */
+    fun listToolCategoryResources(): List<JSONObject> {
+        val disabled = disabledToolSnapshot
+        val enabledByCat = tools.entries
+            .filterNot { (name, _) -> name in disabled }
+            .groupBy { (name, h) -> h.category ?: sh.haven.core.data.agent.McpToolCategory.of(name) }
+        val order = sh.haven.core.data.agent.McpToolCategory.entries
+            .sortedBy { if (it == sh.haven.core.data.agent.McpToolCategory.OTHER) 1 else 0 }
+
+        return buildList {
+            add(
+                JSONObject().apply {
+                    put("uri", "mcp://haven/tools")
+                    put("name", "Haven MCP tool tree (collapsed overview)")
+                    put(
+                        "description",
+                        "Top-level summary and collapsed category tree of all currently enabled Haven MCP tools. " +
+                            "Read this first to see what Haven can do without loading all tool schemas into context.",
+                    )
+                    put("mimeType", "text/markdown")
+                },
+            )
+            for (cat in order) {
+                val entries = enabledByCat[cat].orEmpty()
+                if (entries.isEmpty()) continue
+                val slug = cat.name.lowercase()
+                add(
+                    JSONObject().apply {
+                        put("uri", "mcp://haven/tools/$slug")
+                        put("name", "Haven MCP tools: ${categoryTitle(cat)} (${entries.size})")
+                        put(
+                            "description",
+                            "Expanded documentation, consent levels, and argument schemas for the ${entries.size} " +
+                                "enabled tools in the ${categoryTitle(cat)} category: ${categoryOverview(cat)}",
+                        )
+                        put("mimeType", "text/markdown")
+                    },
+                )
+            }
+        }
+    }
+
+    /**
+     * Render `mcp://haven/tools` or `mcp://haven/tools/<category>` as Markdown, or return
+     * null when [uri] does not match a known tool-tree resource.
+     */
+    fun readToolCategoryResource(uri: String): String? {
+        if (uri == "mcp://haven/tools") {
+            return buildInstructionsTree(includeCollapsedToolLists = true)
+        }
+        if (!uri.startsWith("mcp://haven/tools/")) return null
+        val slug = uri.removePrefix("mcp://haven/tools/").trim().lowercase()
+        val cat = sh.haven.core.data.agent.McpToolCategory.entries
+            .firstOrNull { it.name.lowercase() == slug } ?: return null
+        val disabled = disabledToolSnapshot
+        val entries = tools.entries
+            .filterNot { (name, _) -> name in disabled }
+            .filter { (name, h) -> (h.category ?: sh.haven.core.data.agent.McpToolCategory.of(name)) == cat }
+            .sortedBy { it.key }
+
+        return buildString {
+            appendLine("# ${categoryTitle(cat)} (${entries.size} enabled tools)")
+            appendLine()
+            appendLine(categoryOverview(cat))
+            appendLine()
+            if (entries.isEmpty()) {
+                appendLine("_All tools in this category are currently disabled in Settings → Agent endpoint → MCP tools._")
+            } else {
+                for ((name, handler) in entries) {
+                    appendLine("## `$name` · ${consentShortTag(handler.consentLevel)}")
+                    appendLine()
+                    appendLine(handler.description.trim())
+                    val props = handler.inputSchema.optJSONObject("properties")
+                    val reqArr = handler.inputSchema.optJSONArray("required")
+                    val requiredSet = buildSet {
+                        if (reqArr != null) {
+                            for (i in 0 until reqArr.length()) add(reqArr.getString(i))
+                        }
+                    }
+                    if (props != null && props.length() > 0) {
+                        appendLine()
+                        appendLine("Arguments:")
+                        val keys = props.keys().asSequence().toList().sorted()
+                        for (k in keys) {
+                            val p = props.optJSONObject(k) ?: continue
+                            val type = p.optString("type", "any")
+                            val reqTag = if (k in requiredSet) ", required" else ""
+                            val desc = p.optString("description", "")
+                            appendLine("- `$k` ($type$reqTag) — $desc")
+                        }
+                    }
+                    appendLine()
+                }
+            }
+        }.trimEnd()
     }
 
     /**

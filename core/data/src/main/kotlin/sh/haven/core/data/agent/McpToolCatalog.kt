@@ -25,6 +25,8 @@ data class McpToolInfo(
     val consentLevel: ConsentLevel,
     /** Subsystem group shown in Settings so the list can be steered by category (#755). */
     val category: McpToolCategory = McpToolCategory.of(name),
+    /** Concise one-sentence summary of what the tool does (#755). */
+    val summary: String = "",
 )
 
 /**

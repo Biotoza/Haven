@@ -155,14 +155,19 @@ fun McpToolsScreen(
                             modifier = Modifier.padding(start = 24.dp),
                             headlineContent = { Text(tool.name) },
                             supportingContent = {
+                                val consentLabel = when (tool.consentLevel) {
+                                    ConsentLevel.EVERY_CALL ->
+                                        stringResource(R.string.settings_mcp_tools_consent_every_call)
+                                    ConsentLevel.ONCE_PER_SESSION ->
+                                        stringResource(R.string.settings_mcp_tools_consent_once)
+                                    ConsentLevel.NEVER ->
+                                        stringResource(R.string.settings_mcp_tools_consent_never)
+                                }
                                 Text(
-                                    when (tool.consentLevel) {
-                                        ConsentLevel.EVERY_CALL ->
-                                            stringResource(R.string.settings_mcp_tools_consent_every_call)
-                                        ConsentLevel.ONCE_PER_SESSION ->
-                                            stringResource(R.string.settings_mcp_tools_consent_once)
-                                        ConsentLevel.NEVER ->
-                                            stringResource(R.string.settings_mcp_tools_consent_never)
+                                    if (tool.summary.isNotBlank()) {
+                                        "${tool.summary}\n$consentLabel"
+                                    } else {
+                                        consentLabel
                                     },
                                 )
                             },

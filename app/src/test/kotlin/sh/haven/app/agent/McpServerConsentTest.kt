@@ -748,13 +748,41 @@ class McpServerConsentTest {
     }
 
     @Test
-    fun `resources_list returns the Haven UI screen resource`() {
+    fun `resources_list returns the Haven UI screen resource and tool category tree resources`() {
         val (server, _) = newServer()
         server.pair()
         val response = server.call(rpc("resources/list"))
         val resources = JSONObject(response).getJSONObject("result").getJSONArray("resources")
-        assertEquals(1, resources.length())
+        assertTrue("expected screen + tool category resources", resources.length() > 2)
         assertEquals("ui://haven/screen", resources.getJSONObject(0).getString("uri"))
+        assertEquals("mcp://haven/tools", resources.getJSONObject(1).getString("uri"))
+        val uris = (0 until resources.length()).map { resources.getJSONObject(it).getString("uri") }
+        assertTrue(uris.contains("mcp://haven/tools/desktop"))
+        assertTrue(uris.contains("mcp://haven/tools/terminal"))
+    }
+
+    @Test
+    fun `initialize instructions include collapsed category tree and resources_read expands category details`() {
+        val (server, _) = newServer()
+        val initResp = server.handleJsonRpc(initBody(), requestSessionId = null, bearerToken = testToken).body
+        val instructions = JSONObject(initResp).getJSONObject("result").getString("instructions")
+        assertTrue(instructions.contains("## Enabled MCP Capability Categories"))
+        assertTrue(instructions.contains("mcp://haven/tools/desktop"))
+        assertTrue(instructions.contains("<details>"))
+
+        server.pair()
+        val readResp = server.call(
+            rpc("resources/read", JSONObject().put("uri", "mcp://haven/tools/desktop")),
+        )
+        val contents = JSONObject(readResp).getJSONObject("result").getJSONArray("contents")
+        assertEquals(1, contents.length())
+        val item = contents.getJSONObject(0)
+        assertEquals("mcp://haven/tools/desktop", item.getString("uri"))
+        assertEquals("text/markdown", item.getString("mimeType"))
+        val text = item.getString("text")
+        assertTrue(text.contains("# Desktop"))
+        assertTrue(text.contains("`inspect_desktop_tab`"))
+        assertTrue(text.contains("`tap_desktop_text`"))
     }
 
     @Test

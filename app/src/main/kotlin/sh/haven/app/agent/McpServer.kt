@@ -1539,10 +1539,7 @@ class McpServer @Inject constructor(
                 put("listChanged", false)
             })
         })
-        val instructions =
-            "Haven is a mobile thin-client OS for distributed compute, storage, and presence. " +
-                "Use these tools to inspect the user's saved connections, active sessions, and " +
-                "cloud storage without disturbing the UI they're looking at."
+        val instructions = tools.buildInstructionsTree()
         if (pairingToken != null) {
             put("_meta", JSONObject().put("sh.haven/pairingToken", pairingToken))
             put(
@@ -1566,22 +1563,34 @@ class McpServer @Inject constructor(
     }
 
     private fun handleResourcesList(): JSONObject = JSONObject().apply {
-        put("resources", JSONArray().put(JSONObject().apply {
-            put("uri", UI_SCREEN_RESOURCE_URI)
-            put("name", "Haven UI screen")
-            put(
-                "description",
-                "A live PNG screenshot of Haven's OWN rendered screen — the app UI the user is " +
-                    "looking at right now. Read it to see the current Haven UI without a tool call; " +
-                    "the file-shaped sibling of the capture_haven_ui tool. FLAG_SECURE (screen " +
-                    "security on) and Haven-not-foreground are returned as read errors.",
-            )
-            put("mimeType", "image/png")
-        }))
+        put("resources", JSONArray().apply {
+            put(JSONObject().apply {
+                put("uri", UI_SCREEN_RESOURCE_URI)
+                put("name", "Haven UI screen")
+                put(
+                    "description",
+                    "A live PNG screenshot of Haven's OWN rendered screen — the app UI the user is " +
+                        "looking at right now. Read it to see the current Haven UI without a tool call; " +
+                        "the file-shaped sibling of the capture_haven_ui tool. FLAG_SECURE (screen " +
+                        "security on) and Haven-not-foreground are returned as read errors.",
+                )
+                put("mimeType", "image/png")
+            })
+            tools.listToolCategoryResources().forEach { put(it) }
+        })
     }
 
     private fun handleResourcesRead(params: JSONObject, trusted: Boolean): JSONObject {
         val uri = params.optString("uri")
+        tools.readToolCategoryResource(uri)?.let { markdown ->
+            return JSONObject().apply {
+                put("contents", JSONArray().put(JSONObject().apply {
+                    put("uri", uri)
+                    put("mimeType", "text/markdown")
+                    put("text", markdown)
+                }))
+            }
+        }
         if (uri != UI_SCREEN_RESOURCE_URI) {
             throw McpError(-32602, "Unknown resource uri: '$uri'. Call resources/list for what's available.")
         }
