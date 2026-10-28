@@ -33,6 +33,7 @@ private const val TAG = "TunnelManager"
  */
 interface TunnelFactory {
     fun create(config: TunnelConfig): Tunnel
+    fun checkConflict(tunnel: Tunnel): WireGuardSystemVpnConflict? = null
 }
 
 /**
@@ -113,6 +114,7 @@ class TunnelManager @Inject constructor(
     suspend fun acquire(configId: String, profileId: String): Tunnel? {
         var staleToClose: Tunnel? = null
         var staleDead: Tunnel? = null
+        var conflictToThrow: WireGuardSystemVpnConflict? = null
         val acquired = mutex.withLock {
             val previous = acquiredBy[profileId]
             if (previous != null && previous != configId) {
@@ -124,6 +126,21 @@ class TunnelManager @Inject constructor(
             liveTunnels[configId]?.takeIf { (it as? AnyConnectTunnel)?.isDead == true }?.let { dead ->
                 liveTunnels.remove(configId)
                 staleDead = dead
+            }
+            // A live userspace WireGuard tunnel whose address is now held by a
+            // system VPN (started after the userspace tunnel came up) must be
+            // torn down immediately rather than handed out or left fighting the
+            // system VPN over the shared server-side peer session.
+            liveTunnels[configId]?.let { existing ->
+                val conflict = tunnelFactory.checkConflict(existing)
+                if (conflict != null) {
+                    liveTunnels.remove(configId)
+                    dependents.remove(configId)?.forEach { acquiredBy.remove(it) }
+                    publish()
+                    staleDead = existing
+                    conflictToThrow = conflict
+                    return@withLock null
+                }
             }
             val tunnel = liveTunnels[configId] ?: run {
                 val config = tunnelConfigRepository.getById(configId) ?: return@withLock null
@@ -140,6 +157,7 @@ class TunnelManager @Inject constructor(
         }
         staleToClose?.close()
         staleDead?.close()
+        conflictToThrow?.let { throw it }
         return acquired
     }
 
@@ -206,11 +224,25 @@ class TunnelManager @Inject constructor(
     }
 
     /**
-     * Ask every live AnyConnect tunnel to check its connection now — called
+     * Ask every live tunnel to check or re-home its connection now — called
      * on network change and return to foreground. Non-blocking.
      */
     fun reviveAll() {
-        _live.value.values.forEach { (it as? AnyConnectTunnel)?.revive() }
+        val snapshot = _live.value
+        if (snapshot.isEmpty()) return
+        scope.launch {
+            for ((configId, tunnel) in snapshot) {
+                if (tunnelFactory.checkConflict(tunnel) != null) {
+                    Log.w(TAG, "System VPN conflicts with live tunnel $configId; disconnecting userspace tunnel")
+                    disconnect(configId)
+                    continue
+                }
+                when (tunnel) {
+                    is AnyConnectTunnel -> tunnel.revive()
+                    is WireguardTunnel -> tunnel.revive("network change")
+                }
+            }
+        }
     }
 
     /**
@@ -280,6 +312,11 @@ class DefaultTunnelFactory @Inject constructor(
     private val authBroker: TunnelAuthBroker,
     private val systemVpnAddressProbe: SystemVpnAddressProbe,
 ) : TunnelFactory {
+
+    override fun checkConflict(tunnel: Tunnel): WireGuardSystemVpnConflict? =
+        (tunnel as? WireguardTunnel)?.let {
+            SystemVpnAddressProbe.collides(it.configText, systemVpnAddressProbe)
+        }
 
     override fun create(config: TunnelConfig): Tunnel = when (config.typeEnum) {
         TunnelConfigType.WIREGUARD -> {

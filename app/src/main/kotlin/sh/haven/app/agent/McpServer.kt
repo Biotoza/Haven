@@ -845,10 +845,13 @@ class McpServer @Inject constructor(
                     // own stop closed it) — fall through to re-acquire.
                     Log.i(TAG, "WG accept loop ended: ${e.message}")
                 } finally {
+                    val boundAddr = wireguardBoundAddress
                     wireguardListener = null
                     _wireguardEndpointUrl.value = null
                     wireguardBoundAddress = null
-                    mcpStatusHolder.setWireguardCollision(null)
+                    if (detectVpnAddressCollision(boundAddr) == null) {
+                        mcpStatusHolder.setWireguardCollision(null)
+                    }
                     tunnelManager.release(wireguardProfileId)
                 }
                 if (isActive) delay(WG_RETRY_MS)
@@ -903,13 +906,28 @@ class McpServer @Inject constructor(
         }
     }
 
-    /** Re-evaluate the WG endpoint collision against the currently-bound address. */
+    /**
+     * Re-evaluate the WG endpoint collision against the currently-bound (or
+     * last-colliding) address. When a system VPN comes up on our WG address
+     * while the userspace tunnel is already live, immediately tear down the
+     * listener and carrier hold so the userspace device stops handshaking on
+     * the shared peer key.
+     */
     private fun refreshWireguardCollision() {
-        val info = detectVpnAddressCollision(wireguardBoundAddress)
+        val checkAddr = wireguardBoundAddress ?: mcpStatusHolder.wireguardCollision.value?.address
+        val info = detectVpnAddressCollision(checkAddr)
         if (info != mcpStatusHolder.wireguardCollision.value) {
             mcpStatusHolder.setWireguardCollision(info)
             if (info != null) {
-                Log.w(TAG, "WG MCP carrier shadowed: system VPN (${info.vpnInterface}) holds ${info.address} — endpoint unreachable from peers")
+                Log.w(TAG, "WG MCP carrier shadowed: system VPN (${info.vpnInterface}) holds ${info.address} — tearing down userspace tunnel to avoid peer session conflict")
+            }
+        }
+        if (info != null && wireguardListener != null) {
+            try { wireguardListener?.close() } catch (_: Exception) {}
+            scope.launch {
+                tunnelManager.release(wireguardProfileId)
+                tunnelManager.release(wireguardCarrierProfileId)
+                tunnelManager.reviveAll()
             }
         }
     }

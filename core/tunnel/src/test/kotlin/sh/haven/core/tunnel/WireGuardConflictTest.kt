@@ -154,15 +154,55 @@ class WireGuardConflictTest {
         // A later acquire retries the factory fresh (e.g. the system VPN left).
         val recovered = mockk<TunnelFactory> {
             every { create(any()) } returns mockk<Tunnel>(relaxed = true)
+            every { checkConflict(any()) } returns null
         }
         val manager2 = TunnelManager(repo, recovered)
         assertNotNull(manager2.acquire("cfg-x", "p1"))
     }
 
-    // -- dial-stall bounce ---------------------------------------------------
+    @Test
+    fun `acquire tears down already-cached tunnel when system vpn conflict starts later`() = kotlinx.coroutines.test.runTest {
+        val repo = mockk<TunnelConfigRepository> {
+            coEvery { getById("cfg-x") } returns TunnelConfig(
+                id = "cfg-x", label = "cfg", type = TunnelConfigType.WIREGUARD.name,
+                configText = sampleConfig.toByteArray(),
+            )
+        }
+        var closedCount = 0
+        val liveTunnel = object : Tunnel {
+            override fun dial(host: String, port: Int, timeoutMs: Int): TunneledConnection =
+                throw UnsupportedOperationException()
+            override fun close() {
+                closedCount++
+            }
+        }
+        var vpnActive = false
+        val factory = object : TunnelFactory {
+            override fun create(config: TunnelConfig): Tunnel = liveTunnel
+            override fun checkConflict(tunnel: Tunnel): WireGuardSystemVpnConflict? =
+                if (vpnActive) WireGuardSystemVpnConflict("tun0", "10.1.0.2") else null
+        }
+        val manager = TunnelManager(repo, factory)
+        // MCP carrier acquires first while VPN is off.
+        assertSame(liveTunnel, manager.acquire("cfg-x", "mcp-wg-carrier"))
+        assertEquals(1, manager.dependentCount("cfg-x"))
+
+        // User turns on the system WireGuard VPN, then connects a profile.
+        vpnActive = true
+        assertThrows(WireGuardSystemVpnConflict::class.java) {
+            kotlinx.coroutines.runBlocking { manager.acquire("cfg-x", "ssh-profile") }
+        }
+        // The cached userspace tunnel was closed and evicted so it stops
+        // handshaking against the shared peer key.
+        assertEquals(1, closedCount)
+        assertTrue(manager.liveSnapshot().isEmpty())
+    }
+
+    // -- dial-stall bounce & revive ------------------------------------------
 
     @Test
-    fun `two consecutive dial timeouts bounce the native handle once`() {
+    fun `dial timeout bounces and retries on fresh handle within a single dial call`() {
+        var nowMs = 1_000L
         var startTunnelCalls = 0
         var handle1Closes = 0
         val callLog = mutableListOf<Pair<Int, String>>()
@@ -185,32 +225,111 @@ class WireGuardConflictTest {
                 },
             ),
         )
-        val tunnel = WireguardTunnel(sampleConfig, nativeStarter = { _ ->
-            startTunnelCalls++
-            handles.removeFirst()
-        })
+        val tunnel = WireguardTunnel(
+            sampleConfig,
+            nativeStarter = { _ ->
+                startTunnelCalls++
+                handles.removeFirst()
+            },
+            clockMs = { nowMs },
+        )
 
-        // 1st timeout: below the threshold, no bounce yet.
+        // Single dial() call: handle #1 times out, tunnel immediately bounces
+        // to handle #2 and retries inside dial(), succeeding on the first call.
+        assertNotNull(tunnel.dial("10.0.0.1", 22, 30_000))
+        assertEquals(2, startTunnelCalls)
+        assertEquals(1, handle1Closes)
+        assertEquals(listOf(1 to "throw", 2 to "ok"), callLog)
+
+        // A later timeout within the 60s cooldown does NOT bounce again.
+        secondThrows = true
+        nowMs += 5_000L
+        assertThrows(IOException::class.java) { tunnel.dial("10.0.0.1", 22, 30_000) }
+        assertEquals(2, startTunnelCalls)
+    }
+
+    @Test
+    fun `two consecutive dial timeouts bounce the native handle once when threshold is 2`() {
+        var nowMs = 1_000L
+        var startTunnelCalls = 0
+        var handle1Closes = 0
+        val callLog = mutableListOf<Pair<Int, String>>()
+        val okConn: WgNativeConn = object : WgNativeConn {
+            override fun read(size: Int): ByteArray? = ByteArray(0)
+            override fun write(data: ByteArray) {}
+            override fun remoteAddrHost(): String = "10.0.0.1"
+            override fun close() {}
+        }
+        var secondThrows = false
+        val handles = mutableListOf(
+            FakeNative(
+                onDial = { callLog.add(1 to "throw"); throw IOException("dial: context deadline exceeded") },
+                onClose = { handle1Closes++ },
+            ),
+            FakeNative(
+                onDial = {
+                    if (secondThrows) throw IOException("dial: context deadline exceeded")
+                    callLog.add(2 to "ok"); okConn
+                },
+            ),
+        )
+        val tunnel = WireguardTunnel(
+            sampleConfig,
+            nativeStarter = { _ ->
+                startTunnelCalls++
+                handles.removeFirst()
+            },
+            clockMs = { nowMs },
+        ).also { it.bounceAfterTimeouts = 2 }
+
+        // 1st timeout: below threshold=2, no bounce yet.
         assertThrows(IOException::class.java) { tunnel.dial("10.0.0.1", 22, 1_000) }
         assertEquals(1, startTunnelCalls)
         assertEquals(0, handle1Closes)
 
-        // 2nd timeout: crosses the threshold → bounce (start #2, close of #1).
-        assertThrows(IOException::class.java) { tunnel.dial("10.0.0.1", 22, 1_000) }
+        // 2nd timeout: crosses threshold=2 → bounces to handle #2 and retries immediately.
+        assertNotNull(tunnel.dial("10.0.0.1", 22, 1_000))
         assertEquals(2, startTunnelCalls)
         assertEquals(1, handle1Closes)
-
-        // 3rd dial rides the fresh handle and succeeds.
-        assertTrue(tunnel.dial("10.0.0.1", 22, 1_000) != null)
         assertEquals(listOf(1 to "throw", 1 to "throw", 2 to "ok"), callLog)
 
-        // A success resets the streak, so a single later timeout does NOT
-        // bounce again (still 2 starts).
+        // A success resets the streak, so a single later timeout does NOT bounce again.
         secondThrows = true
-        // dial above succeeded → streak reset → this one timeout = streak 1,
-        // on the CURRENT handle — no bounce.
+        nowMs += 120_000L
         assertThrows(IOException::class.java) { tunnel.dial("10.0.0.1", 22, 1_000) }
         assertEquals(2, startTunnelCalls)
+    }
+
+    @Test
+    fun `revive bounces native handle on network change and debounces rapid calls`() {
+        var nowMs = 10_000L
+        var startTunnelCalls = 0
+        var closeCalls = 0
+        val tunnel = WireguardTunnel(
+            sampleConfig,
+            nativeStarter = { _ ->
+                startTunnelCalls++
+                FakeNative(onClose = { closeCalls++ })
+            },
+            clockMs = { nowMs },
+        )
+        assertEquals(1, startTunnelCalls)
+
+        // Network change triggers revive → bounces immediately.
+        assertTrue(tunnel.revive("wifi -> cellular"))
+        assertEquals(2, startTunnelCalls)
+        assertEquals(1, closeCalls)
+
+        // Back-to-back callback 500ms later is debounced.
+        nowMs += 500L
+        org.junit.Assert.assertFalse(tunnel.revive("duplicate callback"))
+        assertEquals(2, startTunnelCalls)
+
+        // After debounce window (2s), another network change bounces again.
+        nowMs += 2_000L
+        assertTrue(tunnel.revive("cellular -> wifi"))
+        assertEquals(3, startTunnelCalls)
+        assertEquals(2, closeCalls)
     }
 
     private class FakeNative(

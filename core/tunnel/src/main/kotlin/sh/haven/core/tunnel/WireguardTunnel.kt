@@ -130,13 +130,16 @@ private class ListenerBinding(private val listener: NativeListener) : WgNativeLi
  * can't thrash.
  */
 class WireguardTunnel internal constructor(
-    private val configText: String,
+    internal val configText: String,
     /**
      * Native bring-up seam. Null = the real binding ([GomobileWgNative]);
      * unit tests inject a pure-Kotlin fake (the real class init links
      * libgojni, absent on the JVM). Receives the keepalive-injected config.
      */
     private val nativeStarter: ((String) -> WgNativeDevice)? = null,
+    private val clockMs: () -> Long = {
+        SystemClock.elapsedRealtime().takeIf { it > 0L } ?: (System.nanoTime() / 1_000_000L)
+    },
 ) : Tunnel {
 
     private val nativeLock = Any()
@@ -155,13 +158,23 @@ class WireguardTunnel internal constructor(
     @Volatile
     private var consecutiveDialTimeouts = 0
 
-    /** Epoch ms of the last bounce; a cooldown keeps a dead path from thrashing. */
+    /** Monotonic ms of the last dial-timeout bounce; a cooldown keeps a dead path from thrashing. */
     @Volatile
     private var lastBounceMs = 0L
 
+    /** Monotonic ms of the last network-change [revive] bounce. */
+    @Volatile
+    private var lastReviveMs = 0L
+
     override fun dial(host: String, port: Int, timeoutMs: Int): TunneledConnection {
+        val splitForBounce = timeoutMs >= MIN_SPLIT_TIMEOUT_MS && canBounceOnNextTimeout()
+        val firstTimeoutMs = if (splitForBounce) {
+            (timeoutMs / 2).coerceAtMost(FIRST_ATTEMPT_MAX_TIMEOUT_MS)
+        } else {
+            timeoutMs
+        }
         val conn = try {
-            val c = native.dial(host, port.toLong(), timeoutMs.toLong())
+            val c = native.dial(host, port.toLong(), firstTimeoutMs.toLong())
             consecutiveDialTimeouts = 0
             c
         } catch (e: Exception) {
@@ -173,7 +186,23 @@ class WireguardTunnel internal constructor(
                 // endpoint resolution + UDP rebind — what the official app's
                 // on-demand re-resolution does.
                 consecutiveDialTimeouts++
-                maybeBounce("dial timeout to $host:$port")
+                if (maybeBounce("dial timeout to $host:$port")) {
+                    val retryTimeoutMs = if (splitForBounce) {
+                        maxOf(timeoutMs - firstTimeoutMs, timeoutMs / 2)
+                    } else {
+                        timeoutMs
+                    }
+                    try {
+                        val retryConn = native.dial(host, port.toLong(), retryTimeoutMs.toLong())
+                        consecutiveDialTimeouts = 0
+                        return NativeTunneledConnection(retryConn)
+                    } catch (retryEx: Exception) {
+                        if (isDialTimeout(retryEx)) {
+                            consecutiveDialTimeouts++
+                        }
+                        throw IOException("WireGuard dial $host:$port failed: ${retryEx.message}", retryEx)
+                    }
+                }
             }
             throw IOException("WireGuard dial $host:$port failed: ${e.message}", e)
         }
@@ -183,33 +212,66 @@ class WireguardTunnel internal constructor(
     /** Minimum dial timeouts in a row before bouncing. */
     internal var bounceAfterTimeouts: Int = BOUNCE_AFTER_TIMEOUTS
 
+    private fun canBounceOnNextTimeout(): Boolean {
+        if (consecutiveDialTimeouts + 1 < bounceAfterTimeouts) return false
+        val now = clockMs()
+        return lastBounceMs == 0L || now - lastBounceMs >= BOUNCE_COOLDOWN_MS
+    }
+
     /**
-     * Recreate the native tunnel handle when dials keep timing out. The
-     * 60 s cooldown bounds the churn. Listener/SOCKS objects minted from the
+     * Recreate the native tunnel handle when dials time out. The 60 s
+     * cooldown bounds the churn. Listener/SOCKS objects minted from the
      * old netstack die with it — the MCP binder's retry loop re-binds them
      * from the fresh handle (acquireFirstWireguard finds the same Kotlin
      * Tunnel instance, whose native is now new).
+     *
+     * Returns true iff the native handle was replaced with a fresh one.
      */
-    internal fun maybeBounce(why: String) {
-        val now = SystemClock.elapsedRealtime()
-        if (consecutiveDialTimeouts < bounceAfterTimeouts) return
-        if (lastBounceMs != 0L && now - lastBounceMs < BOUNCE_COOLDOWN_MS) return
+    internal fun maybeBounce(why: String): Boolean {
+        val now = clockMs()
+        if (consecutiveDialTimeouts < bounceAfterTimeouts) return false
+        if (lastBounceMs != 0L && now - lastBounceMs < BOUNCE_COOLDOWN_MS) return false
         synchronized(nativeLock) {
+            val nowLocked = clockMs()
             // Re-check under the lock; another thread may have just bounced.
-            if (consecutiveDialTimeouts < bounceAfterTimeouts) return
-            if (lastBounceMs != 0L && now - lastBounceMs < BOUNCE_COOLDOWN_MS) return
-            lastBounceMs = now
-            try {
-                val fresh = launchNative(ensurePeerKeepalive(configText))
-                native.close()
-                native = fresh
-                consecutiveDialTimeouts = 0
-                socksCached = null // the old SOCKS listener died with the old netstack
-                Log.i(TAG, "WG tunnel bounced ($why): endpoint re-resolved, bind re-homed")
-            } catch (e: Exception) {
-                // Keep the old (dead) device rather than leaving nothing.
-                Log.w(TAG, "WG bounce failed: ${e.message}")
-            }
+            if (consecutiveDialTimeouts < bounceAfterTimeouts) return false
+            if (lastBounceMs != 0L && nowLocked - lastBounceMs < BOUNCE_COOLDOWN_MS) return false
+            lastBounceMs = nowLocked
+            return bounceLocked(why)
+        }
+    }
+
+    /**
+     * Proactively recreate the native tunnel handle when the host's active
+     * network changes (Wi-Fi ↔ Cellular, VPN teardown, return to foreground).
+     * Uses a short debounce ([REVIVE_COOLDOWN_MS]) to coalesce back-to-back
+     * connectivity callbacks without waiting for dial timeouts.
+     */
+    fun revive(reason: String = "network change"): Boolean {
+        val now = clockMs()
+        if (lastReviveMs != 0L && now - lastReviveMs < REVIVE_COOLDOWN_MS) return false
+        synchronized(nativeLock) {
+            val nowLocked = clockMs()
+            if (lastReviveMs != 0L && nowLocked - lastReviveMs < REVIVE_COOLDOWN_MS) return false
+            lastReviveMs = nowLocked
+            return bounceLocked("revive: $reason")
+        }
+    }
+
+    /** Must hold [nativeLock]. */
+    private fun bounceLocked(why: String): Boolean {
+        return try {
+            val fresh = launchNative(ensurePeerKeepalive(configText))
+            native.close()
+            native = fresh
+            consecutiveDialTimeouts = 0
+            socksCached = null // the old SOCKS listener died with the old netstack
+            Log.i(TAG, "WG tunnel bounced ($why): endpoint re-resolved, bind re-homed")
+            true
+        } catch (e: Exception) {
+            // Keep the old (dead) device rather than leaving nothing.
+            Log.w(TAG, "WG bounce failed: ${e.message}")
+            false
         }
     }
 
@@ -279,10 +341,19 @@ class WireguardTunnel internal constructor(
         internal const val DEFAULT_KEEPALIVE_SECONDS = 25
 
         /** Dial timeouts in a row before the tunnel recycles itself. */
-        internal const val BOUNCE_AFTER_TIMEOUTS = 2
+        internal const val BOUNCE_AFTER_TIMEOUTS = 1
 
-        /** Minimum spacing between bounces, regardless of failure rate. */
+        /** Minimum spacing between dial-timeout bounces, regardless of failure rate. */
         internal const val BOUNCE_COOLDOWN_MS = 60_000L
+
+        /** Minimum spacing between network-change [revive] bounces. */
+        internal const val REVIVE_COOLDOWN_MS = 2_000L
+
+        /** Minimum caller timeout (ms) before splitting into pre-bounce + post-bounce attempts. */
+        internal const val MIN_SPLIT_TIMEOUT_MS = 10_000
+
+        /** Cap (ms) on the first dial attempt when a bounce-and-retry is eligible. */
+        internal const val FIRST_ATTEMPT_MAX_TIMEOUT_MS = 10_000
 
         private val SECTION_HEADER = Regex("""^\s*\[\s*(\w+)\s*]""")
         private val KEEPALIVE_LINE = Regex("""^\s*PersistentKeepalive\s*=""", RegexOption.IGNORE_CASE)
