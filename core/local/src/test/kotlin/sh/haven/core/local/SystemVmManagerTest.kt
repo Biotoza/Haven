@@ -313,4 +313,32 @@ class SystemVmManagerTest {
         assertNull(parseFirmwarePath("no firmware here\n"))
         assertNull(parseFirmwarePath(""))
     }
+
+    // --- usbredir attachment (#613) ----------------------------------------
+
+    @Test
+    fun `usbRedirPort wires qemu-xhci and usb-redir on x86_64 and reuses existing xhci on aarch64`() {
+        val x86 = qemuVncCommand("/d.qcow2", display = 2, memMb = 2048, cpus = 2, usbRedirPort = 4000)
+        assertTrue(x86.contains("-device qemu-xhci -chardev socket,id=usbredir0,host=127.0.0.1,port=4000 -device usb-redir,chardev=usbredir0"))
+        assertEquals(1, Regex("-device qemu-xhci").findAll(x86).count())
+
+        val arm = qemuVncCommand(
+            "/d.qcow2",
+            display = 2,
+            memMb = 2048,
+            cpus = 2,
+            arch = VmArch.AARCH64,
+            biosGuestPath = fw,
+            usbRedirPort = 4000,
+        )
+        assertTrue(arm.contains("-chardev socket,id=usbredir0,host=127.0.0.1,port=4000 -device usb-redir,chardev=usbredir0"))
+        assertEquals("aarch64 machine already has one qemu-xhci for usb-kbd/usb-tablet", 1, Regex("-device qemu-xhci").findAll(arm).count())
+
+        listOf(0, -1, 65536).forEach { badPort ->
+            runCatching { qemuVncCommand("/d.qcow2", 1, 2048, 2, usbRedirPort = badPort) }.fold(
+                onSuccess = { throw AssertionError("expected refusal for usbRedirPort=$badPort") },
+                onFailure = { assertTrue("wrong exception: $it", it is IllegalArgumentException) },
+            )
+        }
+    }
 }

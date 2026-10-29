@@ -145,12 +145,13 @@ internal class DesktopToolProvider(
         ) { args -> importSystemVmImage(args) },
 
         "start_system_vm" to ToolHandler(
-            description = "Boot a stored system-VM image (#326) with a VNC display on a free loopback port, and wait for the VNC server to bind (up to ~20s; a timeout means this distro's qemu has no VNC — try a Debian image/distro). The image's recorded arch picks the machine: x86_64 gets `-M pc -vga std`, aarch64 gets `-M virt` with UEFI firmware, virtio-gpu and USB HID (installing the distro's edk2 package if needed). One VM at a time — call stop_system_vm first to replace a running one. Does NOT open a viewer (MCP has no UI) — returns { imageId, status, arch, accel, accelReason, vncHost, vncPort, hint } so you connect it yourself: create_connection type=VNC host=127.0.0.1 vncPort=<vncPort>, then connect_profile. `accel` is the resolved reality, not a request: KVM needs a usable /dev/kvm AND a guest arch matching the host, which retail arm64 phones cannot offer, so expect TCG and a slow (~2 min) but usable boot. `accel=kvm` fails fast when it is impossible rather than booting slowly; `accel=auto` (default) falls back to TCG if a KVM boot does not come up.",
+            description = "Boot a stored system-VM image (#326) with a VNC display on a free loopback port, and wait for the VNC server to bind (up to ~20s; a timeout means this distro's qemu has no VNC — try a Debian image/distro). The image's recorded arch picks the machine: x86_64 gets `-M pc -vga std`, aarch64 gets `-M virt` with UEFI firmware, virtio-gpu and USB HID (installing the distro's edk2 package if needed). Pass `usbRedirPort` (from `start_usbredir_export`, default 4000) to attach a phone-connected USB device directly into the guest over `-device qemu-xhci -chardev socket,id=usbredir0,host=127.0.0.1,port=<usbRedirPort> -device usb-redir,chardev=usbredir0` (#613). One VM at a time — call stop_system_vm first to replace a running one. Does NOT open a viewer (MCP has no UI) — returns { imageId, status, arch, accel, accelReason, vncHost, vncPort, usbRedirPort, hint } so you connect it yourself: create_connection type=VNC host=127.0.0.1 vncPort=<vncPort>, then connect_profile. `accel` is the resolved reality, not a request: KVM needs a usable /dev/kvm AND a guest arch matching the host, which retail arm64 phones cannot offer, so expect TCG and a slow (~2 min) but usable boot. `accel=kvm` fails fast when it is impossible rather than booting slowly; `accel=auto` (default) falls back to TCG if a KVM boot does not come up.",
             inputSchema = objectSchema {
                 string("imageId", "Image id from list_system_vm_images.", required = true)
                 integer("memMb", "Guest RAM in MiB. Default 2048.")
                 integer("cpus", "Guest vCPUs. Default 2.")
                 string("accel", "auto = KVM when genuinely possible else TCG (default); kvm = insist, erroring out if impossible; tcg = force emulation.", enum = listOf("auto", "kvm", "tcg"))
+                integer("usbRedirPort", "Optional loopback TCP port of a running usbredir export (from start_usbredir_export, default 4000) to attach to the guest over qemu-xhci + usb-redir (#613).")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args -> "Boot system VM '${args.optString("imageId")}'?" },
@@ -622,6 +623,7 @@ internal class DesktopToolProvider(
             // with; carry the probe's own answer instead of making the agent
             // guess from the timing.
             put("accelReason", st?.accelReason?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            put("usbRedirPort", st?.usbRedirPort ?: JSONObject.NULL)
         }
     }
 
@@ -694,8 +696,14 @@ internal class DesktopToolProvider(
             "tcg" -> sh.haven.core.local.AccelMode.TCG
             else -> throw McpError(-32602, "accel must be one of auto, kvm, tcg")
         }
+        val usbRedirPort = if (args.has("usbRedirPort") && !args.isNull("usbRedirPort")) {
+            args.optInt("usbRedirPort", 0).takeIf { it > 0 }
+                ?: throw McpError(-32602, "usbRedirPort must be in 1..65535")
+        } else {
+            null
+        }
         val st = try {
-            systemVmManager.startImage(imageId, memMb, cpus, accelMode)
+            systemVmManager.startImage(imageId, memMb, cpus, accelMode, usbRedirPort)
         } catch (e: Exception) {
             throw McpError(-32603, e.message ?: "start failed")
         }
@@ -707,6 +715,7 @@ internal class DesktopToolProvider(
             put("accelReason", st.accelReason)
             put("vncHost", "127.0.0.1")
             put("vncPort", st.vncPort ?: JSONObject.NULL)
+            put("usbRedirPort", st.usbRedirPort ?: JSONObject.NULL)
             put("hint", "create_connection type=VNC host=127.0.0.1 vncPort=${st.vncPort} then connect_profile")
         }
     }

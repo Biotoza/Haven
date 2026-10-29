@@ -19,7 +19,7 @@
 # NativeFeatures.uml probe hides the UI.
 #
 # Version-pinned release assets with sha256s (github.com/GlassOnTin/
-# uml-transport, tag uml-guest-4). The kernel is GPL-2.0; its source
+# uml-transport, tag uml-guest-10). The kernel is GPL-2.0; its source
 # (branch um-arm64 of zalexdev/linux-um-arm64 at 7edec4df1 plus the
 # stub-execve-fallback and android-app-compat patches, all published
 # there with the build recipes) is published, which satisfies the
@@ -27,6 +27,7 @@
 # for the syscalls Android's zygote seccomp filter force-kills
 # (set_robust_list, rseq) — the gate and the patch live in this repo's
 # releases repo, GlassOnTin/uml-transport, under tools/um-arm64/harness/.
+# uml-guest-10 adds usb-haven.config (USB/IP vhci_hcd + USB class drivers).
 # When the pin is retired,
 # the fetch fails LOUDLY — bump UML_RELEASE and the sha256s together.
 # Skip with ./gradlew -PskipUml or SKIP_UML=1 (F-Droid).
@@ -38,12 +39,12 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 OUT="${UML_OUTPUT:-src/main/jniLibs}"
-BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-4}"
+BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-10}"
 
 # file | sha256
-# Sizes: libvmlinux.so 79307152, libuml-stub.so 1920, libuml-passt.so 608472
+# Sizes: libvmlinux.so 129634648 (13141144 stripped), libuml-stub.so 1920, libuml-passt.so 608472
 FILES=(
-  "libvmlinux.so|71cc9dc73c683a8c00fb533d01e7a1be27974876dcab2068419ea4b272fb387c"
+  "libvmlinux.so|246d84a1401438b14766f5a70f1f11b67f8e9eb29d8cabff4922c6c7c774ab6c"
   "libuml-stub.so|83f51f7c45133daa135b595562b09c5e2829f1d0f1e00b7fce2a7695370781fc"
   "libuml-passt.so|17703eb787afcfc57475921f186bec6eae479db00cf60e1763c1a8459c055b36"
 )

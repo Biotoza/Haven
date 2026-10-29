@@ -361,8 +361,19 @@ class UsbIpServer @Inject constructor(
                     // GET_DESCRIPTOR(CONFIGURATION): export only interface 0 (FIDO).
                     // Fetch the real descriptor in full, strip the CCID/other
                     // interfaces, then honour the client's requested length.
-                    val full = backend.control(0x80, 0x06, wValue, wIndex, ByteArray(0), 0xFF, timeoutMs)
+                    val full = backend.control(0x80, 0x06, wValue, wIndex, ByteArray(0), maxOf(wLength, 0xFF), timeoutMs)
                     filterToFidoInterface(full).let { it.copyOf(minOf(it.size, wLength)) }
+                } else if (rt == 0x01 && req == 0x0B) {
+                    // SET_INTERFACE (wValue = altSetting, wIndex = interfaceNumber):
+                    // Linux usbfs rejects SET_INTERFACE sent as a raw control transfer and
+                    // requires USBDEVFS_SETINTERFACE (tweak_set_interface_cmd in stub_rx.c).
+                    backend.setInterfaceAltSetting(wIndex and 0xFF, wValue and 0xFF)
+                    ByteArray(0)
+                } else if ((rt == 0x00 && req == 0x09) || (rt == 0x02 && req == 0x01 && wValue == 0)) {
+                    // SET_CONFIGURATION or CLEAR_FEATURE(ENDPOINT_HALT): forward best-effort.
+                    runCatching {
+                        backend.control(rt, req, wValue, wIndex, urb.out, wLength, timeoutMs)
+                    }.getOrDefault(ByteArray(0))
                 } else {
                     backend.control(rt, req, wValue, wIndex, urb.out, wLength, timeoutMs)
                 }

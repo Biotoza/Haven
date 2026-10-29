@@ -80,6 +80,8 @@ class SystemVmManager @Inject constructor(
         val accel: Accel = Accel.TCG,
         /** Why [accel] came out that way, in the probe's own words. */
         val accelReason: String = "",
+        /** Loopback TCP port of the phone's `usbredir` server wired into the VM via `-device usb-redir`, or null. */
+        val usbRedirPort: Int? = null,
     )
 
     private val _state = MutableStateFlow<VmState?>(null)
@@ -119,9 +121,13 @@ class SystemVmManager @Inject constructor(
         cpus: Int = DEFAULT_CPUS,
         arch: VmArch = VmArch.X86_64,
         accelMode: AccelMode = AccelMode.AUTO,
+        usbRedirPort: Int? = null,
     ): VmState = mutex.withLock {
         if (process?.isAlive == true) {
             throw SystemVmException("A system VM is already running — stop it first.")
+        }
+        if (usbRedirPort != null && usbRedirPort !in 1..65535) {
+            throw SystemVmException("usbRedirPort must be in 1..65535 (got $usbRedirPort)")
         }
         ensureQemuInstalled(arch)
         // `-M virt` has no BIOS: resolve (installing if need be) the UEFI
@@ -145,8 +151,8 @@ class SystemVmManager @Inject constructor(
             require(port >= VNC_BASE_PORT) { "no usable VNC port (got $port)" }
             val display = port - VNC_BASE_PORT
 
-            _state.value = VmState(diskGuestPath, Status.STARTING, vncPort = port, arch = arch, accel = attempt.accel, accelReason = attempt.reason)
-            val command = qemuVncCommand(diskGuestPath, display, memMb, cpus, diskFormat, arch, attempt.accel, bios)
+            _state.value = VmState(diskGuestPath, Status.STARTING, vncPort = port, arch = arch, accel = attempt.accel, accelReason = attempt.reason, usbRedirPort = usbRedirPort)
+            val command = qemuVncCommand(diskGuestPath, display, memMb, cpus, diskFormat, arch, attempt.accel, bios, usbRedirPort)
             Log.i(TAG, "starting system VM (${arch.id}, ${attempt.accel}): $command")
 
             val proc = withContext(Dispatchers.IO) { prootManager.startCommandInProot(command) }
@@ -158,7 +164,7 @@ class SystemVmManager @Inject constructor(
             // Alpine).
             val ready = withContext(Dispatchers.IO) { awaitPortOpen(port, VNC_BIND_TIMEOUT_MS) }
             if (ready && proc.isAlive) {
-                return@withLock VmState(diskGuestPath, Status.RUNNING, port, null, arch, attempt.accel, attempt.reason)
+                return@withLock VmState(diskGuestPath, Status.RUNNING, port, null, arch, attempt.accel, attempt.reason, usbRedirPort)
                     .also { _state.value = it }
             }
 
@@ -167,7 +173,7 @@ class SystemVmManager @Inject constructor(
             if (index < attempts.lastIndex) Log.w(TAG, "$lastError — retrying under TCG")
         }
 
-        _state.value = VmState(diskGuestPath, Status.ERROR, error = lastError, arch = arch, accel = attempts.last().accel)
+        _state.value = VmState(diskGuestPath, Status.ERROR, error = lastError, arch = arch, accel = attempts.last().accel, usbRedirPort = usbRedirPort)
         throw SystemVmException(lastError)
     }
 
@@ -181,6 +187,7 @@ class SystemVmManager @Inject constructor(
         memMb: Int = DEFAULT_MEM_MB,
         cpus: Int = DEFAULT_CPUS,
         accelMode: AccelMode = AccelMode.AUTO,
+        usbRedirPort: Int? = null,
     ): VmState {
         if (!imageFile(imageId).exists()) throw SystemVmException("no such system-VM image: $imageId")
         return start(
@@ -190,6 +197,7 @@ class SystemVmManager @Inject constructor(
             cpus = cpus,
             arch = storedArch(imageId),
             accelMode = accelMode,
+            usbRedirPort = usbRedirPort,
         )
     }
 
@@ -564,32 +572,40 @@ internal fun qemuVncCommand(
     arch: VmArch = VmArch.X86_64,
     accel: Accel = Accel.TCG,
     biosGuestPath: String? = null,
-): String = when (arch) {
-    VmArch.X86_64 ->
-        "exec qemu-system-x86_64 -M pc " +
-            (if (accel == Accel.KVM) "-enable-kvm -cpu host " else "") +
-            "-m $memMb -smp $cpus -monitor none " +
-            "-drive file=$diskGuestPath,if=virtio,format=$diskFormat " +
-            "-vga std -vnc 127.0.0.1:$display " +
-            "-netdev user,id=n0 -device virtio-net-pci,netdev=n0 " +
-            "-boot c -no-reboot"
+    usbRedirPort: Int? = null,
+): String {
+    if (usbRedirPort != null) {
+        require(usbRedirPort in 1..65535) { "usbRedirPort must be in 1..65535 (got $usbRedirPort)" }
+    }
+    return when (arch) {
+        VmArch.X86_64 ->
+            "exec qemu-system-x86_64 -M pc " +
+                (if (accel == Accel.KVM) "-enable-kvm -cpu host " else "") +
+                "-m $memMb -smp $cpus -monitor none " +
+                "-drive file=$diskGuestPath,if=virtio,format=$diskFormat " +
+                "-vga std -vnc 127.0.0.1:$display " +
+                "-netdev user,id=n0 -device virtio-net-pci,netdev=n0 " +
+                (if (usbRedirPort != null) "-device qemu-xhci -chardev socket,id=usbredir0,host=127.0.0.1,port=$usbRedirPort -device usb-redir,chardev=usbredir0 " else "") +
+                "-boot c -no-reboot"
 
-    VmArch.AARCH64 -> {
-        require(!biosGuestPath.isNullOrBlank()) {
-            "aarch64 needs a UEFI firmware image: `-M virt` has no BIOS, so there is nothing to boot the disk"
+        VmArch.AARCH64 -> {
+            require(!biosGuestPath.isNullOrBlank()) {
+                "aarch64 needs a UEFI firmware image: `-M virt` has no BIOS, so there is nothing to boot the disk"
+            }
+            // `-cpu host` is KVM-only; TCG needs a concrete model, and `max` is the
+            // permissive one — an ARMv8.0 model (cortex-a57/a72) is refused by
+            // guest kernels built for newer baselines.
+            "exec qemu-system-aarch64 -M virt " +
+                (if (accel == Accel.KVM) "-enable-kvm -cpu host " else "-cpu $AARCH64_TCG_CPU ") +
+                "-m $memMb -smp $cpus -monitor none " +
+                "-bios $biosGuestPath " +
+                "-drive file=$diskGuestPath,if=virtio,format=$diskFormat " +
+                "-device virtio-gpu-pci -vnc 127.0.0.1:$display " +
+                "-device qemu-xhci -device usb-kbd -device usb-tablet " +
+                (if (usbRedirPort != null) "-chardev socket,id=usbredir0,host=127.0.0.1,port=$usbRedirPort -device usb-redir,chardev=usbredir0 " else "") +
+                "-netdev user,id=n0 -device virtio-net-pci,netdev=n0 " +
+                "-no-reboot"
         }
-        // `-cpu host` is KVM-only; TCG needs a concrete model, and `max` is the
-        // permissive one — an ARMv8.0 model (cortex-a57/a72) is refused by
-        // guest kernels built for newer baselines.
-        "exec qemu-system-aarch64 -M virt " +
-            (if (accel == Accel.KVM) "-enable-kvm -cpu host " else "-cpu $AARCH64_TCG_CPU ") +
-            "-m $memMb -smp $cpus -monitor none " +
-            "-bios $biosGuestPath " +
-            "-drive file=$diskGuestPath,if=virtio,format=$diskFormat " +
-            "-device virtio-gpu-pci -vnc 127.0.0.1:$display " +
-            "-device qemu-xhci -device usb-kbd -device usb-tablet " +
-            "-netdev user,id=n0 -device virtio-net-pci,netdev=n0 " +
-            "-no-reboot"
     }
 }
 
