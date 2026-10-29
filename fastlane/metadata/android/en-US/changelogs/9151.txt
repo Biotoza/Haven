@@ -1,0 +1,1 @@
+- Userspace SPICE `usbredir` server (`start_usbredir_export`, `stop_usbredir_export`, `list_usb_exports`) for attaching phone-connected USB devices directly to local or remote QEMU/KVM guests over TCP without root or `vhci_hcd`, including `usbfs` isochronous URB streaming and dynamic alternate-setting switching for UVC webcams and USB audio devices (#613).

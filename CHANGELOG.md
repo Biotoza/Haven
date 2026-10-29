@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.91.0
+
+- Userspace SPICE `usbredir` server (`start_usbredir_export`, `stop_usbredir_export`, `list_usb_exports`) for attaching phone-connected USB devices directly to local or remote QEMU/KVM guests over TCP without root or `vhci_hcd`, including `usbfs` isochronous URB streaming and dynamic alternate-setting switching for UVC webcams and USB audio devices (#613).
+
+- **Userspace SPICE `usbredir` server for QEMU/KVM USB forwarding (`#613`).**
+  - Added `UsbRedirProtocol`, `UsbRedirServer`, and `UsbfsIsoStreamer` in `:core:usb`, exposed through the `start_usbredir_export`, `stop_usbredir_export`, and `list_usb_exports` MCP tools (default TCP port `4000`, matching `usbredirserver`). A local or remote QEMU/KVM machine can attach a phone-connected USB device directly in userspace with `-device qemu-xhci -chardev socket,id=usbredir0,host=<host>,port=4000 -device usb-redir,chardev=usbredir0` (or over an unprivileged `ssh -R 4000:127.0.0.1:4000` reverse forward with `loopbackOnly=true`) without loading `vhci_hcd` or running `sudo usbip attach`.
+  - Negotiates `CAP_BULK_STREAMS`, `CAP_CONNECT_DEVICE_VERSION`, `CAP_FILTER`, `CAP_DEVICE_DISCONNECT_ACK`, `CAP_EP_INFO_MAX_PACKET_SIZE`, `CAP_64BITS_IDS`, and `CAP_BULK_LENGTH_32BITS`; supports USB mass-storage flash drives (32-bit bulk lengths + BOT `CLEAR_FEATURE(ENDPOINT_HALT)` STALL recovery), HID/FIDO security keys, and CDC/bulk devices.
+  - Supports UVC webcams and USB audio devices via `TYPE_SET_ALT_SETTING` / `TYPE_GET_ALT_SETTING` (selecting alternate settings through `UsbDeviceConnection.setInterface` + `USBDEVFS_SETINTERFACE` and re-emitting updated `TYPE_EP_INFO` tables) and continuous kernel-queued `usbfs` isochronous URB rings (`USBDEVFS_SUBMITURB` / `USBDEVFS_REAPURB` / `USBDEVFS_DISCARDURB` on `UsbDeviceConnection.fileDescriptor`) for `TYPE_START_ISO_STREAM` / `TYPE_STOP_ISO_STREAM` / `TYPE_ISO_PACKET`, plus lazy interface claiming for endpoint-recipient control requests (`SET_CUR(SAMPLING_FREQ_CONTROL)`).
+
 ## v5.90.1
 
 - One-tap X11 and PulseAudio forwarding toggles on SSH connections (#605), jump-host shell reopen race and passphrase deep-copy fix (#764), and Linux RDP slow-path input, multi-hop redirect chains, and IME diffing (#765).
