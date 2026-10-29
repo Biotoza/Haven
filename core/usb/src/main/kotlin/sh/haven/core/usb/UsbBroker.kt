@@ -441,6 +441,80 @@ class UsbBroker @Inject constructor(
         }
     }
 
+    /**
+     * Select alternate setting [altSetting] on interface [interfaceNumber] (e.g.
+     * switching a UVC webcam's VideoStreaming interface from idle `alt 0` to a
+     * high-bandwidth isochronous `alt 1..N`). Uses Android's
+     * [UsbDeviceConnection.setInterface] when the matching [UsbInterface] object
+     * is exposed, falling back to `USBDEVFS_SETINTERFACE` on the underlying `usbfs`
+     * file descriptor.
+     */
+    fun setInterfaceAltSetting(deviceName: String, interfaceNumber: Int, altSetting: Int) {
+        val handle = handleFor(deviceName)
+        claimInterfaceByNumber(handle, interfaceNumber)
+        val matchingAlt = (0 until handle.device.interfaceCount)
+            .map { handle.device.getInterface(it) }
+            .firstOrNull { it.id == interfaceNumber && it.alternateSetting == altSetting }
+        synchronized(handle.connection) {
+            if (matchingAlt != null && handle.connection.setInterface(matchingAlt)) {
+                return
+            }
+            val fd = handle.connection.fileDescriptor
+            if (fd >= 0) {
+                UsbfsIsoStreamer.setInterfaceAltSetting(fd, interfaceNumber, altSetting)
+            } else if (matchingAlt == null) {
+                throw IOException("Interface $interfaceNumber alt $altSetting not found on $deviceName")
+            }
+        }
+    }
+
+    /**
+     * Start a kernel-queued `usbfs` isochronous IN URB ring ([UsbfsIsoStreamer]) on
+     * [endpointAddress] of [deviceName], delivering each completed microframe to
+     * [onFrame]. Returns an [AutoCloseable] that discards in-flight URBs and stops
+     * the reaper thread.
+     */
+    fun startIsoInStream(
+        deviceName: String,
+        endpointAddress: Int,
+        packetSize: Int,
+        pktsPerUrb: Int,
+        noUrbs: Int,
+        onFrame: (status: Int, data: ByteArray) -> Unit,
+    ): AutoCloseable {
+        val handle = handleFor(deviceName)
+        runCatching {
+            val (iface, _) = locateEndpoint(handle.device, endpointAddress or 0x80)
+            claimInterfaceByNumber(handle, iface.id)
+        }
+        val fd = handle.connection.fileDescriptor
+        if (fd < 0) {
+            throw IOException("USB device $deviceName has no valid usbfs file descriptor for isochronous streaming")
+        }
+        return UsbfsIsoStreamer.startIsoInStream(
+            fd = fd,
+            endpointAddress = endpointAddress or 0x80,
+            packetSize = packetSize,
+            pktsPerUrb = pktsPerUrb,
+            noUrbs = noUrbs,
+            onFrame = onFrame,
+        )
+    }
+
+    /** Submit a single OUT isochronous packet on [endpointAddress] of [deviceName]. */
+    fun isoOutTransfer(deviceName: String, endpointAddress: Int, data: ByteArray) {
+        val handle = handleFor(deviceName)
+        runCatching {
+            val (iface, _) = locateEndpoint(handle.device, endpointAddress and 0x7F)
+            claimInterfaceByNumber(handle, iface.id)
+        }
+        val fd = handle.connection.fileDescriptor
+        if (fd < 0) {
+            throw IOException("USB device $deviceName has no valid usbfs file descriptor for isochronous OUT")
+        }
+        UsbfsIsoStreamer.submitIsoOut(fd, endpointAddress and 0x7F, data)
+    }
+
     companion object {
         private const val TAG = "UsbBroker"
         private const val PERMISSION_TIMEOUT_MS = 30_000L

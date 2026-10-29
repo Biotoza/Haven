@@ -245,6 +245,10 @@ object UsbRedirProtocol {
         val interfaces: List<InterfaceEntry>,
         /** 32 entries indexed by usbredir endpoint index (0..15 OUT, 16..31 IN). */
         val endpoints: List<EndpointEntry>,
+        /** Endpoints declared under each `(interfaceNumber, altSetting)` pair. */
+        val altSettingEndpoints: Map<Pair<Int, Int>, List<EndpointEntry>> = emptyMap(),
+        /** Currently active alternate setting per `interfaceNumber` (default 0). */
+        val activeAltSettings: Map<Int, Int> = emptyMap(),
     ) {
         /** True when [endpointAddress] belongs to a USB Mass Storage (0x08) interface. */
         fun isMassStorageEndpoint(endpointAddress: Int): Boolean {
@@ -253,6 +257,58 @@ object UsbRedirProtocol {
             if (ep.type == EP_TYPE_INVALID) return false
             val iface = interfaces.firstOrNull { it.interfaceNumber == ep.interfaceNumber } ?: return false
             return iface.interfaceClass == 0x08
+        }
+
+        /**
+         * Return a copy of [ParsedDeviceDescriptors] with [interfaceNumber] switched to
+         * [altSetting] and the 32-entry [endpoints] table rebuilt for the active
+         * alternate settings across all interfaces (matching `libusbredirhost`'s
+         * `SET_ALT_SETTING` -> `usb_redir_ep_info` update).
+         */
+        fun withAltSetting(interfaceNumber: Int, altSetting: Int): ParsedDeviceDescriptors {
+            val nextAlt = activeAltSettings.toMutableMap().apply { put(interfaceNumber, altSetting) }
+            if (altSettingEndpoints.isEmpty()) {
+                return copy(activeAltSettings = nextAlt)
+            }
+            val byIndex = HashMap<Int, EndpointEntry>()
+            for ((ifaceNum, _) in interfaces.map { it.interfaceNumber to 0 }) {
+                val activeAlt = nextAlt[ifaceNum] ?: 0
+                for (ep in altSettingEndpoints[ifaceNum to activeAlt].orEmpty()) {
+                    byIndex[ep.index] = ep
+                }
+            }
+            val rebuilt = (0 until 32).map { idx ->
+                if ((idx and 0x0F) == 0) {
+                    endpoints[idx]
+                } else {
+                    byIndex[idx] ?: EndpointEntry(
+                        index = idx,
+                        type = EP_TYPE_INVALID,
+                        interval = 0,
+                        interfaceNumber = 0,
+                        maxPacketSize = 0,
+                    )
+                }
+            }
+            return copy(endpoints = rebuilt, activeAltSettings = nextAlt)
+        }
+
+        /**
+         * Resolve the isochronous [EndpointEntry] for [endpointAddress], checking the
+         * currently active [endpoints] table first and falling back to the highest-bandwidth
+         * alternate setting that declares [endpointAddress].
+         */
+        fun resolveIsoEndpoint(endpointAddress: Int): EndpointEntry? {
+            val idx = endpointIndex(endpointAddress)
+            val active = endpoints.getOrNull(idx)
+            if (active != null && active.type == EP_TYPE_ISO && active.maxPacketSize > 0) {
+                return active
+            }
+            return altSettingEndpoints.values
+                .asSequence()
+                .flatten()
+                .filter { it.index == idx && it.type == EP_TYPE_ISO && it.maxPacketSize > 0 }
+                .maxByOrNull { it.maxPacketSize }
         }
     }
 
@@ -273,7 +329,7 @@ object UsbRedirProtocol {
         val ep0MaxPacket = u8(raw, 7)
         val rawConfig = if (raw.size > 18) raw.copyOfRange(18, raw.size) else ByteArray(0)
         // Strip CCID from composite FIDO+CCID security keys just like UsbIpServer so
-        // host pcscd cannot starve FIDO, while leaving mass-storage / CDC / etc. intact.
+        // host pcscd cannot starve FIDO, while leaving mass-storage / CDC / UVC / etc. intact.
         val config = UsbIpServer.filterToFidoInterface(rawConfig)
         val configValue = if (config.size >= 6 && u8(config, 1) == 0x02) u8(config, 5) else 1
 
@@ -298,6 +354,7 @@ object UsbRedirProtocol {
         }
 
         val interfaces = ArrayList<InterfaceEntry>()
+        val altSettingEndpoints = LinkedHashMap<Pair<Int, Int>, MutableList<EndpointEntry>>()
         var currentInterfaceNumber = 0
         var currentAltSetting = 0
         var i = 0
@@ -309,6 +366,7 @@ object UsbRedirProtocol {
                 0x04 -> if (len >= 9) { // INTERFACE descriptor
                     currentInterfaceNumber = u8(config, i + 2)
                     currentAltSetting = u8(config, i + 3)
+                    altSettingEndpoints.getOrPut(currentInterfaceNumber to currentAltSetting) { ArrayList() }
                     if (currentAltSetting == 0 && interfaces.size < 32 &&
                         interfaces.none { it.interfaceNumber == currentInterfaceNumber }
                     ) {
@@ -322,22 +380,39 @@ object UsbRedirProtocol {
                         )
                     }
                 }
-                0x05 -> if (len >= 7 && currentAltSetting == 0) { // ENDPOINT descriptor
+                0x05 -> if (len >= 7) { // ENDPOINT descriptor
                     val addr = u8(config, i + 2)
                     val attributes = u8(config, i + 3)
                     val rawMps = u16le(config, i + 4)
-                    val interval = u8(config, i + 6)
+                    val rawInterval = u8(config, i + 6)
                     val idx = endpointIndex(addr)
                     val xferType = attributes and 0x03
+                    val interval = if ((xferType == EP_TYPE_ISO || xferType == EP_TYPE_INTERRUPT) && rawInterval == 0) {
+                        1
+                    } else {
+                        rawInterval
+                    }
                     var mps = rawMps and 0x07FF
-                    if (speed == SPEED_HIGH && xferType == EP_TYPE_ISO) {
+                    if (speed == SPEED_HIGH && (xferType == EP_TYPE_ISO || xferType == EP_TYPE_INTERRUPT)) {
                         val mult = (rawMps shr 11) and 0x03
                         if (mult == 1) mps *= 2 else if (mult == 2) mps *= 3
                     }
-                    epTypes[idx] = xferType
-                    epIntervals[idx] = interval
-                    epInterfaces[idx] = currentInterfaceNumber
-                    epMaxPacketSizes[idx] = mps
+                    val entry = EndpointEntry(
+                        index = idx,
+                        type = xferType,
+                        interval = interval,
+                        interfaceNumber = currentInterfaceNumber,
+                        maxPacketSize = mps,
+                    )
+                    altSettingEndpoints
+                        .getOrPut(currentInterfaceNumber to currentAltSetting) { ArrayList() }
+                        .add(entry)
+                    if (currentAltSetting == 0) {
+                        epTypes[idx] = xferType
+                        epIntervals[idx] = interval
+                        epInterfaces[idx] = currentInterfaceNumber
+                        epMaxPacketSizes[idx] = mps
+                    }
                 }
             }
             i += len
@@ -364,6 +439,8 @@ object UsbRedirProtocol {
             configurationValue = configValue,
             interfaces = interfaces,
             endpoints = endpoints,
+            altSettingEndpoints = altSettingEndpoints,
+            activeAltSettings = interfaces.associate { it.interfaceNumber to 0 },
         )
     }
 
@@ -660,6 +737,76 @@ object UsbRedirProtocol {
             System.arraycopy(trailing, 0, payload, 4, trailing.size)
         }
         return encodePacket(TYPE_INTERRUPT_PACKET, id, payload, use64BitIds)
+    }
+
+    /**
+     * `usb_redir_start_iso_stream_header` (3 bytes):
+     *  - offset 0: `endpoint` (uint8)
+     *  - offset 1: `pkts_per_urb` (uint8)
+     *  - offset 2: `no_urbs` (uint8)
+     */
+    data class StartIsoStream(
+        val endpoint: Int,
+        val pktsPerUrb: Int,
+        val noUrbs: Int,
+    )
+
+    fun decodeStartIsoStream(payload: ByteArray): StartIsoStream {
+        val endpoint = if (payload.isNotEmpty()) payload[0].toInt() and 0xFF else 0
+        val pktsPerUrb = if (payload.size >= 2) payload[1].toInt() and 0xFF else 16
+        val noUrbs = if (payload.size >= 3) payload[2].toInt() and 0xFF else 4
+        return StartIsoStream(
+            endpoint = endpoint,
+            pktsPerUrb = pktsPerUrb.coerceIn(1, 64),
+            noUrbs = noUrbs.coerceIn(1, 16),
+        )
+    }
+
+    /**
+     * `usb_redir_iso_packet_header` (4 bytes):
+     *  - offset 0: `endpoint` (uint8)
+     *  - offset 1: `status` (uint8)
+     *  - offset 2: `length` (uint16 LE)
+     * Followed by `data` (present on Guest->Host OUT or Host->Guest IN).
+     */
+    data class IsoPacket(
+        val id: Long,
+        val endpoint: Int,
+        val status: Int,
+        val length: Int,
+        val data: ByteArray,
+    ) {
+        val isIn: Boolean get() = (endpoint and 0x80) != 0
+    }
+
+    fun decodeIsoPacket(id: Long, payload: ByteArray): IsoPacket {
+        require(payload.size >= 4) { "short usb_redir_iso_packet (${payload.size} bytes)" }
+        val endpoint = payload[0].toInt() and 0xFF
+        val status = payload[1].toInt() and 0xFF
+        val length = getUShortLE(payload, 2)
+        val data = if (payload.size > 4) payload.copyOfRange(4, payload.size) else ByteArray(0)
+        return IsoPacket(id, endpoint, status, length, data)
+    }
+
+    fun encodeIsoPacket(
+        id: Long,
+        endpoint: Int,
+        status: Int,
+        actualLength: Int,
+        inData: ByteArray,
+        use64BitIds: Boolean,
+    ): ByteArray {
+        val isIn = (endpoint and 0x80) != 0
+        val trailing = if (isIn && status == STATUS_SUCCESS) inData else ByteArray(0)
+        val reportedLen = if (isIn) trailing.size else if (status == STATUS_SUCCESS) actualLength else 0
+        val payload = ByteArray(4 + trailing.size)
+        payload[0] = endpoint.toByte()
+        payload[1] = status.toByte()
+        putShortLE(payload, 2, reportedLen and 0xFFFF)
+        if (trailing.isNotEmpty()) {
+            System.arraycopy(trailing, 0, payload, 4, trailing.size)
+        }
+        return encodePacket(TYPE_ISO_PACKET, id, payload, use64BitIds)
     }
 
     // ---- Little-endian primitive helpers ---------------------------------

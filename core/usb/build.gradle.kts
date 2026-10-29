@@ -26,9 +26,11 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)
+    implementation(libs.jna) { artifact { type = "aar" } }
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
+    testImplementation(libs.jna)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
 }

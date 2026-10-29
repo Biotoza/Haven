@@ -17,6 +17,7 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 class UsbRedirServerTest {
@@ -339,5 +340,235 @@ class UsbRedirServerTest {
         assertFalse(server.isRunning)
         assertEquals(0, server.boundPort)
         assertNull(server.exportedDevice)
+    }
+
+    /**
+     * Build a High-Speed UVC webcam descriptor set:
+     *  - Interface 0, alt 0: VideoControl (`class=0x0E, subclass=0x01`), 0 endpoints
+     *  - Interface 1, alt 0: VideoStreaming (`class=0x0E, subclass=0x02`), 0 endpoints (idle)
+     *  - Interface 1, alt 1: VideoStreaming (`class=0x0E, subclass=0x02`), 1 isochronous IN
+     *    endpoint `0x81` with high-bandwidth `wMaxPacketSize = 0x1400` (`1024 * 3 = 3072` bytes/uframe)
+     */
+    private fun sampleUvcWebcamDescriptors(): ByteArray {
+        val dev = byteArrayOf(
+            18, 0x01, 0x00, 0x02,
+            0xEF.toByte(), 0x02, 0x01, 64,
+            0x6D, 0x04, 0x25, 0x08, // 046d:0825
+            0x10, 0x00, 1, 2, 3, 1,
+        )
+        val totalConfigLen = 9 + 9 + 9 + 9 + 7
+        val cfg = byteArrayOf(
+            // CONFIGURATION (9B)
+            9, 0x02, totalConfigLen.toByte(), 0x00, 2, 1, 0, 0x80.toByte(), 250.toByte(),
+            // INTERFACE 0 alt 0: VideoControl (9B)
+            9, 0x04, 0, 0, 0, 0x0E, 0x01, 0x00, 0,
+            // INTERFACE 1 alt 0: VideoStreaming idle (9B, 0 endpoints)
+            9, 0x04, 1, 0, 0, 0x0E, 0x02, 0x00, 0,
+            // INTERFACE 1 alt 1: VideoStreaming active (9B, 1 endpoint)
+            9, 0x04, 1, 1, 1, 0x0E, 0x02, 0x00, 0,
+            // ENDPOINT 0x81 IN ISO, wMaxPacketSize = 0x1400 (1024 * 3 = 3072), bInterval = 1 (7B)
+            7, 0x05, 0x81.toByte(), 0x05, 0x00, 0x14, 1,
+        )
+        return dev + cfg
+    }
+
+    @Test
+    fun `UVC webcam alt-setting switch updates ep_info and streams isochronous IN frames`() {
+        val rawDesc = sampleUvcWebcamDescriptors()
+        val parsed = UsbRedirProtocol.parseDescriptors(rawDesc)
+        val isoEpIdx = UsbRedirProtocol.endpointIndex(0x81)
+        // At alt 0 (idle), endpoint 0x81 is not active in the initial ep_info table...
+        assertEquals(UsbRedirProtocol.EP_TYPE_INVALID, parsed.endpoints[isoEpIdx].type)
+        // ...but switching interface 1 to alt 1 activates endpoint 0x81 with high-bandwidth 3072 MPS.
+        val activeAlt1 = parsed.withAltSetting(interfaceNumber = 1, altSetting = 1)
+        assertEquals(UsbRedirProtocol.EP_TYPE_ISO, activeAlt1.endpoints[isoEpIdx].type)
+        assertEquals(3072, activeAlt1.endpoints[isoEpIdx].maxPacketSize)
+        assertEquals(1, activeAlt1.endpoints[isoEpIdx].interval)
+        assertEquals(1, activeAlt1.endpoints[isoEpIdx].interfaceNumber)
+
+        val clientToServerIn = PipedInputStream(65536)
+        val clientToServerOut = PipedOutputStream(clientToServerIn)
+        val serverToClientIn = PipedInputStream(65536)
+        val serverToClientOut = PipedOutputStream(serverToClientIn)
+
+        val selectedAlts = ArrayList<Pair<Int, Int>>()
+        var startedMps = 0
+        var startedPkts = 0
+        var startedUrbs = 0
+        val streamClosed = AtomicBoolean(false)
+        val frame1 = byteArrayOf(0x02, 0x82.toByte(), 0xAA.toByte(), 0xBB.toByte())
+        val frame2 = ByteArray(0) // 0-length UVC blanking microframe
+        val frame3 = byteArrayOf(0x02, 0x83.toByte(), 0xCC.toByte(), 0xDD.toByte(), 0xEE.toByte())
+
+        val backend = object : UsbIpBackend {
+            override fun isAlive(): Boolean = true
+            override fun control(requestType: Int, request: Int, value: Int, index: Int, out: ByteArray, length: Int, timeoutMs: Int) = ByteArray(0)
+            override fun bulk(endpointAddress: Int, out: ByteArray, length: Int, timeoutMs: Int) = ByteArray(0)
+            override fun setInterfaceAltSetting(interfaceNumber: Int, altSetting: Int) {
+                selectedAlts.add(interfaceNumber to altSetting)
+            }
+            override fun startIsoInStream(
+                endpointAddress: Int,
+                packetSize: Int,
+                pktsPerUrb: Int,
+                noUrbs: Int,
+                onFrame: (status: Int, data: ByteArray) -> Unit,
+            ): AutoCloseable {
+                startedMps = packetSize
+                startedPkts = pktsPerUrb
+                startedUrbs = noUrbs
+                onFrame(UsbRedirProtocol.STATUS_SUCCESS, frame1)
+                onFrame(UsbRedirProtocol.STATUS_SUCCESS, frame2)
+                onFrame(UsbRedirProtocol.STATUS_SUCCESS, frame3)
+                return AutoCloseable { streamClosed.set(true) }
+            }
+        }
+
+        val serverThread = Thread {
+            UsbRedirServer.serveStream(
+                input = clientToServerIn,
+                output = serverToClientOut,
+                rawDescriptors = rawDesc,
+                backend = backend,
+            )
+        }.apply { isDaemon = true; start() }
+
+        val din = DataInputStream(serverToClientIn)
+        // Handshake + initial announcement
+        assertEquals(UsbRedirProtocol.TYPE_HELLO, UsbRedirProtocol.readPacket(din, use64BitIds = false)!!.type)
+        clientToServerOut.write(UsbRedirProtocol.encodeHello(version = "qemu usb-redir guest", caps = UsbRedirProtocol.OUR_CAPS))
+        clientToServerOut.flush()
+        assertEquals(UsbRedirProtocol.TYPE_INTERFACE_INFO, UsbRedirProtocol.readPacket(din, use64BitIds = true)!!.type)
+        val initialEpInfo = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        assertEquals(UsbRedirProtocol.TYPE_EP_INFO, initialEpInfo.type)
+        assertEquals(UsbRedirProtocol.EP_TYPE_INVALID, initialEpInfo.payload[isoEpIdx].toInt() and 0xFF)
+        assertEquals(UsbRedirProtocol.TYPE_DEVICE_CONNECT, UsbRedirProtocol.readPacket(din, use64BitIds = true)!!.type)
+
+        // 1. Guest selects interface 1 alt 1 (UVC VideoStreaming high-bandwidth mode)
+        clientToServerOut.write(
+            UsbRedirProtocol.encodePacket(
+                type = UsbRedirProtocol.TYPE_SET_ALT_SETTING,
+                id = 50L,
+                payload = byteArrayOf(1, 1),
+                use64BitIds = true,
+            ),
+        )
+        clientToServerOut.flush()
+
+        // Server must emit updated TYPE_EP_INFO (5) followed by TYPE_ALT_SETTING_STATUS (11)
+        val updatedEpInfo = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        assertEquals(UsbRedirProtocol.TYPE_EP_INFO, updatedEpInfo.type)
+        assertEquals(UsbRedirProtocol.EP_TYPE_ISO, updatedEpInfo.payload[isoEpIdx].toInt() and 0xFF)
+        assertEquals(3072, UsbRedirProtocol.getUShortLE(updatedEpInfo.payload, 96 + isoEpIdx * 2))
+
+        val altStatus = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        assertEquals(UsbRedirProtocol.TYPE_ALT_SETTING_STATUS, altStatus.type)
+        assertEquals(50L, altStatus.id)
+        assertArrayEquals(byteArrayOf(UsbRedirProtocol.STATUS_SUCCESS.toByte(), 1, 1), altStatus.payload)
+        assertEquals(listOf(1 to 1), selectedAlts)
+
+        // 2. Guest starts isochronous stream on 0x81 (pkts_per_urb=16, no_urbs=4)
+        clientToServerOut.write(
+            UsbRedirProtocol.encodePacket(
+                type = UsbRedirProtocol.TYPE_START_ISO_STREAM,
+                id = 51L,
+                payload = byteArrayOf(0x81.toByte(), 16, 4),
+                use64BitIds = true,
+            ),
+        )
+        clientToServerOut.flush()
+
+        val isoStatus = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        assertEquals(UsbRedirProtocol.TYPE_ISO_STREAM_STATUS, isoStatus.type)
+        assertEquals(51L, isoStatus.id)
+        assertArrayEquals(byteArrayOf(UsbRedirProtocol.STATUS_SUCCESS.toByte(), 0x81.toByte()), isoStatus.payload)
+        assertEquals(3072, startedMps)
+        assertEquals(16, startedPkts)
+        assertEquals(4, startedUrbs)
+
+        // 3. Receive the 3 streamed TYPE_ISO_PACKET (102) microframes in order
+        val recv1 = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        assertEquals(UsbRedirProtocol.TYPE_ISO_PACKET, recv1.type)
+        val dec1 = UsbRedirProtocol.decodeIsoPacket(recv1.id, recv1.payload)
+        assertEquals(0x81, dec1.endpoint)
+        assertEquals(UsbRedirProtocol.STATUS_SUCCESS, dec1.status)
+        assertArrayEquals(frame1, dec1.data)
+
+        val recv2 = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        val dec2 = UsbRedirProtocol.decodeIsoPacket(recv2.id, recv2.payload)
+        assertEquals(0, dec2.length)
+        assertEquals(0, dec2.data.size)
+
+        val recv3 = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        val dec3 = UsbRedirProtocol.decodeIsoPacket(recv3.id, recv3.payload)
+        assertArrayEquals(frame3, dec3.data)
+
+        // 4. Guest stops the isochronous stream
+        clientToServerOut.write(
+            UsbRedirProtocol.encodePacket(
+                type = UsbRedirProtocol.TYPE_STOP_ISO_STREAM,
+                id = 52L,
+                payload = byteArrayOf(0x81.toByte()),
+                use64BitIds = true,
+            ),
+        )
+        clientToServerOut.flush()
+
+        val stopStatus = UsbRedirProtocol.readPacket(din, use64BitIds = true)!!
+        assertEquals(UsbRedirProtocol.TYPE_ISO_STREAM_STATUS, stopStatus.type)
+        assertEquals(52L, stopStatus.id)
+        assertTrue(streamClosed.get())
+
+        clientToServerOut.close()
+        serverThread.join(2_000)
+    }
+
+    @Test
+    fun `UsbfsIsoStreamer packs 64-bit usbdevfs_urb and drains reaped iso frames`() {
+        val mps = 1024
+        val numPackets = 3
+        val urbMem = com.sun.jna.Memory((UsbfsIsoStreamer.URB_BASE_SIZE + numPackets * UsbfsIsoStreamer.ISO_PACKET_DESC_SIZE).toLong())
+        val dataBuf = com.sun.jna.Memory((mps * numPackets).toLong())
+
+        UsbfsIsoStreamer.initIsoUrb(urbMem, dataBuf, endpointAddress = 0x81, packetSize = mps, numPackets = numPackets, urbIndex = 2)
+        assertEquals(UsbfsIsoStreamer.USBDEVFS_URB_TYPE_ISO, urbMem.getByte(UsbfsIsoStreamer.OFF_TYPE))
+        assertEquals(0x81.toByte(), urbMem.getByte(UsbfsIsoStreamer.OFF_ENDPOINT))
+        assertEquals(UsbfsIsoStreamer.USBDEVFS_URB_ISO_ASAP, urbMem.getInt(UsbfsIsoStreamer.OFF_FLAGS))
+        assertEquals(mps * numPackets, urbMem.getInt(UsbfsIsoStreamer.OFF_BUFFER_LENGTH))
+        assertEquals(numPackets, urbMem.getInt(UsbfsIsoStreamer.OFF_NUMBER_OF_PACKETS))
+
+        // Simulate kernel filling frame 0 (4 bytes, status=0), frame 1 (0 bytes, status=-18 EXDEV), frame 2 (3 bytes, status=0)
+        val p0 = byteArrayOf(0x11, 0x22, 0x33, 0x44)
+        val p2 = byteArrayOf(0x55, 0x66, 0x77)
+        dataBuf.write(0L, p0, 0, p0.size)
+        dataBuf.write((2 * mps).toLong(), p2, 0, p2.size)
+
+        val d0 = UsbfsIsoStreamer.OFF_ISO_FRAME_DESC
+        urbMem.setInt(d0 + 4L, p0.size)
+        urbMem.setInt(d0 + 8L, 0)
+
+        val d1 = d0 + UsbfsIsoStreamer.ISO_PACKET_DESC_SIZE
+        urbMem.setInt(d1 + 4L, 0)
+        urbMem.setInt(d1 + 8L, -18) // -EXDEV missed microframe -> mapped to STATUS_SUCCESS (0 bytes)
+
+        val d2 = d1 + UsbfsIsoStreamer.ISO_PACKET_DESC_SIZE
+        urbMem.setInt(d2 + 4L, p2.size)
+        urbMem.setInt(d2 + 8L, 0)
+
+        val drained = ArrayList<Pair<Int, ByteArray>>()
+        UsbfsIsoStreamer.drainReapedIsoUrb(urbMem, dataBuf, mps, numPackets) { st, bytes ->
+            drained.add(st to bytes)
+        }
+        assertEquals(3, drained.size)
+        assertEquals(UsbRedirProtocol.STATUS_SUCCESS, drained[0].first)
+        assertArrayEquals(p0, drained[0].second)
+        assertEquals(UsbRedirProtocol.STATUS_SUCCESS, drained[1].first)
+        assertEquals(0, drained[1].second.size)
+        assertEquals(UsbRedirProtocol.STATUS_SUCCESS, drained[2].first)
+        assertArrayEquals(p2, drained[2].second)
+
+        UsbfsIsoStreamer.prepareIsoUrbForResubmit(urbMem, mps, numPackets)
+        assertEquals(0, urbMem.getInt(d0 + 4L))
+        assertEquals(0, urbMem.getInt(d1 + 8L))
     }
 }

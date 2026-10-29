@@ -193,7 +193,7 @@ class UsbRedirServer @Inject constructor(
             transferTimeoutMs: Int = TRANSFER_TIMEOUT_MS,
             inPollMs: Int = IN_POLL_MS,
         ) {
-            val desc = UsbRedirProtocol.parseDescriptors(rawDescriptors)
+            var desc = UsbRedirProtocol.parseDescriptors(rawDescriptors)
             val din = DataInputStream(input)
             val dout = DataOutputStream(output)
             val writeLock = Any()
@@ -231,13 +231,14 @@ class UsbRedirServer @Inject constructor(
                 dout.flush()
             }
 
-            // 3. Per-endpoint executor lanes and cancellation / interrupt state.
+            // 3. Per-endpoint executor lanes and cancellation / interrupt / iso state.
             val lanes = ConcurrentHashMap<Int, java.util.concurrent.ExecutorService>()
             fun laneFor(endpointAddress: Int): java.util.concurrent.ExecutorService =
                 lanes.getOrPut(endpointAddress and 0xFF) { Executors.newSingleThreadExecutor() }
 
             val cancelled = ConcurrentHashMap.newKeySet<Long>()
             val interruptReceivingActive = ConcurrentHashMap.newKeySet<Int>()
+            val isoStreams = ConcurrentHashMap<Int, AutoCloseable>()
             val altSettings = ConcurrentHashMap<Int, Int>()
             var activeConfig = desc.configurationValue
 
@@ -252,6 +253,8 @@ class UsbRedirServer @Inject constructor(
                     when (pkt.type) {
                         UsbRedirProtocol.TYPE_RESET -> {
                             interruptReceivingActive.clear()
+                            isoStreams.values.forEach { runCatching { it.close() } }
+                            isoStreams.clear()
                         }
 
                         UsbRedirProtocol.TYPE_SET_CONFIGURATION -> {
@@ -281,16 +284,43 @@ class UsbRedirServer @Inject constructor(
                         UsbRedirProtocol.TYPE_SET_ALT_SETTING -> {
                             val iface = if (pkt.payload.isNotEmpty()) pkt.payload[0].toInt() and 0xFF else 0
                             val alt = if (pkt.payload.size >= 2) pkt.payload[1].toInt() and 0xFF else 0
-                            altSettings[iface] = alt
-                            sendPacket(
-                                UsbRedirProtocol.encodeAltSettingStatus(
-                                    id = pkt.id,
-                                    status = UsbRedirProtocol.STATUS_SUCCESS,
-                                    interfaceNumber = iface,
-                                    alt = alt,
-                                    use64BitIds = use64BitIds,
-                                ),
-                            )
+                            val status = try {
+                                backend.setInterfaceAltSetting(iface, alt)
+                                UsbRedirProtocol.STATUS_SUCCESS
+                            } catch (e: Exception) {
+                                Log.w(TAG, "setInterfaceAltSetting(iface=$iface, alt=$alt) failed: ${e.message}")
+                                UsbRedirProtocol.STATUS_STALLED
+                            }
+                            if (status == UsbRedirProtocol.STATUS_SUCCESS) {
+                                altSettings[iface] = alt
+                                desc = desc.withAltSetting(iface, alt)
+                                synchronized(writeLock) {
+                                    // Match libusbredirhost: send updated ep_info for the new
+                                    // alternate setting before alt_setting_status so the guest
+                                    // sees the newly active isochronous/interrupt endpoints.
+                                    dout.write(UsbRedirProtocol.encodeEpInfo(desc, negotiatedCaps, use64BitIds))
+                                    dout.write(
+                                        UsbRedirProtocol.encodeAltSettingStatus(
+                                            id = pkt.id,
+                                            status = status,
+                                            interfaceNumber = iface,
+                                            alt = alt,
+                                            use64BitIds = use64BitIds,
+                                        ),
+                                    )
+                                    dout.flush()
+                                }
+                            } else {
+                                sendPacket(
+                                    UsbRedirProtocol.encodeAltSettingStatus(
+                                        id = pkt.id,
+                                        status = status,
+                                        interfaceNumber = iface,
+                                        alt = altSettings[iface] ?: 0,
+                                        use64BitIds = use64BitIds,
+                                    ),
+                                )
+                            }
                         }
 
                         UsbRedirProtocol.TYPE_GET_ALT_SETTING -> {
@@ -360,19 +390,76 @@ class UsbRedirServer @Inject constructor(
                         }
 
                         UsbRedirProtocol.TYPE_START_ISO_STREAM -> {
-                            val ep = if (pkt.payload.isNotEmpty()) pkt.payload[0].toInt() and 0xFF else 0
-                            sendPacket(
-                                UsbRedirProtocol.encodeIsoStreamStatus(
-                                    id = pkt.id,
-                                    status = UsbRedirProtocol.STATUS_INVAL,
-                                    endpoint = ep,
-                                    use64BitIds = use64BitIds,
-                                ),
-                            )
+                            val startIso = UsbRedirProtocol.decodeStartIsoStream(pkt.payload)
+                            val ep = startIso.endpoint
+                            isoStreams.remove(ep)?.let { runCatching { it.close() } }
+                            if ((ep and 0x80) != 0) {
+                                val epEntry = desc.resolveIsoEndpoint(ep)
+                                val mps = epEntry?.maxPacketSize?.takeIf { it > 0 } ?: 1024
+                                val earlyFrames = ArrayList<ByteArray>()
+                                var statusSent = false
+                                val streamLock = Any()
+                                val status = try {
+                                    val handle = backend.startIsoInStream(
+                                        endpointAddress = ep,
+                                        packetSize = mps,
+                                        pktsPerUrb = startIso.pktsPerUrb,
+                                        noUrbs = startIso.noUrbs,
+                                    ) { frameStatus, frameData ->
+                                        val isoPkt = UsbRedirProtocol.encodeIsoPacket(
+                                            id = 0L,
+                                            endpoint = ep,
+                                            status = frameStatus,
+                                            actualLength = frameData.size,
+                                            inData = frameData,
+                                            use64BitIds = use64BitIds,
+                                        )
+                                        synchronized(streamLock) {
+                                            if (!statusSent) {
+                                                earlyFrames.add(isoPkt)
+                                                return@startIsoInStream
+                                            }
+                                        }
+                                        runCatching { sendPacket(isoPkt) }
+                                    }
+                                    isoStreams[ep] = handle
+                                    UsbRedirProtocol.STATUS_SUCCESS
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "startIsoInStream(ep=0x${ep.toString(16)}) failed: ${e.message}")
+                                    UsbRedirProtocol.STATUS_INVAL
+                                }
+                                synchronized(streamLock) {
+                                    sendPacket(
+                                        UsbRedirProtocol.encodeIsoStreamStatus(
+                                            id = pkt.id,
+                                            status = status,
+                                            endpoint = ep,
+                                            use64BitIds = use64BitIds,
+                                        ),
+                                    )
+                                    statusSent = true
+                                    if (status == UsbRedirProtocol.STATUS_SUCCESS) {
+                                        for (frame in earlyFrames) {
+                                            runCatching { sendPacket(frame) }
+                                        }
+                                    }
+                                    earlyFrames.clear()
+                                }
+                            } else {
+                                sendPacket(
+                                    UsbRedirProtocol.encodeIsoStreamStatus(
+                                        id = pkt.id,
+                                        status = UsbRedirProtocol.STATUS_SUCCESS,
+                                        endpoint = ep,
+                                        use64BitIds = use64BitIds,
+                                    ),
+                                )
+                            }
                         }
 
                         UsbRedirProtocol.TYPE_STOP_ISO_STREAM -> {
                             val ep = if (pkt.payload.isNotEmpty()) pkt.payload[0].toInt() and 0xFF else 0
+                            isoStreams.remove(ep)?.let { runCatching { it.close() } }
                             sendPacket(
                                 UsbRedirProtocol.encodeIsoStreamStatus(
                                     id = pkt.id,
@@ -449,6 +536,15 @@ class UsbRedirServer @Inject constructor(
                             }
                         }
 
+                        UsbRedirProtocol.TYPE_ISO_PACKET -> {
+                            val iso = UsbRedirProtocol.decodeIsoPacket(pkt.id, pkt.payload)
+                            if (!iso.isIn && iso.data.isNotEmpty()) {
+                                laneFor(iso.endpoint).execute {
+                                    runCatching { backend.isoOut(iso.endpoint, iso.data) }
+                                }
+                            }
+                        }
+
                         UsbRedirProtocol.TYPE_INTERRUPT_PACKET -> {
                             val intr = UsbRedirProtocol.decodeInterruptPacket(pkt.id, pkt.payload)
                             laneFor(intr.endpoint).execute {
@@ -469,6 +565,8 @@ class UsbRedirServer @Inject constructor(
                 }
             } finally {
                 interruptReceivingActive.clear()
+                isoStreams.values.forEach { runCatching { it.close() } }
+                isoStreams.clear()
                 lanes.values.forEach { it.shutdownNow() }
             }
         }

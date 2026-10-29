@@ -306,20 +306,30 @@ class UsbIpServer @Inject constructor(
          */
         internal fun detectSpeed(config: ByteArray, ep0MaxPacket: Int): Int {
             var i = 0
-            var maxPkt = 0
+            var maxBulkPkt = 0
+            var hasHighSpeedEp = false
+            var hasSsCompanion = false
             while (i + 1 < config.size) {
                 val len = config[i].toInt() and 0xFF
-                if (len < 2) break
+                if (len < 2 || i + len > config.size) break
                 val type = config[i + 1].toInt() and 0xFF
-                if (type == 0x05 && i + 5 < config.size) { // ENDPOINT descriptor
-                    val mps = ((config[i + 4].toInt() and 0xFF) or
-                        ((config[i + 5].toInt() and 0xFF) shl 8)) and 0x7FF // bits 0-10 = size
-                    if (mps > maxPkt) maxPkt = mps
+                if (type == 0x05 && len >= 6 && i + 5 < config.size) { // ENDPOINT descriptor
+                    val xferType = config[i + 3].toInt() and 0x03
+                    val rawMps = (config[i + 4].toInt() and 0xFF) or
+                        ((config[i + 5].toInt() and 0xFF) shl 8)
+                    val mps = rawMps and 0x7FF // bits 0-10 = size
+                    val mult = (rawMps ushr 11) and 0x03
+                    if (xferType == 0x02 && mps > maxBulkPkt) maxBulkPkt = mps
+                    if (mps >= 512 || mult > 0 || (xferType == 0x03 && mps > 64)) {
+                        hasHighSpeedEp = true
+                    }
+                } else if (type == 0x30) { // USB_DT_SS_ENDPOINT_COMP
+                    hasSsCompanion = true
                 }
                 i += len
             }
-            if (maxPkt >= 1024 || ep0MaxPacket == 9) return USB_SPEED_SUPER
-            return if (maxPkt >= 512) USB_SPEED_HIGH else USB_SPEED_FULL
+            if (maxBulkPkt >= 1024 || ep0MaxPacket == 9 || hasSsCompanion) return USB_SPEED_SUPER
+            return if (hasHighSpeedEp) USB_SPEED_HIGH else USB_SPEED_FULL
         }
 
         private const val TAG = "UsbIpServer"
@@ -466,6 +476,29 @@ interface UsbIpBackend {
     /** Bulk/interrupt on the full endpoint address; returns IN data (empty for OUT). Throws on failure. */
     fun bulk(endpointAddress: Int, out: ByteArray, length: Int, timeoutMs: Int): ByteArray
 
+    /** Select [altSetting] on [interfaceNumber] (e.g. UVC VideoStreaming interface). */
+    fun setInterfaceAltSetting(interfaceNumber: Int, altSetting: Int) {}
+
+    /**
+     * Start an isochronous IN URB ring on [endpointAddress] with [noUrbs] URBs of
+     * [pktsPerUrb] packets (`[packetSize]` bytes each), delivering completed frames to
+     * [onFrame]. Throws if isochronous streaming is unavailable on this backend.
+     */
+    fun startIsoInStream(
+        endpointAddress: Int,
+        packetSize: Int,
+        pktsPerUrb: Int,
+        noUrbs: Int,
+        onFrame: (status: Int, data: ByteArray) -> Unit,
+    ): AutoCloseable {
+        throw UnsupportedOperationException("Isochronous IN streaming not supported by this backend")
+    }
+
+    /** Submit a single OUT isochronous packet on [endpointAddress]. */
+    fun isoOut(endpointAddress: Int, out: ByteArray) {
+        throw UnsupportedOperationException("Isochronous OUT not supported by this backend")
+    }
+
     /** False once the device handle is gone (unplug / re-enumeration), so standing polls bail. */
     fun isAlive(): Boolean
 }
@@ -477,6 +510,29 @@ class BrokerBackend(private val broker: UsbBroker, private val deviceName: Strin
 
     override fun bulk(endpointAddress: Int, out: ByteArray, length: Int, timeoutMs: Int): ByteArray =
         broker.bulkTransfer(deviceName, endpointAddress, out, length, timeoutMs).data
+
+    override fun setInterfaceAltSetting(interfaceNumber: Int, altSetting: Int) {
+        broker.setInterfaceAltSetting(deviceName, interfaceNumber, altSetting)
+    }
+
+    override fun startIsoInStream(
+        endpointAddress: Int,
+        packetSize: Int,
+        pktsPerUrb: Int,
+        noUrbs: Int,
+        onFrame: (status: Int, data: ByteArray) -> Unit,
+    ): AutoCloseable = broker.startIsoInStream(
+        deviceName = deviceName,
+        endpointAddress = endpointAddress,
+        packetSize = packetSize,
+        pktsPerUrb = pktsPerUrb,
+        noUrbs = noUrbs,
+        onFrame = onFrame,
+    )
+
+    override fun isoOut(endpointAddress: Int, out: ByteArray) {
+        broker.isoOutTransfer(deviceName, endpointAddress, out)
+    }
 
     override fun isAlive(): Boolean = broker.isOpen(deviceName)
 }
