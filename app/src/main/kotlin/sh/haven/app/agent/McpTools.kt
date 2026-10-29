@@ -187,6 +187,8 @@ internal class McpTools(
     private val updateChecker: sh.haven.core.data.update.UpdateChecker =
         sh.haven.core.data.update.UpdateChecker(context, preferencesRepository),
     private val textRecognizer: sh.haven.core.scan.TextRecognizer? = null,
+    private val usbRedirServer: sh.haven.core.usb.UsbRedirServer =
+        sh.haven.core.usb.UsbRedirServer(usbBroker),
 ) {
 
     /**
@@ -290,6 +292,7 @@ internal class McpTools(
         usbProxyServer = usbProxyServer,
         preferencesRepository = preferencesRepository,
         localSessionManager = localSessionManager,
+        usbRedirServer = usbRedirServer,
     )
     /** Background scope for fire-and-forget installs. Survives the tool
      * call return so the agent can poll progress; SupervisorJob keeps
@@ -6297,6 +6300,14 @@ internal class McpTools(
                 if (n != null) put("busid", busidOf(n))
                 put("port", usbIpServer.boundPort ?: JSONObject.NULL)
                 put("clients", usbIpServer.clientCount)
+            }
+        }
+        // USB device → QEMU/SPICE guest (usbredir, #613)
+        if (usbRedirServer.isRunning) {
+            val n = usbRedirServer.exportedDeviceName
+            add(usbSource(n), "usb", "qemu-guest", "usbredir", "active") {
+                put("port", usbRedirServer.boundPort.takeIf { it > 0 } ?: JSONObject.NULL)
+                put("clients", usbRedirServer.clientCount)
             }
         }
         // USB device → Linux guest (haven-usb shim)

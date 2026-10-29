@@ -3,37 +3,54 @@ package sh.haven.feature.connections.usb
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.usb.UsbBroker
 import sh.haven.core.usb.UsbIpServer
+import sh.haven.core.usb.UsbRedirServer
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Auto-forwards a phone-attached USB device to a connected SSH host over USB/IP
- * (Slice 1 of the USB/IP feature). On connect: resolve the profile's VID:PID to
- * the live device, open it, start the userspace [UsbIpServer] on loopback,
- * register a remote port-forward for the usbip port, and best-effort `usbip
- * attach` on the remote so the device appears there as a real node — the touch
- * stays on the phone. On teardown: drop the forward (which detaches the remote
- * device as its usbip socket closes), stop the server, and close the device.
+ * Copyable QEMU command-line snippet for attaching a forwarded USB device via
+ * SPICE `usbredir` over the SSH reverse forward (`127.0.0.1:4000` on the remote
+ * host, #613).
+ */
+const val SSH_USBREDIR_QEMU_ARGS =
+    "-device qemu-xhci -chardev socket,id=usbredir0,host=127.0.0.1,port=4000 -device usb-redir,chardev=usbredir0"
+
+/**
+ * Auto-forwards a phone-attached USB device to a connected SSH host over both
+ * USB/IP (`:3240`) and SPICE `usbredir` (`:4000`, #613). On connect: resolve
+ * the profile's VID:PID to the live device, open it, start the userspace
+ * [UsbIpServer] and [UsbRedirServer] on loopback, register remote port-forwards
+ * for both ports, and best-effort `usbip attach` on the remote so the device
+ * appears there as a real node (or can be attached directly to a remote QEMU/KVM
+ * guest over `usbredir` without root on the host). On teardown: drop both
+ * forwards, stop both servers, and close the device.
  *
- * The `-R` is registered through [SshSessionManager.applyPortForwards] (not a raw
- * `setPortForwardingR`) so it lands in the session's `activeForwards` and a silent
- * SSH reconnect re-binds it automatically — important for the remote-over-4G use
- * case where the tunnel drops often. It's non-critical: a failed re-bind never
+ * The `-R` rules are registered through [SshSessionManager.applyPortForwards] (not a raw
+ * `setPortForwardingR`) so they land in the session's `activeForwards` and a silent
+ * SSH reconnect re-binds them automatically — important for the remote-over-4G use
+ * case where the tunnel drops often. They are non-critical: a failed re-bind never
  * fails the user's SSH (re)connect, the export is just reported down. A
  * per-session reconnect hook re-runs the host `usbip attach` each time the tunnel
  * comes back, since the device node on the host vanishes when the tunnel drops.
  *
- * One forwarded device at a time (the YubiKey case). [server] is the shared DI
- * singleton, so this never fights the MCP `start_usbip_export` path for the port.
+ * One forwarded device at a time. [server] and [redirServer] are the shared DI
+ * singletons, so this never fights the MCP `start_usbip_export` /
+ * `start_usbredir_export` paths for the ports.
  */
 @Singleton
 class UsbipConnectionForwarder @Inject constructor(
     private val broker: UsbBroker,
     private val server: UsbIpServer,
+    private val redirServer: UsbRedirServer,
     private val sessions: SshSessionManager,
 ) {
     /** A live forward, returned by [attach] and handed back to [teardown]. */
-    data class Handle(val deviceName: String, val busid: String, val remotePort: Int)
+    data class Handle(
+        val deviceName: String,
+        val busid: String,
+        val remotePort: Int,
+        val redirPort: Int = UsbRedirServer.DEFAULT_PORT,
+    )
 
     /**
      * Attached phone USB devices as `(vidPid, label)` for the connection-settings
@@ -67,20 +84,24 @@ class UsbipConnectionForwarder @Inject constructor(
         return try {
             broker.openDevice(dev.deviceName)
             val port = server.start(dev.deviceName, bindAddress = LOOPBACK)
+            val redirPort = redirServer.start(dev.deviceName, bindAddress = LOOPBACK)
             val busid = busidOf(dev.deviceName)
-            // Register the -R via the session manager so it lands in activeForwards
-            // and a silent reconnect re-binds it. Non-critical: never fail the SSH
+            // Register the -R rules via the session manager so they land in activeForwards
+            // and a silent reconnect re-binds them. Non-critical: never fail the SSH
             // (re)connect on a USB bind failure.
-            sessions.applyPortForwards(sessionId, listOf(usbForward(port)))
+            sessions.applyPortForwards(sessionId, listOf(usbForward(port), usbRedirForward(redirPort)))
             // Re-run the host-side attach on every reconnect (the host's device
             // node went away when the tunnel dropped).
-            sessions.setOnReconnected(sessionId) { reattachOnHost(sessionId, dev.deviceName, busid, label, log) }
-            reattachOnHost(sessionId, dev.deviceName, busid, label, log)
-            Handle(dev.deviceName, busid, port)
+            sessions.setOnReconnected(sessionId) {
+                reattachOnHost(sessionId, dev.deviceName, busid, redirPort, label, log)
+            }
+            reattachOnHost(sessionId, dev.deviceName, busid, redirPort, label, log)
+            Handle(dev.deviceName, busid, port, redirPort)
         } catch (e: Exception) {
             log("USB forward: failed for $label — ${e.message}")
             sessions.setOnReconnected(sessionId, null)
             runCatching { server.stop() }
+            runCatching { redirServer.stop() }
             runCatching { broker.closeDevice(dev.deviceName) }
             null
         }
@@ -96,7 +117,9 @@ class UsbipConnectionForwarder @Inject constructor(
         // the session manager so it uses the live (post-reconnect) client and
         // drops the rule from activeForwards.
         runCatching { sessions.removePortForward(sessionId, usbForward(handle.remotePort)) }
+        runCatching { sessions.removePortForward(sessionId, usbRedirForward(handle.redirPort)) }
         runCatching { server.stop() }
+        runCatching { redirServer.stop() }
         runCatching { broker.closeDevice(handle.deviceName) }
         log("USB forward: ${handle.busid} torn down")
     }
@@ -110,6 +133,7 @@ class UsbipConnectionForwarder @Inject constructor(
         sessionId: String,
         deviceName: String,
         busid: String,
+        redirPort: Int,
         label: String,
         log: suspend (String) -> Unit,
     ) {
@@ -128,12 +152,11 @@ class UsbipConnectionForwarder @Inject constructor(
             )
         }.getOrNull()
         if (attach?.stdout?.contains("rc=0") == true) {
-            log("USB forward: $label attached on the remote (busid $busid)")
+            log("USB forward: $label attached on the remote (busid $busid; QEMU usbredir on 127.0.0.1:$redirPort)")
         } else {
             log(
-                "USB forward: export + tunnel up for $label; run " +
-                    "`sudo usbip attach -r 127.0.0.1 -b $busid` on the host to bind it " +
-                    "(passwordless sudo for usbip unavailable)",
+                "USB forward: export + tunnel up for $label (USB/IP busid $busid, QEMU usbredir 127.0.0.1:$redirPort); " +
+                    "run `sudo usbip attach -r 127.0.0.1 -b $busid` on the host or attach QEMU to 127.0.0.1:$redirPort",
             )
         }
     }
@@ -141,6 +164,18 @@ class UsbipConnectionForwarder @Inject constructor(
     /** The non-critical REMOTE forward rule for the usbip [port] (loopback both ends). */
     private fun usbForward(port: Int) = SshSessionManager.PortForwardInfo(
         ruleId = USB_RULE_ID,
+        type = SshSessionManager.PortForwardType.REMOTE,
+        bindAddress = LOOPBACK,
+        bindPort = port,
+        targetHost = LOOPBACK,
+        targetPort = port,
+        critical = false,
+        selfHealOnBindFailure = false,
+    )
+
+    /** The non-critical REMOTE forward rule for the usbredir [port] (loopback both ends). */
+    private fun usbRedirForward(port: Int) = SshSessionManager.PortForwardInfo(
+        ruleId = USBREDIR_RULE_ID,
         type = SshSessionManager.PortForwardType.REMOTE,
         bindAddress = LOOPBACK,
         bindPort = port,
@@ -161,5 +196,6 @@ class UsbipConnectionForwarder @Inject constructor(
     companion object {
         private const val LOOPBACK = "127.0.0.1"
         private const val USB_RULE_ID = "usbip-export"
+        private const val USBREDIR_RULE_ID = "usbredir-export"
     }
 }

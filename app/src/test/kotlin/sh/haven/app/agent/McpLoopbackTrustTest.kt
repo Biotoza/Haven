@@ -92,6 +92,7 @@ class McpLoopbackTrustTest {
             aiRouteRegistry = sh.haven.core.openai.AiRouteRegistry(),
             usbBroker = mockk<sh.haven.core.usb.UsbBroker>(relaxed = true),
             usbIpServer = mockk<sh.haven.core.usb.UsbIpServer>(relaxed = true),
+            usbRedirServer = mockk<sh.haven.core.usb.UsbRedirServer>(relaxed = true),
             usbDriveVmManager = mockk<sh.haven.app.usb.UsbDriveVmManager>(relaxed = true),
             umlRecoveryManager = mockk<sh.haven.app.usb.UmlRecoveryManager>(relaxed = true),
             presentationManager = sh.haven.core.data.agent.AgentPresentationManager(),

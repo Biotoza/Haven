@@ -2995,6 +2995,12 @@ fun ConnectionEditDialog(
                             }
                         }
                     }
+                    if (usbForwardVidPid != null) {
+                        Spacer(Modifier.height(4.dp))
+                        ForwardingExportSnippetRow(
+                            snippet = sh.haven.feature.connections.usb.SSH_USBREDIR_QEMU_ARGS,
+                        )
+                    }
 
                     // One-tap X11 & PulseAudio forwarding over SSH (#605) — persisted as
                     // HavenForwardX11 / HavenForwardPulseAudio directives in sshOptions.

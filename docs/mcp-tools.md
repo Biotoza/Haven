@@ -42,8 +42,8 @@ expand one for its description and arguments. The tag after each name is its
 consent level:
 
 - **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (77 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (67 tools).
-- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (92 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (68 tools).
+- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (93 tools).
 
 ## Sections
 
@@ -56,7 +56,7 @@ consent level:
 - [**Email**](#sec-email) — 15 tools
 - [**Linux guest (proot) & desktops**](#sec-linux) — 51 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
-- [**USB & host-device brokers**](#sec-usb) — 19 tools
+- [**USB & host-device brokers**](#sec-usb) — 21 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
 - [**Agent ↔ you (attention & self-drive)**](#sec-agent-you) — 13 tools
 - [**Agent endpoint, device & diagnostics**](#sec-agent-endpoint) — 17 tools
@@ -1973,7 +1973,7 @@ Build and send one fwknop SPA packet to a host without committing a profile or c
 
 <a id="sec-usb"></a>
 
-## USB & host-device brokers (19)
+## USB & host-device brokers (21)
 
 USB devices and drives, USB/IP export, the adb-over-VPN bridge, and adb pairing.
 
@@ -2043,7 +2043,7 @@ List phone-attached USB mass-storage drives (the candidates for open_usb_drive) 
 <details markdown="1">
 <summary><code>list_usb_exports</code> · no per-call prompt</summary>
 
-List active USB exports of phone-attached devices: the USB/IP server (start_usbip_export — to remote hosts) and the guest proxy (usb_attach_to_guest — to the local proot guest). Reports the exported device, busid/bound port, and whether a remote usbip client is currently attached. Read-only.
+List active USB exports of phone-attached devices: the USB/IP server (start_usbip_export — to remote Linux hosts), the SPICE usbredir server (start_usbredir_export — to remote or local QEMU/KVM guests), and the guest proxy (usb_attach_to_guest — to the local proot guest). Reports the exported device, busid/bound port, and whether a client is currently attached. Read-only.
 
 </details>
 
@@ -2088,11 +2088,31 @@ Start a userspace USB/IP server exporting a phone-attached USB device over TCP (
 </details>
 
 <details markdown="1">
+<summary><code>start_usbredir_export</code> · asks once per session</summary>
+
+Start a userspace SPICE usbredir server (#613) exporting a phone-attached USB device over TCP (default port 4000, matching usbredirserver) so a remote or local QEMU/KVM machine can attach it directly with `-device qemu-xhci -chardev socket,id=usbredir0,host=<host>,port=4000 -device usb-redir,chardev=usbredir0` without requiring root or vhci-hcd on the host. Supports USB mass-storage flash drives (32-bit bulk lengths + BOT STALL recovery), HID/FIDO keys, and CDC/bulk devices (isochronous webcam/audio streams are not supported). Opens the device (requesting permission if needed) and returns the bound port and QEMU command-line arguments. deviceName is optional when exactly one device is attached. Pass loopbackOnly:true to bind 127.0.0.1 only (for use with an SSH reverse forward or local QEMU inside the Linux distro).
+
+- `deviceName` (string) — deviceName from list_usb_devices; optional if only one device is attached.
+- `loopbackOnly` (boolean) — Bind 127.0.0.1 only (use behind an SSH tunnel or from local QEMU). Default false = all interfaces, LAN-reachable.
+- `port` (integer) — TCP port to listen on (default 4000, or 0 for an ephemeral port).
+
+</details>
+
+<details markdown="1">
 <summary><code>stop_usbip_export</code> · no per-call prompt</summary>
 
 Stop the USB/IP server started by start_usbip_export (closes the listening socket and any active client connection) and release the brokered USB device handle. Pass keepOpen:true to leave the handle open for a fast re-export.
 
 - `keepOpen` (boolean) — Leave the brokered device handle open for a fast re-export (default false = fully release it).
+
+</details>
+
+<details markdown="1">
+<summary><code>stop_usbredir_export</code> · no per-call prompt</summary>
+
+Stop the SPICE usbredir server started by start_usbredir_export (closes the listening socket and any active QEMU/SPICE client connection) and release the brokered USB device handle unless keepOpen:true or USB/IP is still exporting the same device.
+
+- `keepOpen` (boolean) — Leave the brokered device handle open for a fast re-export (default false = release it if not also exported over USB/IP).
 
 </details>
 

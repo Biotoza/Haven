@@ -13,16 +13,19 @@ import sh.haven.core.mcp.McpError
 import sh.haven.core.usb.UsbBroker
 import sh.haven.core.usb.UsbIpServer
 import sh.haven.core.usb.UsbProxyServer
+import sh.haven.core.usb.UsbRedirServer
 import sh.haven.app.usb.UsbDriveVmManager
 
 /**
  * The USB MCP tools (#mcp-backbone Stage 5, Layer E): enumerate/permission
  * USB devices and run control/bulk transfers ([UsbBroker]); expose a device
- * into the Linux guest (a loopback [UsbProxyServer] socket) or over USB/IP to
- * remote hosts ([UsbIpServer]); and open/unlock/close USB mass-storage drives
- * in a helper VM ([UsbDriveVmManager]). The device-label + device-JSON helpers
- * travel with it. [usbProxyServer] is shared with McpTools' list_bridges (the
- * Bridges registry), so the same instance is passed in rather than owned here.
+ * into the Linux guest (a loopback [UsbProxyServer] socket), over USB/IP to
+ * remote hosts ([UsbIpServer]), or over SPICE `usbredir` to remote/local
+ * QEMU/KVM guests ([UsbRedirServer], #613); and open/unlock/close USB
+ * mass-storage drives in a helper VM ([UsbDriveVmManager]). The device-label +
+ * device-JSON helpers travel with it. [usbProxyServer] is shared with McpTools'
+ * list_bridges (the Bridges registry), so the same instance is passed in rather
+ * than owned here.
  */
 internal class UsbToolProvider(
     private val usbBroker: UsbBroker,
@@ -32,6 +35,7 @@ internal class UsbToolProvider(
     private val usbProxyServer: UsbProxyServer,
     private val preferencesRepository: UserPreferencesRepository,
     private val localSessionManager: LocalSessionManager,
+    private val usbRedirServer: UsbRedirServer = UsbRedirServer(usbBroker),
 ) : ToolProvider {
 
     override fun tools(): Map<String, ToolHandler> = linkedMapOf(
@@ -120,8 +124,30 @@ internal class UsbToolProvider(
             consentLevel = ConsentLevel.NEVER,
         ) { args -> stopUsbipExport(args) },
 
+        "start_usbredir_export" to ToolHandler(
+            description = "Start a userspace SPICE usbredir server (#613) exporting a phone-attached USB device over TCP (default port 4000, matching usbredirserver) so a remote or local QEMU/KVM machine can attach it directly with `-device qemu-xhci -chardev socket,id=usbredir0,host=<host>,port=4000 -device usb-redir,chardev=usbredir0` without requiring root or vhci-hcd on the host. Supports USB mass-storage flash drives (32-bit bulk lengths + BOT STALL recovery), HID/FIDO keys, and CDC/bulk devices (isochronous webcam/audio streams are not supported). Opens the device (requesting permission if needed) and returns the bound port and QEMU command-line arguments. deviceName is optional when exactly one device is attached. Pass loopbackOnly:true to bind 127.0.0.1 only (for use with an SSH reverse forward or local QEMU inside the Linux distro).",
+            inputSchema = objectSchema {
+                string("deviceName", "deviceName from list_usb_devices; optional if only one device is attached.")
+                boolean("loopbackOnly", "Bind 127.0.0.1 only (use behind an SSH tunnel or from local QEMU). Default false = all interfaces, LAN-reachable.")
+                integer("port", "TCP port to listen on (default 4000, or 0 for an ephemeral port).")
+            },
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
+            summarise = { args ->
+                val n = args.optString("deviceName").ifBlank { "the attached USB device" }
+                "Export ${if (n.startsWith("/dev")) usbLabel(n) else n} over SPICE usbredir (QEMU)?"
+            },
+        ) { args -> startUsbRedirExport(args) },
+
+        "stop_usbredir_export" to ToolHandler(
+            description = "Stop the SPICE usbredir server started by start_usbredir_export (closes the listening socket and any active QEMU/SPICE client connection) and release the brokered USB device handle unless keepOpen:true or USB/IP is still exporting the same device.",
+            inputSchema = objectSchema {
+                boolean("keepOpen", "Leave the brokered device handle open for a fast re-export (default false = release it if not also exported over USB/IP).")
+            },
+            consentLevel = ConsentLevel.NEVER,
+        ) { args -> stopUsbRedirExport(args) },
+
         "list_usb_exports" to ToolHandler(
-            description = "List active USB exports of phone-attached devices: the USB/IP server (start_usbip_export — to remote hosts) and the guest proxy (usb_attach_to_guest — to the local proot guest). Reports the exported device, busid/bound port, and whether a remote usbip client is currently attached. Read-only.",
+            description = "List active USB exports of phone-attached devices: the USB/IP server (start_usbip_export — to remote Linux hosts), the SPICE usbredir server (start_usbredir_export — to remote or local QEMU/KVM guests), and the guest proxy (usb_attach_to_guest — to the local proot guest). Reports the exported device, busid/bound port, and whether a client is currently attached. Read-only.",
             inputSchema = emptyObjectSchema(),
             consentLevel = ConsentLevel.NEVER,
         ) { _ -> listUsbExports() },
@@ -441,10 +467,61 @@ internal class UsbToolProvider(
         val deviceName = usbIpServer.exportedDeviceName
         usbIpServer.stop()
         val keepOpen = args.optBoolean("keepOpen", false)
-        if (!keepOpen && deviceName != null) usbBroker.closeDevice(deviceName)
+        val stillUsedByRedir = usbRedirServer.isRunning && usbRedirServer.exportedDeviceName == deviceName
+        if (!keepOpen && !stillUsedByRedir && deviceName != null) usbBroker.closeDevice(deviceName)
         JSONObject().apply {
             put("stopped", true)
-            put("deviceReleased", !keepOpen && deviceName != null)
+            put("deviceReleased", !keepOpen && !stillUsedByRedir && deviceName != null)
+        }
+    }
+
+    private suspend fun startUsbRedirExport(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
+        val requested = args.optString("deviceName").takeIf { it.isNotBlank() }
+        val deviceName = requested ?: run {
+            val devices = usbBroker.listDevices()
+            when (devices.size) {
+                0 -> throw McpError(-32602, "No USB devices attached.")
+                1 -> devices.single().deviceName
+                else -> throw McpError(-32602, "Multiple USB devices attached — pass deviceName. Found: ${devices.joinToString { it.deviceName }}")
+            }
+        }
+        val info = try {
+            usbBroker.openDevice(deviceName)
+        } catch (e: Exception) {
+            throw McpError(-32603, "USB open failed: ${e.message}")
+        }
+        val loopbackOnly = args.optBoolean("loopbackOnly", false)
+        val requestedPort = args.optInt("port", UsbRedirServer.DEFAULT_PORT)
+        val bind = if (loopbackOnly) "127.0.0.1" else null
+        val port = try {
+            usbRedirServer.start(deviceName, port = requestedPort, bindAddress = bind)
+        } catch (e: Exception) {
+            throw McpError(-32603, "usbredir start failed: ${e.message}")
+        }
+        val hostPlaceholder = if (loopbackOnly) "127.0.0.1" else "<phone-ip>"
+        val qemuArgs = "-device qemu-xhci -chardev socket,id=usbredir0,host=$hostPlaceholder,port=$port -device usb-redir,chardev=usbredir0"
+        JSONObject().apply {
+            put("device", usbDeviceJson(info))
+            put("port", port)
+            put("bind", bind ?: "0.0.0.0")
+            put("qemuArgs", qemuArgs)
+            put(
+                "note",
+                "SPICE usbredir server bound on ${bind ?: "0.0.0.0"}:$port exporting ${info.vidPid}. " +
+                    "Pass qemuArgs to QEMU (or forward TCP port $port over SSH with `-R $port:127.0.0.1:$port` when loopbackOnly=true).",
+            )
+        }
+    }
+
+    private suspend fun stopUsbRedirExport(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
+        val deviceName = usbRedirServer.exportedDeviceName
+        usbRedirServer.stop()
+        val keepOpen = args.optBoolean("keepOpen", false)
+        val stillUsedByUsbip = usbIpServer.isRunning && usbIpServer.exportedDeviceName == deviceName
+        if (!keepOpen && !stillUsedByUsbip && deviceName != null) usbBroker.closeDevice(deviceName)
+        JSONObject().apply {
+            put("stopped", true)
+            put("deviceReleased", !keepOpen && !stillUsedByUsbip && deviceName != null)
         }
     }
 
@@ -465,6 +542,15 @@ internal class UsbToolProvider(
             put("clientAttached", usbIpServer.clientCount > 0)
             put("device", deviceFor(usbipName))
         }
+        val redirName = usbRedirServer.exportedDeviceName
+        val usbredir = JSONObject().apply {
+            put("running", usbRedirServer.isRunning)
+            put("deviceName", redirName ?: JSONObject.NULL)
+            put("boundPort", usbRedirServer.boundPort.takeIf { it > 0 } ?: JSONObject.NULL)
+            put("clientCount", usbRedirServer.clientCount)
+            put("clientAttached", usbRedirServer.clientCount > 0)
+            put("device", deviceFor(redirName))
+        }
         val proxyName = usbProxyServer.proxyDeviceName
         val proxy = JSONObject().apply {
             put("running", usbProxyServer.isRunning)
@@ -474,6 +560,7 @@ internal class UsbToolProvider(
         }
         JSONObject().apply {
             put("usbip", usbip)
+            put("usbredir", usbredir)
             put("proxy", proxy)
         }
     }

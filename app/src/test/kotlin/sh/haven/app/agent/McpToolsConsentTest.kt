@@ -1013,7 +1013,7 @@ class McpToolsConsentTest {
         assertEquals("list_usb_devices must be NEVER", ConsentLevel.NEVER, tools.consentFor("list_usb_devices")!!.level)
         for (name in listOf(
             "request_usb_permission", "usb_control_transfer", "usb_bulk_transfer",
-            "usb_attach_to_guest", "start_usbip_export", "open_usb_drive",
+            "usb_attach_to_guest", "start_usbip_export", "start_usbredir_export", "open_usb_drive",
             "unlock_usb_drive_partition", "delete_usb_appliance",
         )) {
             assertTrue("$name missing from definitions()", name in names)

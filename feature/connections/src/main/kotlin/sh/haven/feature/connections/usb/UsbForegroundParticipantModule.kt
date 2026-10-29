@@ -9,6 +9,7 @@ import sh.haven.core.ssh.ForegroundSessionInfo
 import sh.haven.core.ssh.ForegroundSessionParticipant
 import sh.haven.core.usb.UsbBroker
 import sh.haven.core.usb.UsbIpServer
+import sh.haven.core.usb.UsbRedirServer
 
 /**
  * Contributes USB/IP export cleanup to the foreground-session participant set.
@@ -30,11 +31,16 @@ import sh.haven.core.usb.UsbIpServer
 object UsbForegroundParticipantModule {
     @Provides
     @IntoSet
-    fun usb(broker: UsbBroker, server: UsbIpServer): ForegroundSessionParticipant =
+    fun usb(
+        broker: UsbBroker,
+        server: UsbIpServer,
+        redirServer: UsbRedirServer,
+    ): ForegroundSessionParticipant =
         object : ForegroundSessionParticipant {
             override val activeSessions: List<ForegroundSessionInfo> = emptyList()
             override fun disconnectAll() {
                 runCatching { server.stop() }
+                runCatching { redirServer.stop() }
                 runCatching { broker.closeAll() }
             }
         }

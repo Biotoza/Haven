@@ -5268,6 +5268,21 @@ class ConnectionsViewModel @Inject constructor(
             } else {
                 sshSessionManager.markJumpOpened(jumpSessionId)
             }
+            // #613: if the jump/carrier SSH profile has a forwarded USB device
+            // configured (e.g. a VNC/SPICE session tunneling through this SSH
+            // host to reach a QEMU/KVM guest), export it over USB/IP (:3240)
+            // and usbredir (:4000) on the carrier session too.
+            val jumpUsbVidPid = jumpProfile.usbForwardVidPid
+            if (!jumpUsbVidPid.isNullOrBlank() && !usbForwardHandles.containsKey(jumpSessionId)) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    if (sshSessionManager.getSession(jumpSessionId) == null) return@launch
+                    usbipForwarder.attach(jumpSessionId, jumpUsbVidPid) { msg ->
+                        userMessageBus.emit(
+                            sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+                        )
+                    }?.let { usbForwardHandles[jumpSessionId] = it }
+                }
+            }
             return jumpSessionId to false
         } catch (e: Exception) {
             // Auth failure (or anything else) used to leave the registered
@@ -6391,6 +6406,22 @@ class ConnectionsViewModel @Inject constructor(
         // VNC reused) it legitimately survives, so the SSH-teardown cascade
         // alone would leave the tab open over a now-detached tunnel (#121).
         sshSessionManager.teardownTunnelDependent(profileId)
+        // If tearing down a tunnel dependent closed a carrier jump session that
+        // held a USB forward (#613), clean up its forwarder handle too.
+        val liveSessionIds = sshSessionManager.sessions.value.keys
+        usbForwardHandles.keys.toList()
+            .filterNot { it in liveSessionIds }
+            .forEach { closedSessionId ->
+                usbForwardHandles.remove(closedSessionId)?.let { handle ->
+                    viewModelScope.launch(Dispatchers.IO) {
+                        usbipForwarder.teardown(closedSessionId, handle) { msg ->
+                            userMessageBus.emit(
+                                sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+                            )
+                        }
+                    }
+                }
+            }
         // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
         // to cascade through — close them via the tab's registered close
         // handle, matching McpTools.disconnectProfile (#437).

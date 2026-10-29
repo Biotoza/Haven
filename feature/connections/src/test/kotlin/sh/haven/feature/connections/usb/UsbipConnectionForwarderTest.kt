@@ -17,6 +17,7 @@ import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.usb.UsbBroker
 import sh.haven.core.usb.UsbDeviceInfo
 import sh.haven.core.usb.UsbIpServer
+import sh.haven.core.usb.UsbRedirServer
 
 class UsbipConnectionForwarderTest {
 
@@ -40,29 +41,39 @@ class UsbipConnectionForwarderTest {
     }
 
     @Test
-    fun `attach exports the device and registers a non-critical reverse forward for the usbip port`() = runTest {
+    fun `attach exports the device over usbip and usbredir and registers non-critical reverse forwards`() = runTest {
         val broker = mockk<UsbBroker>(relaxed = true)
         val server = mockk<UsbIpServer>(relaxed = true)
+        val redirServer = mockk<UsbRedirServer>(relaxed = true)
         val client = mockk<SshClient>(relaxed = true)
         val sessions = sessionsFor(client)
         every { broker.listDevices() } returns listOf(yubikey())
         coEvery { broker.openDevice(any()) } returns yubikey()
         every { broker.isOpen(any()) } returns true
         every { server.start(any(), any(), any()) } returns 3240
+        every { redirServer.start(any(), any(), any()) } returns 4000
         coEvery { client.execCommand(any()) } returns ExecResult(0, "rc=0", "")
 
-        val handle = UsbipConnectionForwarder(broker, server, sessions).attach(SID, "1050:0406") {}
+        val handle = UsbipConnectionForwarder(broker, server, redirServer, sessions).attach(SID, "1050:0406") {}
 
         assertEquals("1-2", handle?.busid) // "/dev/bus/usb/001/002" -> "1-2"
         assertEquals(3240, handle?.remotePort)
+        assertEquals(4000, handle?.redirPort)
         verify { server.start(eq("/dev/bus/usb/001/002"), any(), eq("127.0.0.1")) }
+        verify { redirServer.start(eq("/dev/bus/usb/001/002"), any(), eq("127.0.0.1")) }
         val fwd = slot<List<SshSessionManager.PortForwardInfo>>()
         verify { sessions.applyPortForwards(SID, capture(fwd)) }
-        val rule = fwd.captured.single()
-        assertEquals(SshSessionManager.PortForwardType.REMOTE, rule.type)
-        assertEquals(3240, rule.bindPort)
-        assertEquals("usbip-export", rule.ruleId)
-        assertEquals(false, rule.critical) // never fails the user's SSH (re)connect
+        assertEquals(2, fwd.captured.size)
+        val usbipRule = fwd.captured[0]
+        assertEquals(SshSessionManager.PortForwardType.REMOTE, usbipRule.type)
+        assertEquals(3240, usbipRule.bindPort)
+        assertEquals("usbip-export", usbipRule.ruleId)
+        assertEquals(false, usbipRule.critical) // never fails the user's SSH (re)connect
+        val redirRule = fwd.captured[1]
+        assertEquals(SshSessionManager.PortForwardType.REMOTE, redirRule.type)
+        assertEquals(4000, redirRule.bindPort)
+        assertEquals("usbredir-export", redirRule.ruleId)
+        assertEquals(false, redirRule.critical)
         verify { sessions.setOnReconnected(eq(SID), any()) } // reconnect re-attach registered
         coVerify { client.execCommand(match { it.contains("usbip attach") && it.contains("1-2") }) }
     }
@@ -71,17 +82,19 @@ class UsbipConnectionForwarderTest {
     fun `the registered reconnect hook re-runs the host usbip attach`() = runTest {
         val broker = mockk<UsbBroker>(relaxed = true)
         val server = mockk<UsbIpServer>(relaxed = true)
+        val redirServer = mockk<UsbRedirServer>(relaxed = true)
         val client = mockk<SshClient>(relaxed = true)
         val sessions = sessionsFor(client)
         every { broker.listDevices() } returns listOf(yubikey())
         coEvery { broker.openDevice(any()) } returns yubikey()
         every { broker.isOpen(any()) } returns true
         every { server.start(any(), any(), any()) } returns 3240
+        every { redirServer.start(any(), any(), any()) } returns 4000
         coEvery { client.execCommand(any()) } returns ExecResult(0, "rc=0", "")
         val hook = slot<suspend () -> Unit>()
         every { sessions.setOnReconnected(eq(SID), capture(hook)) } returns Unit
 
-        UsbipConnectionForwarder(broker, server, sessions).attach(SID, "1050:0406") {}
+        UsbipConnectionForwarder(broker, server, redirServer, sessions).attach(SID, "1050:0406") {}
         // Simulate a reconnect firing the hook → host attach runs again.
         hook.captured.invoke()
 
@@ -94,7 +107,7 @@ class UsbipConnectionForwarderTest {
         every { broker.listDevices() } returns emptyList()
         var logged = false
 
-        val handle = UsbipConnectionForwarder(broker, mockk(relaxed = true), mockk(relaxed = true))
+        val handle = UsbipConnectionForwarder(broker, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
             .attach(SID, "1050:0406") { logged = true }
 
         assertNull(handle)
@@ -102,20 +115,22 @@ class UsbipConnectionForwarderTest {
     }
 
     @Test
-    fun `teardown clears the reconnect hook, removes the forward, stops the server, and closes the device`() = runTest {
+    fun `teardown clears the reconnect hook, removes the forwards, stops the servers, and closes the device`() = runTest {
         val broker = mockk<UsbBroker>(relaxed = true)
         val server = mockk<UsbIpServer>(relaxed = true)
+        val redirServer = mockk<UsbRedirServer>(relaxed = true)
         val sessions = mockk<SshSessionManager>(relaxed = true)
-        val handle = UsbipConnectionForwarder.Handle("/dev/bus/usb/001/002", "1-2", 3240)
+        val handle = UsbipConnectionForwarder.Handle("/dev/bus/usb/001/002", "1-2", 3240, 4000)
 
-        UsbipConnectionForwarder(broker, server, sessions).teardown(SID, handle) {}
+        UsbipConnectionForwarder(broker, server, redirServer, sessions).teardown(SID, handle) {}
 
         verify { sessions.setOnReconnected(SID, null) }
-        val fwd = slot<SshSessionManager.PortForwardInfo>()
-        verify { sessions.removePortForward(eq(SID), capture(fwd)) }
-        assertEquals("usbip-export", fwd.captured.ruleId)
-        assertEquals(3240, fwd.captured.bindPort)
+        val fwds = mutableListOf<SshSessionManager.PortForwardInfo>()
+        verify(exactly = 2) { sessions.removePortForward(eq(SID), capture(fwds)) }
+        assertEquals(listOf("usbip-export", "usbredir-export"), fwds.map { it.ruleId })
+        assertEquals(listOf(3240, 4000), fwds.map { it.bindPort })
         verify { server.stop() }
+        verify { redirServer.stop() }
         verify { broker.closeDevice("/dev/bus/usb/001/002") }
     }
 }

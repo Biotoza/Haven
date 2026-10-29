@@ -11661,7 +11661,7 @@
     },
     {
      "name": "connections_helper_usb_forward",
-     "en": "Export a phone-attached USB device to this host over USB/IP on connect. A YubiKey shows up on the host for ssh-keygen -t ed25519-sk, with the touch on the phone. Automatic attach needs usbip and passwordless sudo on the host; otherwise the export and tunnel come up and you run the attach command shown.",
+     "en": "Export a phone-attached USB device to this host over USB/IP (127.0.0.1:3240) and QEMU usbredir (127.0.0.1:4000) on connect. A YubiKey shows up on the host for ssh-keygen -t ed25519-sk, or a USB drive/device can be attached directly to a remote QEMU/KVM guest via -device usb-redir without root on the host.",
      "comment": "Group header",
      "args": [],
      "t": {
