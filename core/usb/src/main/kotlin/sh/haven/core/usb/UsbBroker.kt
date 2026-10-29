@@ -319,7 +319,17 @@ class UsbBroker @Inject constructor(
         // report-descriptor read stalls, we surface it as -EPIPE, and the remote
         // usbhid fails with "can't add hid device: -32" (no hidraw ⇒ FIDO unusable).
         // Mirrors bulkTransfer's lazy per-interface claim; wIndex low byte = iface#.
-        if (requestType and 0x1F == 0x01) claimInterfaceByNumber(handle, index and 0xFF)
+        if (requestType and 0x1F == 0x01) {
+            claimInterfaceByNumber(handle, index and 0xFF)
+        } else if (requestType and 0x1F == 0x02) {
+            // Endpoint-recipient control transfer (e.g. UAC1 SET_CUR(SAMPLING_FREQ_CONTROL)
+            // on an isochronous audio endpoint 0x84, or CLEAR_FEATURE(ENDPOINT_HALT)):
+            // Linux usbfs requires the interface owning wIndex & 0xFF to be claimed first.
+            runCatching {
+                val (iface, _) = locateEndpoint(handle.device, index and 0xFF)
+                claimInterfaceByNumber(handle, iface.id)
+            }
+        }
         val isIn = (requestType and UsbConstants.USB_DIR_IN) != 0
         val buffer = if (isIn) ByteArray(length) else (data ?: ByteArray(0))
         // A single UsbDeviceConnection has no built-in thread safety — a
