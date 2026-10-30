@@ -325,6 +325,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # Fork note (Biotoza/Haven): three consecutive job kills mid-Rust-compile
+      # (IronRDP/cargo, ~33-40 min in) on hosted runners — parallel cargo on all
+      # cores + Gradle daemon OOMs the 16G runner. Cap cargo at 2 jobs.
+      CARGO_BUILD_JOBS: 2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
