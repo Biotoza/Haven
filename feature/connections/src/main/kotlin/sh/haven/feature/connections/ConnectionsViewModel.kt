@@ -5670,7 +5670,10 @@ class ConnectionsViewModel @Inject constructor(
      * waiting). Probes back off exponentially and reset when packets flow.
      */
     private fun watchMoshServerSession(sessionId: String) {
-        viewModelScope.launch {
+        // IO, не Main: у вотчера нет UI-работы (только SSH-проба через
+        // Dispatchers.IO), а JVM-юнит-тесты модуля (FIDO jump host и др.)
+        // идут без Main-лупера — запуск на Main ломает весь тест-раннер.
+        viewModelScope.launch(Dispatchers.IO) {
             val mosh = moshSessionManager.sessions
                 .takeWhile { it[sessionId] != null }
                 .mapNotNull { it[sessionId]?.moshSession }
