@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +63,9 @@ import sh.haven.core.ssh.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshVerboseLogger
 import sh.haven.core.data.db.entities.KnownHost
+import sh.haven.core.mosh.MoshServerSessionProbe
 import sh.haven.core.mosh.MoshSessionManager
+import sh.haven.mosh.transport.MoshTransport
 import sh.haven.core.et.EtSessionManager
 import sh.haven.core.fido.FidoAuthenticator
 import sh.haven.core.fido.FidoTouchPrompt
@@ -198,6 +202,11 @@ private const val HOST_KEY_PROMPT_TIMEOUT_MS = 90_000L
  * `http://127.0.0.1:8730/mcp`.
  */
 private const val MCP_REVERSE_TUNNEL_PORT = 8730
+
+/** Initial delay between server-side liveness probes during a stall (#421). */
+private const val PROBE_BACKOFF_INITIAL_MS = 30_000L
+/** Ceiling for the probe backoff — probing costs one SSH exec on the kept-alive bootstrap client. */
+private const val PROBE_BACKOFF_MAX_MS = 300_000L
 
 /** Unified connection status that maps both SSH and Reticulum states. */
 enum class ProfileStatus { CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED, ERROR }
@@ -5574,6 +5583,7 @@ class ConnectionsViewModel @Inject constructor(
         }
 
         repository.markConnected(profileId)
+        watchMoshServerSession(sessionId)
         if (effectiveSessionName != null) {
             repository.getById(profileId)?.let { profile ->
                 repository.save(profile.copy(lastSessionName = effectiveSessionName))
@@ -5584,6 +5594,71 @@ class ConnectionsViewModel @Inject constructor(
         if (!silent) {
             _navigateToTerminal.value = profileId
         }
+    }
+
+    /**
+     * Feed the mosh transport its out-of-band server-side liveness verdict
+     * (#421, #92). The transport never gives up on silence alone — once the
+     * stall counter crosses [MoshTransport.DEAD_SESSION_MS] we probe the
+     * server over the kept-alive bootstrap SSH channel: the session's port
+     * still bound means the network is the problem (keep waiting), a free
+     * port means the mosh-server process is gone (the only silence case that
+     * may end the session), and an unreachable server means unknown (keep
+     * waiting). Probes back off exponentially and reset when packets flow.
+     */
+    private fun watchMoshServerSession(sessionId: String) {
+        viewModelScope.launch {
+            val mosh = moshSessionManager.sessions
+                .takeWhile { it[sessionId] != null }
+                .mapNotNull { it[sessionId]?.moshSession }
+                .firstOrNull() ?: return@launch
+            var backoffMs = 0L
+            var nextProbeAt = 0L
+            mosh.stallSeconds.collect { stallSeconds ->
+                val state = moshSessionManager.sessions.value[sessionId] ?: return@collect
+                if (state.status != MoshSessionManager.SessionState.Status.CONNECTED) return@collect
+                if (stallSeconds == null || stallSeconds < MoshTransport.DEAD_SESSION_MS / 1000) {
+                    // Packets flowing (or a short blip): nothing to probe,
+                    // and a previous verdict no longer applies.
+                    nextProbeAt = 0L
+                    backoffMs = 0L
+                    moshSessionManager.updateServerSessionVerdict(sessionId, null)
+                    return@collect
+                }
+                val now = System.currentTimeMillis()
+                if (now < nextProbeAt) return@collect
+                moshSessionManager.updateServerSessionVerdict(
+                    sessionId,
+                    probeMoshServerSession(state),
+                )
+                backoffMs = if (backoffMs == 0L) {
+                    PROBE_BACKOFF_INITIAL_MS
+                } else {
+                    (backoffMs * 2).coerceAtMost(PROBE_BACKOFF_MAX_MS)
+                }
+                nextProbeAt = System.currentTimeMillis() + backoffMs
+            }
+        }
+    }
+
+    /** Run one liveness probe over the session's kept-alive bootstrap SSH client. */
+    private suspend fun probeMoshServerSession(session: MoshSessionManager.SessionState): Boolean? {
+        val client = session.sshClient as? SshClient ?: return null
+        val probe = MoshServerSessionProbe { command, timeoutMs ->
+            try {
+                val result = client.execCommand(command, timeoutMs)
+                MoshServerSessionProbe.ProbeExecResult(
+                    exitStatus = result.exitStatus,
+                    output = result.stdout + "\n" + result.stderr,
+                    timedOut = result.timedOut,
+                )
+            } catch (e: Exception) {
+                // SSH-level failure (not connected, network down, server
+                // unreachable): the verdict is unknown — keep waiting.
+                MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+            }
+        }
+        return probe.isServerSessionDead(session.moshPort)
     }
 
     /**

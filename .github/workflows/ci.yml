@@ -334,6 +334,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           submodules: false
+      # Fork note (Biotoza/Haven, honest-death-verdict branch): the mosh-kotlin
+      # pin points at a commit that lives on Biotoza/ssp-transport until the
+      # upstream PR merges. Override the fetch URL for this one submodule so
+      # the checkout can find the SHA; .gitmodules stays first-party so the
+      # supply-chain guard keeps passing. Remove this step once upstream
+      # merges the transport PR and the pin moves to GlassOnTin main.
+      - name: Point mosh-kotlin at the fork (pre-merge pin)
+        run: git config --global submodule."mosh-kotlin".url https://github.com/Biotoza/ssp-transport.git
       - uses: ./.github/actions/init-submodules-with-retry
       - uses: ./.github/actions/setup-toolchain
       # Build arm64 only in CI — the x64 flavor exists for emulator support
