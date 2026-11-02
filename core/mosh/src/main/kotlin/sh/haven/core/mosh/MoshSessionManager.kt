@@ -89,6 +89,24 @@ class MoshSessionManager @Inject constructor(
     private val _sessions = MutableStateFlow<Map<String, SessionState>>(emptyMap())
     val sessions: StateFlow<Map<String, SessionState>> = _sessions.asStateFlow()
 
+    /**
+     * Probe verdicts per session, fed by the connection layer's out-of-band
+     * liveness probe and read by the transport through the [MoshSession]
+     * callback. `true` = verified gone, `false` = alive, absent/null =
+     * unknown — the transport keeps waiting on anything but a verified `true`.
+     */
+    private val serverSessionVerdicts = java.util.concurrent.ConcurrentHashMap<String, Boolean?>()
+
+    /**
+     * Feed an out-of-band liveness verdict for [sessionId] into its transport.
+     * No-op for unknown sessions or sessions whose transport has ended.
+     */
+    fun updateServerSessionVerdict(sessionId: String, verdict: Boolean?) {
+        val session = _sessions.value[sessionId] ?: return
+        if (session.status != SessionState.Status.CONNECTED) return
+        serverSessionVerdicts[sessionId] = verdict
+    }
+
     private val ioExecutor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "mosh-session-io").apply { isDaemon = true }
     }
@@ -193,10 +211,11 @@ class MoshSessionManager @Inject constructor(
                 // so an outage of any length does not reach this callback. It
                 // fires when the server announced shutdown (shell exited,
                 // clean=true), when the transport hit a fatal local error, or
-                // when it declared the session dead because we were online and
-                // silent for a long time (#421 — both clean=false).
+                // when it declared the session dead after a verified
+                // server-side probe (#421 — both clean=false).
                 Log.d(TAG, "Mosh session $sessionId disconnected — " +
                     "clean=$cleanExit, server=${session.serverIp}:${session.moshPort}")
+                serverSessionVerdicts.remove(sessionId)
                 // A clean exit means the user's shell ended — remove the
                 // session and close its bootstrap SSH client so it doesn't
                 // linger open; reconnecting would resurrect a session they
@@ -211,7 +230,7 @@ class MoshSessionManager @Inject constructor(
             verboseBuffer = session.verboseBuffer,
             socketProvider = session.socketProvider
                 ?: UdpSocketProvider { sh.haven.mosh.network.AndroidUdpAdapter() },
-            networkAvailable = ::hasNetwork,
+            serverSessionDead = { serverSessionVerdicts[sessionId] },
         )
 
         _sessions.update { map ->
@@ -258,6 +277,7 @@ class MoshSessionManager @Inject constructor(
     fun removeSession(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
         _sessions.update { it - sessionId }
+        serverSessionVerdicts.remove(sessionId)
         ioExecutor.execute {
             try {
                 session.sshClient?.close()
