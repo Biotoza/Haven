@@ -104,7 +104,16 @@ class MoshSessionManager @Inject constructor(
     fun updateServerSessionVerdict(sessionId: String, verdict: Boolean?) {
         val session = _sessions.value[sessionId] ?: return
         if (session.status != SessionState.Status.CONNECTED) return
-        serverSessionVerdicts[sessionId] = verdict
+        // ConcurrentHashMap не принимает null-значений (put(null-значение) → NPE);
+        // семантика «вердикта нет» = отсутствие записи (см. док. к полю выше).
+        // Инцидент 02.11.2026: вотчер звал updateServerSessionVerdict(id, null)
+        // на первой же эмиссии stallSeconds → NPE → приложение падало на каждом
+        // нажатии «подключиться» (6 data_app_crash в dropbox телефона).
+        if (verdict == null) {
+            serverSessionVerdicts.remove(sessionId)
+        } else {
+            serverSessionVerdicts[sessionId] = verdict
+        }
     }
 
     private val ioExecutor = Executors.newSingleThreadExecutor { r ->
