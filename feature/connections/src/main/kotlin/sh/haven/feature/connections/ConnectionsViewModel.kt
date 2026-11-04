@@ -1867,39 +1867,51 @@ class ConnectionsViewModel @Inject constructor(
         cfTunnel: EmbeddedCloudflareTunnelInput?,
     ) {
         viewModelScope.launch {
-            val existing = repository.getById(profile.id)
-            val saved = if (cfTunnel != null) {
-                val hostname = cfTunnel.hostname.trim()
-                    .removePrefix("https://")
-                    .removePrefix("http://")
-                    .substringBefore('/')
-                val blob = sh.haven.core.tunnel.CloudflareAccessConfigBlob(
-                    hostname = hostname,
-                    teamDomain = cfTunnel.teamDomain.trim()
+            try {
+                val existing = repository.getById(profile.id)
+                val saved = if (cfTunnel != null) {
+                    val hostname = cfTunnel.hostname.trim()
                         .removePrefix("https://")
-                        .removePrefix("http://"),
-                    jwt = cfTunnel.jwt.trim(),
-                    jwtExpiresAt = cfTunnel.jwtExpiresAt,
-                    jumpDestination = cfTunnel.jumpDestination.trim(),
-                )
-                val tunnelId = tunnelConfigRepository.upsertEmbedded(
-                    profileId = profile.id,
-                    type = sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS.name,
-                    label = "Cloudflare Tunnel: $hostname",
-                    configText = blob.encode(),
-                )
-                profile.copy(
-                    tunnelConfigId = tunnelId,
-                    port = 22,
-                    proxyType = null,
-                    proxyHost = null,
-                ).also { repository.save(it) }
-            } else {
-                tunnelConfigRepository.deleteByOwner(profile.id)
-                profile.also { repository.save(it) }
-            }
-            if (existing != null && routingOrEndpointChanged(existing, saved)) {
-                disconnectSessionsOnRouteChange(existing, saved)
+                        .removePrefix("http://")
+                        .substringBefore('/')
+                    val blob = sh.haven.core.tunnel.CloudflareAccessConfigBlob(
+                        hostname = hostname,
+                        teamDomain = cfTunnel.teamDomain.trim()
+                            .removePrefix("https://")
+                            .removePrefix("http://"),
+                        jwt = cfTunnel.jwt.trim(),
+                        jwtExpiresAt = cfTunnel.jwtExpiresAt,
+                        jumpDestination = cfTunnel.jumpDestination.trim(),
+                    )
+                    val tunnelId = tunnelConfigRepository.upsertEmbedded(
+                        profileId = profile.id,
+                        type = sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS.name,
+                        label = "Cloudflare Tunnel: $hostname",
+                        configText = blob.encode(),
+                    )
+                    profile.copy(
+                        tunnelConfigId = tunnelId,
+                        port = 22,
+                        proxyType = null,
+                        proxyHost = null,
+                    ).also { repository.save(it) }
+                } else {
+                    tunnelConfigRepository.deleteByOwner(profile.id)
+                    profile.also { repository.save(it) }
+                }
+                if (existing != null && routingOrEndpointChanged(existing, saved)) {
+                    disconnectSessionsOnRouteChange(existing, saved)
+                }
+            } catch (e: CredentialEncryption.KeystoreUnavailableException) {
+                // #421: mirror saveConnection(). A Keystore that cannot serve the
+                // master key (e.g. the uninstall/reinstall cycle broke the pair)
+                // used to take the process down from this path — surface the
+                // error instead of crashing.
+                Log.e(TAG, "save failed: credential Keystore unavailable", e)
+                _error.value = appContext.getString(R.string.connections_error_keystore_unavailable)
+            } catch (e: Exception) {
+                Log.e(TAG, "save failed", e)
+                _error.value = e.message ?: "Could not save the connection"
             }
         }
     }
@@ -2329,8 +2341,10 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     fun connectWithKey(profile: ConnectionProfile) {
+        Log.d(TAG, "connectWithKey ${profile.label}: keyOnly, username='${profile.username}'")
         if (profile.username.isBlank() && (profile.isSsh || profile.isReticulum)) {
             // Route through the prompt dialog so the user can supply a username first.
+            Log.d(TAG, "connectWithKey ${profile.label} -> passwordFallback (username blank)")
             _passwordFallback.value = profile
             return
         }
@@ -2721,6 +2735,7 @@ class ConnectionsViewModel @Inject constructor(
         // reuse one connection entry for many users.
         val runtimeUsername = usernameOverride?.takeIf { it.isNotBlank() }
         if (profile.username.isBlank() && runtimeUsername == null) {
+            Log.d(TAG, "connect ${profile.label} -> passwordFallback (username blank)")
             _passwordFallback.value = profile
             return
         }

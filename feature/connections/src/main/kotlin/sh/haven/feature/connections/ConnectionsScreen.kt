@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -1644,6 +1645,10 @@ private fun effectiveIdentityFor(
     return identities.firstOrNull { it.id == id }
 }
 
+// #421 key-regression diagnostics: every branch of the tap chain is tagged
+// so a logcat capture shows exactly which decision produced a password prompt.
+private const val TAG = "ConnectionsTap"
+
 private fun onTapProfile(
     profile: ConnectionProfile,
     profileStatus: ProfileStatus?,
@@ -1656,6 +1661,12 @@ private fun onTapProfile(
     onNavigateToChat: (String) -> Unit,
     showPasswordDialog: () -> Unit,
 ) {
+    Log.d(
+        TAG,
+        "tap profile=${profile.label} status=$profileStatus user='${profile.username}' " +
+            "keyId=${profile.keyId} specs=${profile.authMethodSpecs} keys=${sshKeys.size} " +
+            "identity=$hasUsableIdentity mosh=${profile.useMosh} sshPassSet=${!profile.sshPassword.isNullOrBlank()}",
+    )
     if (profile.isLocal) {
         viewModel.connect(profile, "")
     } else if (profileStatus == ProfileStatus.CONNECTED && profile.isEmail) {
@@ -1726,17 +1737,22 @@ private fun onTapProfile(
         viewModel.connect(profile, "")
     } else if (profile.username.isBlank()) {
         // Profile saved without a username — always prompt so the user can pick one.
+        Log.d(TAG, "tap ${profile.label} -> passwordDialog (username blank)")
         showPasswordDialog()
     } else if (profileUsesKeyAuth(profile) &&
         profile.authMethodSpecs.none { it is ConnectionProfile.AuthMethodSpec.Password } &&
         sshKeys.isNotEmpty()
     ) {
+        Log.d(TAG, "tap ${profile.label} -> connectWithKey")
         viewModel.connectWithKey(profile)
     } else if (!profile.sshPassword.isNullOrBlank()) {
+        Log.d(TAG, "tap ${profile.label} -> connect(savedPassword, keyAuth=${profileUsesKeyAuth(profile)})")
         viewModel.connect(profile, if (profileUsesKeyAuth(profile)) "" else profile.sshPassword!!)
     } else if (sshKeys.isNotEmpty()) {
+        Log.d(TAG, "tap ${profile.label} -> connectWithKey (any-key)")
         viewModel.connectWithKey(profile)
     } else {
+        Log.d(TAG, "tap ${profile.label} -> passwordDialog (no keys, no password)")
         showPasswordDialog()
     }
 }
