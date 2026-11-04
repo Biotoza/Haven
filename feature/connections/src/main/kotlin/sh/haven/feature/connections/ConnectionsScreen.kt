@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.LazyColumn
+import sh.haven.core.redact.LogRedact
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -1663,7 +1664,7 @@ private fun onTapProfile(
 ) {
     Log.d(
         TAG,
-        "tap profile=${profile.label} status=$profileStatus user='${profile.username}' " +
+        "tap profile=${LogRedact.of(profile.label)} status=$profileStatus usr=${LogRedact.of(profile.username)} " +
             "keyId=${profile.keyId} specs=${profile.authMethodSpecs} keys=${sshKeys.size} " +
             "identity=$hasUsableIdentity mosh=${profile.useMosh} sshPassSet=${!profile.sshPassword.isNullOrBlank()}",
     )
@@ -1737,22 +1738,22 @@ private fun onTapProfile(
         viewModel.connect(profile, "")
     } else if (profile.username.isBlank()) {
         // Profile saved without a username — always prompt so the user can pick one.
-        Log.d(TAG, "tap ${profile.label} -> passwordDialog (username blank)")
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> passwordDialog (username blank)")
         showPasswordDialog()
     } else if (profileUsesKeyAuth(profile) &&
         profile.authMethodSpecs.none { it is ConnectionProfile.AuthMethodSpec.Password } &&
         sshKeys.isNotEmpty()
     ) {
-        Log.d(TAG, "tap ${profile.label} -> connectWithKey")
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> connectWithKey")
         viewModel.connectWithKey(profile)
     } else if (!profile.sshPassword.isNullOrBlank()) {
-        Log.d(TAG, "tap ${profile.label} -> connect(savedPassword, keyAuth=${profileUsesKeyAuth(profile)})")
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> connect(savedPassword, keyAuth=${profileUsesKeyAuth(profile)})")
         viewModel.connect(profile, if (profileUsesKeyAuth(profile)) "" else profile.sshPassword!!)
     } else if (sshKeys.isNotEmpty()) {
-        Log.d(TAG, "tap ${profile.label} -> connectWithKey (any-key)")
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> connectWithKey (any-key)")
         viewModel.connectWithKey(profile)
     } else {
-        Log.d(TAG, "tap ${profile.label} -> passwordDialog (no keys, no password)")
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> passwordDialog (no keys, no password)")
         showPasswordDialog()
     }
 }

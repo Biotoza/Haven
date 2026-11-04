@@ -2341,10 +2341,10 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     fun connectWithKey(profile: ConnectionProfile) {
-        Log.d(TAG, "connectWithKey ${profile.label}: keyOnly, username='${profile.username}'")
+        Log.d(TAG, "connectWithKey ${LogRedact.of(profile.label)}: keyOnly, usr=${LogRedact.of(profile.username)}")
         if (profile.username.isBlank() && (profile.isSsh || profile.isReticulum)) {
             // Route through the prompt dialog so the user can supply a username first.
-            Log.d(TAG, "connectWithKey ${profile.label} -> passwordFallback (username blank)")
+            Log.d(TAG, "connectWithKey ${LogRedact.of(profile.label)} -> passwordFallback (username blank)")
             _passwordFallback.value = profile
             return
         }
@@ -2735,7 +2735,7 @@ class ConnectionsViewModel @Inject constructor(
         // reuse one connection entry for many users.
         val runtimeUsername = usernameOverride?.takeIf { it.isNotBlank() }
         if (profile.username.isBlank() && runtimeUsername == null) {
-            Log.d(TAG, "connect ${profile.label} -> passwordFallback (username blank)")
+            Log.d(TAG, "connect ${LogRedact.of(profile.label)} -> passwordFallback (username blank)")
             _passwordFallback.value = profile
             return
         }
