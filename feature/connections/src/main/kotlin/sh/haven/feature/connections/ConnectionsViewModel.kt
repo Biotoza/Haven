@@ -1362,13 +1362,13 @@ class ConnectionsViewModel @Inject constructor(
         // MOSH_RECONNECT_MAX_ATTEMPTS, and only re-arm once a session has actually
         // survived (MOSH_RECONNECT_RESET_MS), which is what distinguishes a
         // one-off stall from a server that is simply gone.
-        moshSessionManager.onSessionPortResolved = { profileId, port ->
-            // Record the fresh session's port for orphan cleanup at the NEXT
+        moshSessionManager.onSessionPortResolved = { profileId, port, sessionKey ->
+            // Record the fresh session's port + key for orphan cleanup at the NEXT
             // connect (Dez's idea, 2026-11-05). Live sessions are in memory,
             // so this record alone never makes a live/parallel/waiting
             // session a cleanup candidate.
             viewModelScope.launch {
-                preferencesRepository.setMoshLastPort(profileId, port)
+                preferencesRepository.setMoshLastPort(profileId, port, sessionKey)
             }
         }
         moshSessionManager.onSessionDied = { profileId, sessionId ->
@@ -5894,7 +5894,7 @@ class ConnectionsViewModel @Inject constructor(
      * and the record is cleared either way.
      */
     private suspend fun cleanupMoshOrphan(profile: ConnectionProfile, client: SshClient) {
-        val storedPort = preferencesRepository.moshLastPorts.first()[profile.id] ?: return
+        val storedRecords = preferencesRepository.moshLastPorts.first()[profile.id] ?: return
         val livePorts = moshSessionManager.getSessionsForProfile(profile.id)
             .mapNotNull { it.moshPort }
             .filter { it > 0 }
@@ -5911,17 +5911,28 @@ class ConnectionsViewModel @Inject constructor(
                 MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
             }
         }
-        val candidate = cleaner.candidatePort(storedPort, livePorts) ?: return
-        val killed = cleaner.cleanupOrphan(candidate)
-        Log.d(
-            TAG,
-            if (killed) {
-                "Mosh orphan cleaned up at new connect: ${profile.host}:$candidate (profile ${profile.id})"
-            } else {
-                "Mosh orphan port $candidate no longer bound — clearing record (profile ${profile.id})"
-            },
-        )
-        preferencesRepository.clearMoshLastPort(profile.id)
+        for (record in cleaner.candidateRecords(storedRecords, livePorts)) {
+            // Ownership probe with our OWN session key: the server answers only
+            // when it holds the same key. A foreign process (another device's
+            // waiting session, port reuse) cannot decrypt the probe and stays
+            // silent — and is never killed.
+            val ours = cleaner.probeSessionAlive(profile.host, record.port, record.sessionKey, timeoutMs = 1_000L)
+            if (!ours) {
+                // Port free, or occupied by someone else — nothing to kill.
+                preferencesRepository.clearMoshLastPort(profile.id, record.port)
+                continue
+            }
+            val killed = cleaner.cleanupOrphan(record.port)
+            Log.d(
+                TAG,
+                if (killed) {
+                    "Mosh orphan cleaned up at new connect: ${profile.host}:${record.port} (profile ${profile.id})"
+                } else {
+                    "Mosh orphan kill failed for ${profile.host}:${record.port} (profile ${profile.id}) — retrying next connect"
+                },
+            )
+            if (killed) preferencesRepository.clearMoshLastPort(profile.id, record.port)
+        }
     }
 
     /**
