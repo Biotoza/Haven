@@ -42,6 +42,15 @@ class MoshSessionManager @Inject constructor(
     var onSessionDied: ((profileId: String, sessionId: String) -> Unit)? = null
 
     /**
+     * Invoked when a session's mosh port is resolved at connect time. The
+     * feature layer records it for orphan cleanup at the next connect
+     * (Dez's idea, 2026-11-05): only a stored-but-not-live port is a
+     * cleanup candidate, so live/parallel/waiting sessions are never
+     * touched by construction.
+     */
+    var onSessionPortResolved: ((profileId: String, port: Int) -> Unit)? = null
+
+    /**
      * Whether the device currently has a network that is validated for internet
      * access. Used to gate the transport's #421 dead-session escalation, so a
      * genuinely offline phone still resumes its session on return (the #92
@@ -179,6 +188,11 @@ class MoshSessionManager @Inject constructor(
                 verboseBuffer = verboseBuffer,
                 socketProvider = socketProvider,
             ))
+        }
+
+        val profileId = _sessions.value[sessionId]?.profileId
+        if (profileId != null && moshPort > 0) {
+            onSessionPortResolved?.invoke(profileId, moshPort)
         }
     }
 
