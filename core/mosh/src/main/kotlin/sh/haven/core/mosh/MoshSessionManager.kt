@@ -48,7 +48,7 @@ class MoshSessionManager @Inject constructor(
      * cleanup candidate, so live/parallel/waiting sessions are never
      * touched by construction.
      */
-    var onSessionPortResolved: ((profileId: String, port: Int) -> Unit)? = null
+    var onSessionPortResolved: ((profileId: String, port: Int, sessionKey: String) -> Unit)? = null
 
     /**
      * Whether the device currently has a network that is validated for internet
@@ -192,7 +192,7 @@ class MoshSessionManager @Inject constructor(
 
         val profileId = _sessions.value[sessionId]?.profileId
         if (profileId != null && moshPort > 0) {
-            onSessionPortResolved?.invoke(profileId, moshPort)
+            onSessionPortResolved?.invoke(profileId, moshPort, moshKey)
         }
     }
 
