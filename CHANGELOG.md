@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.2-hd2
+
+- **Mosh orphan cleanup at new connect (Dez + Shade, 2026-11-05).** The client records the port of every mosh session it starts. On the NEXT connect of the same profile — and only there, never on network recovery — it probes the stored port over the bootstrap SSH channel and, if still bound, kills the orphaned mosh-server left behind by a closed tab, dead phone, or lost network. Live, parallel-tab, and network-waiting sessions are structurally never candidates (only a stored-but-not-live port qualifies), and the mechanism has no timers: fact-based probe plus a port-targeted kill.
+
 ## v5.94.50
 
 - Surface the guest storage-share toggle in the local shell's connection editor, so you can stop the guest reaching your shared storage without opening the desktop settings (#849).
@@ -243,7 +247,6 @@ compare link is appended automatically — don't add it here.
 - Map right-side modifiers (`Ctrl_R`, `Alt_R`, `Shift_R`, `Super_R`) and lock keys (`Caps_Lock`, `Num_Lock`, `Scroll_Lock`) to their distinct X11 KeySyms in VNC sessions (#774, thanks @heredos).
 - Encode IPv4 and IPv6 literal addresses with `ATYP 0x01` and `0x04` in SOCKS5 `CONNECT` requests instead of domain-name `ATYP 0x03`, and report a clear error when the proxy closes the socket at greeting (#777, thanks @FaintShadow).
 - Dependency updates: `org.connectbot.sshlib` `0.6.6`, `org.apache.sshd:sshd-core` `2.20.1`, `com.microsoft.onnxruntime:onnxruntime-android` `1.24.2`, `golang.org/x/net` `0.62.0`, `tailscale.com` `1.104.4`, and Rust `log` `0.4.35` (#782-#789).
-
 ## v5.94.2
 
 - Add a toolbar Viewport Navigation toggle (`OpenWith` four-way pan icon) in RDP `TOUCHSCREEN` mode so users can pinch-to-zoom (`1×` to `5×`), drag-to-pan, and reset the local viewport without leaving native touchscreen mode (#778, thanks @xchacha20-poly1305).
