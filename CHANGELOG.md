@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.2-hd3
+
+- **A+ orphan cleanup: per-profile port+key records and ownership probe (Dez + Shade, 2026-11-05).** Closing several tabs of one profile used to leave several server orphans while only the last recorded port was cleaned, and a reused port could hide another device's waiting session. The client now records the port AND session key of every mosh session it starts. On the next connect of the same profile it probes each stored port with its own session key: the server answers only when it holds the same key, so a verified-ours orphan is killed, while foreign processes and free ports stay silent and are never touched (another device's waiting session survives even a port collision). Kill is still port-targeted and timer-free, and live/parallel/waiting sessions are never candidates.
+
 ## v5.94.2-hd2
 
 - **Mosh orphan cleanup at new connect (Dez + Shade, 2026-11-05).** The client records the port of every mosh session it starts. On the NEXT connect of the same profile — and only there, never on network recovery — it probes the stored port over the bootstrap SSH channel and, if still bound, kills the orphaned mosh-server left behind by a closed tab, dead phone, or lost network. Live, parallel-tab, and network-waiting sessions are structurally never candidates (only a stored-but-not-live port qualifies), and the mechanism has no timers: fact-based probe plus a port-targeted kill.
