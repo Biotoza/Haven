@@ -59,6 +59,13 @@ class UserPreferencesRepository @Inject constructor(
     private val reticulumRpcKeyKey = stringPreferencesKey("reticulum_rpc_key")
     private val reticulumHostKey = stringPreferencesKey("reticulum_host")
     private val reticulumPortKey = intPreferencesKey("reticulum_port")
+    /**
+     * Last mosh-session port per profile, for orphan cleanup at next connect
+     * (Dez's idea, 2026-11-05). Elements are "profileId:port"; the port is
+     * recorded when a mosh session starts and cleared once the orphan has
+     * been verified and killed, or when the session closes cleanly.
+     */
+    private val moshLastPortsKey = stringSetPreferencesKey("mosh_last_ports")
     private val terminalColorSchemeKey = stringPreferencesKey("terminal_color_scheme")
     private val terminalAutoSwitchSchemeKey = booleanPreferencesKey("terminal_auto_switch_scheme")
     private val terminalLightColorSchemeKey = stringPreferencesKey("terminal_light_color_scheme")
@@ -1787,6 +1794,40 @@ class UserPreferencesRepository @Inject constructor(
             prefs[reticulumPortKey] = port
         }
     }
+
+    /** Last recorded mosh-session port per profile id ("profileId:port" entries). */
+    val moshLastPorts: Flow<Map<String, Int>> = dataStore.data.map { prefs ->
+        val entries = prefs[moshLastPortsKey] ?: emptySet()
+        buildMap {
+            for (entry in entries) {
+                val sep = entry.lastIndexOf(':')
+                if (sep <= 0 || sep == entry.length - 1) continue
+                val port = entry.substring(sep + 1).toIntOrNull() ?: continue
+                put(entry.substring(0, sep), port)
+            }
+        }
+    }
+
+    /** Record the port of a freshly started mosh session for later orphan cleanup. */
+    suspend fun setMoshLastPort(profileId: String, port: Int) {
+        if (port <= 0) return
+        dataStore.edit { prefs ->
+            val current = prefs[moshLastPortsKey] ?: emptySet()
+            val prefix = "$profileId:"
+            val cleaned = current.filterNot { it.startsWith(prefix) }.toSet()
+            prefs[moshLastPortsKey] = cleaned + "$profileId:$port"
+        }
+    }
+
+    /** Forget the recorded port for [profileId] (orphan cleaned up / session ended). */
+    suspend fun clearMoshLastPort(profileId: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[moshLastPortsKey] ?: return@edit
+            val prefix = "$profileId:"
+            prefs[moshLastPortsKey] = current.filterNot { it.startsWith(prefix) }.toSet()
+        }
+    }
+
 
     suspend fun clearReticulumConfig() {
         dataStore.edit { prefs ->

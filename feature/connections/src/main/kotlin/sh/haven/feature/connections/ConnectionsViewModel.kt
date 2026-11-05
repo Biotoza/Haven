@@ -65,6 +65,7 @@ import sh.haven.core.ssh.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshVerboseLogger
 import sh.haven.core.data.db.entities.KnownHost
+import sh.haven.core.mosh.MoshOrphanCleaner
 import sh.haven.core.mosh.MoshServerSessionProbe
 import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.mosh.transport.MoshTransport
@@ -1361,6 +1362,15 @@ class ConnectionsViewModel @Inject constructor(
         // MOSH_RECONNECT_MAX_ATTEMPTS, and only re-arm once a session has actually
         // survived (MOSH_RECONNECT_RESET_MS), which is what distinguishes a
         // one-off stall from a server that is simply gone.
+        moshSessionManager.onSessionPortResolved = { profileId, port ->
+            // Record the fresh session's port for orphan cleanup at the NEXT
+            // connect (Dez's idea, 2026-11-05). Live sessions are in memory,
+            // so this record alone never makes a live/parallel/waiting
+            // session a cleanup candidate.
+            viewModelScope.launch {
+                preferencesRepository.setMoshLastPort(profileId, port)
+            }
+        }
         moshSessionManager.onSessionDied = { profileId, sessionId ->
             // Drain the dead session's transport trace into the connection log
             // before dropping it (#421). The #421 escalation discards the
@@ -4862,6 +4872,12 @@ class ConnectionsViewModel @Inject constructor(
                     bootstrapMoshEtSsh(profile, password, config, verboseLogger, interactive = true)
                 }
 
+                // Phase 1.5: orphan cleanup — NEW connect only, never on
+                // network recovery (Dez 2026-11-05). Runs before the new
+                // mosh-server exists, so a live stored port can only belong
+                // to a session whose client is gone.
+                cleanupMoshOrphan(profile, client)
+
                 // Phase 2: Resolve session manager, check for existing sessions
                 val smgr = resolveSessionManager(profile)
 
@@ -5867,6 +5883,45 @@ class ConnectionsViewModel @Inject constructor(
             }
         }
         return probe.isServerSessionDead(session.moshPort)
+    }
+
+    /**
+     * Orphan cleanup at new-connect time (Dez 2026-11-05). Only a port that
+     * is stored on disk AND absent from the live in-memory sessions is a
+     * candidate — so a live, parallel, or waiting session can never be
+     * killed by this path. The candidate's port is probed over the fresh
+     * bootstrap SSH client; if still bound the orphan mosh-server is killed,
+     * and the record is cleared either way.
+     */
+    private suspend fun cleanupMoshOrphan(profile: ConnectionProfile, client: SshClient) {
+        val storedPort = preferencesRepository.moshLastPorts.first()[profile.id] ?: return
+        val livePorts = moshSessionManager.getSessionsForProfile(profile.id)
+            .mapNotNull { it.moshPort }
+            .filter { it > 0 }
+            .toSet()
+        val cleaner = MoshOrphanCleaner { command, timeoutMs ->
+            try {
+                val result = client.execCommand(command, timeoutMs)
+                MoshServerSessionProbe.ProbeExecResult(
+                    exitStatus = result.exitStatus,
+                    output = result.stdout + "\n" + result.stderr,
+                    timedOut = result.timedOut,
+                )
+            } catch (e: Exception) {
+                MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+            }
+        }
+        val candidate = cleaner.candidatePort(storedPort, livePorts) ?: return
+        val killed = cleaner.cleanupOrphan(candidate)
+        Log.d(
+            TAG,
+            if (killed) {
+                "Mosh orphan cleaned up at new connect: ${profile.host}:$candidate (profile ${profile.id})"
+            } else {
+                "Mosh orphan port $candidate no longer bound — clearing record (profile ${profile.id})"
+            },
+        )
+        preferencesRepository.clearMoshLastPort(profile.id)
     }
 
     /**
