@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.2-hd2
+
+- **Mosh orphan cleanup at new connect (Dez + Shade, 2026-11-05).** The client records the port of every mosh session it starts. On the NEXT connect of the same profile — and only there, never on network recovery — it probes the stored port over the bootstrap SSH channel and, if still bound, kills the orphaned mosh-server left behind by a closed tab, dead phone, or lost network. Live, parallel-tab, and network-waiting sessions are structurally never candidates (only a stored-but-not-live port qualifies), and the mechanism has no timers: fact-based probe plus a port-targeted kill.
+
 ## v5.94.2
 
 - Add a toolbar Viewport Navigation toggle (`OpenWith` four-way pan icon) in RDP `TOUCHSCREEN` mode so users can pinch-to-zoom (`1×` to `5×`), drag-to-pan, and reset the local viewport without leaving native touchscreen mode (#778, thanks @xchacha20-poly1305).
