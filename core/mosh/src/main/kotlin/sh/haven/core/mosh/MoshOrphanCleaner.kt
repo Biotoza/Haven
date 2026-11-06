@@ -9,7 +9,12 @@ import sh.haven.mosh.network.MoshConnection
 data class MoshSessionRecord(val port: Int, val sessionKey: String)
 
 /**
- * Orphan-mosh cleanup at NEW connect time (Dez's idea, 2026-11-05).
+ * Orphan-mosh cleanup at NEW connect time (Dez's idea, 2026-11-05) — the
+ * backstop layer. The primary defence is the close-time graceful close
+ * (MoshSessionManager.gracefulClose: EOF + port kill), which prevents
+ * orphans from being born when a tab is closed through the UI. This layer
+ * catches what that one could not: the app killed by the system (swipe from
+ * recents), a crash, or a phone that died mid-session.
  *
  * Problem: when the client goes away (tab closed, phone died, network lost)
  * the server-side mosh-server has no idea — mosh has no client-shutdown
