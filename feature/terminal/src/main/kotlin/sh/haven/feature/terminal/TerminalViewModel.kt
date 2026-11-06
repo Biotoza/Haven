@@ -2707,9 +2707,10 @@ class TerminalViewModel @Inject constructor(
             tab.sendInput(detachBytes)
             kotlinx.coroutines.delay(SESSION_MANAGER_DETACH_DELAY_MS)
         } else {
-            moshSessionManager.gracefulClose(tab.sessionId) { command, timeoutMs ->
-                moshCloseExec(tab.profileId, command, timeoutMs)
-            }
+            moshSessionManager.gracefulClose(
+                tab.sessionId,
+                exec = { command, timeoutMs -> moshCloseExec(tab.profileId, command, timeoutMs) },
+            )
         }
     }
 
