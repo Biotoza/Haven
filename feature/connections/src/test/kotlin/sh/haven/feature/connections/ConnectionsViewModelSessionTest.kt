@@ -315,8 +315,9 @@ class ConnectionsViewModelSessionTest {
     @Test
     fun `disconnect cleans up all session manager types`() {
         viewModel.disconnect("profile1")
-
-        verify { sshSessionManager.removeAllSessionsForProfile("profile1") }
+        // Teardown now runs after the per-session graceful close, in a
+        // coroutine — wait for it to land before verifying (hd5).
+        verify(timeout = 5_000) { sshSessionManager.removeAllSessionsForProfile("profile1") }
         verify { reticulumSessionManager.removeAllSessionsForProfile("profile1") }
         verify { moshSessionManager.removeAllSessionsForProfile("profile1") }
         verify { etSessionManager.removeAllSessionsForProfile("profile1") }
@@ -331,7 +332,7 @@ class ConnectionsViewModelSessionTest {
     fun `disconnect stops VNC server`() {
         viewModel.disconnect("profile1")
 
-        verify { desktopManager.stopAll() }
+        verify(timeout = 5_000) { desktopManager.stopAll() }
     }
 
     @Test
@@ -341,6 +342,11 @@ class ConnectionsViewModelSessionTest {
 
         viewModel.disconnect("vnc-direct")
 
+        // closeHandle fires from the teardown coroutine (hd5) — poll briefly.
+        val deadlineNs = System.nanoTime() + 5_000_000_000L
+        while (!closed && System.nanoTime() < deadlineNs) {
+            Thread.sleep(10)
+        }
         org.junit.Assert.assertTrue("Direct VNC/RDP/SPICE closeHandle must be invoked on disconnect", closed)
     }
 
