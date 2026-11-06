@@ -4875,8 +4875,11 @@ class ConnectionsViewModel @Inject constructor(
                 // Phase 1.5: orphan cleanup — NEW connect only, never on
                 // network recovery (Dez 2026-11-05). Runs before the new
                 // mosh-server exists, so a live stored port can only belong
-                // to a session whose client is gone.
-                cleanupMoshOrphan(profile, client)
+                // to a session whose client is gone. Backstop for sessions
+                // whose client died without a graceful close (app killed by
+                // the system, crash) — the primary defence is the close-time
+                // graceful close (EOF + port kill).
+                cleanupMoshOrphans(client)
 
                 // Phase 2: Resolve session manager, check for existing sessions
                 val smgr = resolveSessionManager(profile)
@@ -5886,16 +5889,24 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
-     * Orphan cleanup at new-connect time (Dez 2026-11-05). Only a port that
-     * is stored on disk AND absent from the live in-memory sessions is a
-     * candidate — so a live, parallel, or waiting session can never be
-     * killed by this path. The candidate's port is probed over the fresh
-     * bootstrap SSH client; if still bound the orphan mosh-server is killed,
-     * and the record is cleared either way.
+     * Orphan cleanup at new-connect time (Dez 2026-11-05) — the backstop for
+     * sessions whose client died without a graceful close (app killed by the
+     * system, crash). The primary defence is the close-time graceful close
+     * (EOF + port kill, see MoshSessionManager.gracefulClose).
+     *
+     * Scope: ALL profiles stored on this device, not just the connecting one
+     * (Dez correction, 2026-11-06): a closed profile may not be reopened for
+     * weeks, and its orphan must not wait that long. Every candidate port is
+     * probed with its OWN stored session key — the server answers only when
+     * it holds the same key, so another device's waiting session (even on a
+     * reused port) stays silent and is never killed.
      */
-    private suspend fun cleanupMoshOrphan(profile: ConnectionProfile, client: SshClient) {
-        val storedRecords = preferencesRepository.moshLastPorts.first()[profile.id] ?: return
-        val livePorts = moshSessionManager.getSessionsForProfile(profile.id)
+    private suspend fun cleanupMoshOrphans(client: SshClient) {
+        val storedByProfile = preferencesRepository.moshLastPorts.first()
+        if (storedByProfile.isEmpty()) return
+        // Live = any session with a transport in memory, ANY profile — a
+        // live, parallel, or waiting session can never become a candidate.
+        val livePorts = moshSessionManager.sessions.value.values
             .mapNotNull { it.moshPort }
             .filter { it > 0 }
             .toSet()
@@ -5911,27 +5922,30 @@ class ConnectionsViewModel @Inject constructor(
                 MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
             }
         }
-        for (record in cleaner.candidateRecords(storedRecords, livePorts)) {
-            // Ownership probe with our OWN session key: the server answers only
-            // when it holds the same key. A foreign process (another device's
-            // waiting session, port reuse) cannot decrypt the probe and stays
-            // silent — and is never killed.
-            val ours = cleaner.probeSessionAlive(profile.host, record.port, record.sessionKey, timeoutMs = 1_000L)
-            if (!ours) {
-                // Port free, or occupied by someone else — nothing to kill.
-                preferencesRepository.clearMoshLastPort(profile.id, record.port)
-                continue
+        for ((profileId, records) in storedByProfile) {
+            val profile = repository.getById(profileId) ?: continue
+            for (record in cleaner.candidateRecords(records, livePorts)) {
+                // Ownership probe with our OWN session key: the server answers only
+                // when it holds the same key. A foreign process (another device's
+                // waiting session, port reuse) cannot decrypt the probe and stays
+                // silent — and is never killed.
+                val ours = cleaner.probeSessionAlive(profile.host, record.port, record.sessionKey, timeoutMs = 1_000L)
+                if (!ours) {
+                    // Port free, or occupied by someone else — nothing to kill.
+                    preferencesRepository.clearMoshLastPort(profileId, record.port)
+                    continue
+                }
+                val killed = cleaner.cleanupOrphan(record.port)
+                Log.d(
+                    TAG,
+                    if (killed) {
+                        "Mosh orphan cleaned up at new connect: ${profile.host}:${record.port} (profile $profileId)"
+                    } else {
+                        "Mosh orphan kill failed for ${profile.host}:${record.port} (profile $profileId) — retrying next connect"
+                    },
+                )
+                if (killed) preferencesRepository.clearMoshLastPort(profileId, record.port)
             }
-            val killed = cleaner.cleanupOrphan(record.port)
-            Log.d(
-                TAG,
-                if (killed) {
-                    "Mosh orphan cleaned up at new connect: ${profile.host}:${record.port} (profile ${profile.id})"
-                } else {
-                    "Mosh orphan kill failed for ${profile.host}:${record.port} (profile ${profile.id}) — retrying next connect"
-                },
-            )
-            if (killed) preferencesRepository.clearMoshLastPort(profile.id, record.port)
         }
     }
 
