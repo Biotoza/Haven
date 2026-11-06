@@ -6770,41 +6770,68 @@ class ConnectionsViewModel @Inject constructor(
         // over a dead forward). Before the registry so the carrier's
         // transports can't vanish first and leave the forward orphaned.
         teardownAiRoutesFor(profileId)
-        sessionManagerRegistry.disconnectProfile(profileId)
-        // Tear down this profile's tunnel-dependent resources: close its VNC/
-        // RDP Desktop tab (via the lease's parent-gone callback) AND release
-        // its SSH dependent. Closing the tab here is required because when the
-        // carrying SSH is a shared / user-opened session (e.g. a terminal the
-        // VNC reused) it legitimately survives, so the SSH-teardown cascade
-        // alone would leave the tab open over a now-detached tunnel (#121).
-        sshSessionManager.teardownTunnelDependent(profileId)
-        // If tearing down a tunnel dependent closed a carrier jump session that
-        // held a USB forward (#613), clean up its forwarder handle too.
-        val liveSessionIds = sshSessionManager.sessions.value.keys
-        usbForwardHandles.keys.toList()
-            .filterNot { it in liveSessionIds }
-            .forEach { closedSessionId ->
-                usbForwardHandles.remove(closedSessionId)?.let { handle ->
-                    viewModelScope.launch(Dispatchers.IO) {
-                        usbipForwarder.teardown(closedSessionId, handle) { msg ->
-                            userMessageBus.emit(
-                                sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+        // Graceful close BEFORE the plain teardown (Dez 2026-11-06, hd5):
+        // "Отключить" used to tear the transport down without EOF/kill,
+        // leaving server-side mosh orphans that lingered until the next
+        // connect. Mirror the tab-close path — EOF first, then a
+        // port-targeted kill as guarantee — and only then run the registry
+        // teardown, which closes the SSH clients the kill exec runs over.
+        // Hence the sequential coroutine: the teardown must wait.
+        viewModelScope.launch(Dispatchers.IO) {
+            for (session in moshSessionManager.getSessionsForProfile(profileId)) {
+                val ssh = session.sshClient as? SshClient ?: continue
+                moshSessionManager.gracefulClose(
+                    session.sessionId,
+                    exec = { command, timeoutMs ->
+                        try {
+                            val result = ssh.execCommand(command, timeoutMs)
+                            MoshServerSessionProbe.ProbeExecResult(
+                                exitStatus = result.exitStatus,
+                                output = result.stdout + "\n" + result.stderr,
+                                timedOut = result.timedOut,
                             )
+                        } catch (e: Exception) {
+                            MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+                        }
+                    },
+                )
+            }
+            sessionManagerRegistry.disconnectProfile(profileId)
+            // Tear down this profile's tunnel-dependent resources: close its VNC/
+            // RDP Desktop tab (via the lease's parent-gone callback) AND release
+            // its SSH dependent. Closing the tab here is required because when the
+            // carrying SSH is a shared / user-opened session (e.g. a terminal the
+            // VNC reused) it legitimately survives, so the SSH-teardown cascade
+            // alone would leave the tab open over a now-detached tunnel (#121).
+            sshSessionManager.teardownTunnelDependent(profileId)
+            // If tearing down a tunnel dependent closed a carrier jump session that
+            // held a USB forward (#613), clean up its forwarder handle too.
+            val liveSessionIds = sshSessionManager.sessions.value.keys
+            usbForwardHandles.keys.toList()
+                .filterNot { it in liveSessionIds }
+                .forEach { closedSessionId ->
+                    usbForwardHandles.remove(closedSessionId)?.let { handle ->
+                        viewModelScope.launch(Dispatchers.IO) {
+                            usbipForwarder.teardown(closedSessionId, handle) { msg ->
+                                userMessageBus.emit(
+                                    sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+                                )
+                            }
                         }
                     }
                 }
-            }
-        // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
-        // to cascade through — close them via the tab's registered close
-        // handle, matching McpTools.disconnectProfile (#437).
-        desktopSessionRegistry.closeHandle(profileId)?.invoke()
-        // Drop the WireGuard / Tailscale refcount this profile may have
-        // acquired via TunnelResolver. No-op if the profile didn't go
-        // through a tunnel; otherwise the underlying tunnel closes only
-        // when its last dependent disconnects (#149).
-        viewModelScope.launch { tunnelResolver.release(profileId) }
-        localSessionManager.desktopManager.stopAll()
-        updateServiceNotification()
+            // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
+            // to cascade through — close them via the tab's registered close
+            // handle, matching McpTools.disconnectProfile (#437).
+            desktopSessionRegistry.closeHandle(profileId)?.invoke()
+            // Drop the WireGuard / Tailscale refcount this profile may have
+            // acquired via TunnelResolver. No-op if the profile didn't go
+            // through a tunnel; otherwise the underlying tunnel closes only
+            // when its last dependent disconnects (#149).
+            viewModelScope.launch { tunnelResolver.release(profileId) }
+            localSessionManager.desktopManager.stopAll()
+            updateServiceNotification()
+        }
     }
 
     private fun updateServiceNotification() {
