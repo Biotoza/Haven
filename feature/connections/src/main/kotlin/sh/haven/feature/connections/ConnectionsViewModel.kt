@@ -1362,13 +1362,13 @@ class ConnectionsViewModel @Inject constructor(
         // MOSH_RECONNECT_MAX_ATTEMPTS, and only re-arm once a session has actually
         // survived (MOSH_RECONNECT_RESET_MS), which is what distinguishes a
         // one-off stall from a server that is simply gone.
-        moshSessionManager.onSessionPortResolved = { profileId, port ->
-            // Record the fresh session's port for orphan cleanup at the NEXT
+        moshSessionManager.onSessionPortResolved = { profileId, port, sessionKey ->
+            // Record the fresh session's port + key for orphan cleanup at the NEXT
             // connect (Dez's idea, 2026-11-05). Live sessions are in memory,
             // so this record alone never makes a live/parallel/waiting
             // session a cleanup candidate.
             viewModelScope.launch {
-                preferencesRepository.setMoshLastPort(profileId, port)
+                preferencesRepository.setMoshLastPort(profileId, port, sessionKey)
             }
         }
         moshSessionManager.onSessionDied = { profileId, sessionId ->
@@ -4875,8 +4875,11 @@ class ConnectionsViewModel @Inject constructor(
                 // Phase 1.5: orphan cleanup — NEW connect only, never on
                 // network recovery (Dez 2026-11-05). Runs before the new
                 // mosh-server exists, so a live stored port can only belong
-                // to a session whose client is gone.
-                cleanupMoshOrphan(profile, client)
+                // to a session whose client is gone. Backstop for sessions
+                // whose client died without a graceful close (app killed by
+                // the system, crash) — the primary defence is the close-time
+                // graceful close (EOF + port kill).
+                cleanupMoshOrphans(client)
 
                 // Phase 2: Resolve session manager, check for existing sessions
                 val smgr = resolveSessionManager(profile)
@@ -5886,16 +5889,24 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
-     * Orphan cleanup at new-connect time (Dez 2026-11-05). Only a port that
-     * is stored on disk AND absent from the live in-memory sessions is a
-     * candidate — so a live, parallel, or waiting session can never be
-     * killed by this path. The candidate's port is probed over the fresh
-     * bootstrap SSH client; if still bound the orphan mosh-server is killed,
-     * and the record is cleared either way.
+     * Orphan cleanup at new-connect time (Dez 2026-11-05) — the backstop for
+     * sessions whose client died without a graceful close (app killed by the
+     * system, crash). The primary defence is the close-time graceful close
+     * (EOF + port kill, see MoshSessionManager.gracefulClose).
+     *
+     * Scope: ALL profiles stored on this device, not just the connecting one
+     * (Dez correction, 2026-11-06): a closed profile may not be reopened for
+     * weeks, and its orphan must not wait that long. Every candidate port is
+     * probed with its OWN stored session key — the server answers only when
+     * it holds the same key, so another device's waiting session (even on a
+     * reused port) stays silent and is never killed.
      */
-    private suspend fun cleanupMoshOrphan(profile: ConnectionProfile, client: SshClient) {
-        val storedPort = preferencesRepository.moshLastPorts.first()[profile.id] ?: return
-        val livePorts = moshSessionManager.getSessionsForProfile(profile.id)
+    private suspend fun cleanupMoshOrphans(client: SshClient) {
+        val storedByProfile = preferencesRepository.moshLastPorts.first()
+        if (storedByProfile.isEmpty()) return
+        // Live = any session with a transport in memory, ANY profile — a
+        // live, parallel, or waiting session can never become a candidate.
+        val livePorts = moshSessionManager.sessions.value.values
             .mapNotNull { it.moshPort }
             .filter { it > 0 }
             .toSet()
@@ -5911,17 +5922,31 @@ class ConnectionsViewModel @Inject constructor(
                 MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
             }
         }
-        val candidate = cleaner.candidatePort(storedPort, livePorts) ?: return
-        val killed = cleaner.cleanupOrphan(candidate)
-        Log.d(
-            TAG,
-            if (killed) {
-                "Mosh orphan cleaned up at new connect: ${profile.host}:$candidate (profile ${profile.id})"
-            } else {
-                "Mosh orphan port $candidate no longer bound — clearing record (profile ${profile.id})"
-            },
-        )
-        preferencesRepository.clearMoshLastPort(profile.id)
+        for ((profileId, records) in storedByProfile) {
+            val profile = repository.getById(profileId) ?: continue
+            for (record in cleaner.candidateRecords(records, livePorts)) {
+                // Ownership probe with our OWN session key: the server answers only
+                // when it holds the same key. A foreign process (another device's
+                // waiting session, port reuse) cannot decrypt the probe and stays
+                // silent — and is never killed.
+                val ours = cleaner.probeSessionAlive(profile.host, record.port, record.sessionKey, timeoutMs = 1_000L)
+                if (!ours) {
+                    // Port free, or occupied by someone else — nothing to kill.
+                    preferencesRepository.clearMoshLastPort(profileId, record.port)
+                    continue
+                }
+                val killed = cleaner.cleanupOrphan(record.port)
+                Log.d(
+                    TAG,
+                    if (killed) {
+                        "Mosh orphan cleaned up at new connect: ${profile.host}:${record.port} (profile $profileId)"
+                    } else {
+                        "Mosh orphan kill failed for ${profile.host}:${record.port} (profile $profileId) — retrying next connect"
+                    },
+                )
+                if (killed) preferencesRepository.clearMoshLastPort(profileId, record.port)
+            }
+        }
     }
 
     /**
@@ -6745,41 +6770,68 @@ class ConnectionsViewModel @Inject constructor(
         // over a dead forward). Before the registry so the carrier's
         // transports can't vanish first and leave the forward orphaned.
         teardownAiRoutesFor(profileId)
-        sessionManagerRegistry.disconnectProfile(profileId)
-        // Tear down this profile's tunnel-dependent resources: close its VNC/
-        // RDP Desktop tab (via the lease's parent-gone callback) AND release
-        // its SSH dependent. Closing the tab here is required because when the
-        // carrying SSH is a shared / user-opened session (e.g. a terminal the
-        // VNC reused) it legitimately survives, so the SSH-teardown cascade
-        // alone would leave the tab open over a now-detached tunnel (#121).
-        sshSessionManager.teardownTunnelDependent(profileId)
-        // If tearing down a tunnel dependent closed a carrier jump session that
-        // held a USB forward (#613), clean up its forwarder handle too.
-        val liveSessionIds = sshSessionManager.sessions.value.keys
-        usbForwardHandles.keys.toList()
-            .filterNot { it in liveSessionIds }
-            .forEach { closedSessionId ->
-                usbForwardHandles.remove(closedSessionId)?.let { handle ->
-                    viewModelScope.launch(Dispatchers.IO) {
-                        usbipForwarder.teardown(closedSessionId, handle) { msg ->
-                            userMessageBus.emit(
-                                sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+        // Graceful close BEFORE the plain teardown (Dez 2026-11-06, hd5):
+        // "Отключить" used to tear the transport down without EOF/kill,
+        // leaving server-side mosh orphans that lingered until the next
+        // connect. Mirror the tab-close path — EOF first, then a
+        // port-targeted kill as guarantee — and only then run the registry
+        // teardown, which closes the SSH clients the kill exec runs over.
+        // Hence the sequential coroutine: the teardown must wait.
+        viewModelScope.launch(Dispatchers.IO) {
+            for (session in moshSessionManager.getSessionsForProfile(profileId)) {
+                val ssh = session.sshClient as? SshClient ?: continue
+                moshSessionManager.gracefulClose(
+                    session.sessionId,
+                    exec = { command, timeoutMs ->
+                        try {
+                            val result = ssh.execCommand(command, timeoutMs)
+                            MoshServerSessionProbe.ProbeExecResult(
+                                exitStatus = result.exitStatus,
+                                output = result.stdout + "\n" + result.stderr,
+                                timedOut = result.timedOut,
                             )
+                        } catch (e: Exception) {
+                            MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+                        }
+                    },
+                )
+            }
+            sessionManagerRegistry.disconnectProfile(profileId)
+            // Tear down this profile's tunnel-dependent resources: close its VNC/
+            // RDP Desktop tab (via the lease's parent-gone callback) AND release
+            // its SSH dependent. Closing the tab here is required because when the
+            // carrying SSH is a shared / user-opened session (e.g. a terminal the
+            // VNC reused) it legitimately survives, so the SSH-teardown cascade
+            // alone would leave the tab open over a now-detached tunnel (#121).
+            sshSessionManager.teardownTunnelDependent(profileId)
+            // If tearing down a tunnel dependent closed a carrier jump session that
+            // held a USB forward (#613), clean up its forwarder handle too.
+            val liveSessionIds = sshSessionManager.sessions.value.keys
+            usbForwardHandles.keys.toList()
+                .filterNot { it in liveSessionIds }
+                .forEach { closedSessionId ->
+                    usbForwardHandles.remove(closedSessionId)?.let { handle ->
+                        viewModelScope.launch(Dispatchers.IO) {
+                            usbipForwarder.teardown(closedSessionId, handle) { msg ->
+                                userMessageBus.emit(
+                                    sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+                                )
+                            }
                         }
                     }
                 }
-            }
-        // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
-        // to cascade through — close them via the tab's registered close
-        // handle, matching McpTools.disconnectProfile (#437).
-        desktopSessionRegistry.closeHandle(profileId)?.invoke()
-        // Drop the WireGuard / Tailscale refcount this profile may have
-        // acquired via TunnelResolver. No-op if the profile didn't go
-        // through a tunnel; otherwise the underlying tunnel closes only
-        // when its last dependent disconnects (#149).
-        viewModelScope.launch { tunnelResolver.release(profileId) }
-        localSessionManager.desktopManager.stopAll()
-        updateServiceNotification()
+            // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
+            // to cascade through — close them via the tab's registered close
+            // handle, matching McpTools.disconnectProfile (#437).
+            desktopSessionRegistry.closeHandle(profileId)?.invoke()
+            // Drop the WireGuard / Tailscale refcount this profile may have
+            // acquired via TunnelResolver. No-op if the profile didn't go
+            // through a tunnel; otherwise the underlying tunnel closes only
+            // when its last dependent disconnects (#149).
+            viewModelScope.launch { tunnelResolver.release(profileId) }
+            localSessionManager.desktopManager.stopAll()
+            updateServiceNotification()
+        }
     }
 
     private fun updateServiceNotification() {

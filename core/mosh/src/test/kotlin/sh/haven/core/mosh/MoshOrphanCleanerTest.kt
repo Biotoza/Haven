@@ -3,7 +3,6 @@ package sh.haven.core.mosh
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -16,19 +15,22 @@ class MoshOrphanCleanerTest {
     private fun exec(exitStatus: Int?, output: String, timedOut: Boolean = false) =
         MoshServerSessionProbe.ProbeExecResult(exitStatus = exitStatus, output = output, timedOut = timedOut)
 
+    private fun rec(port: Int, key: String = "k") = MoshSessionRecord(port, key)
+
     // ---- candidate selection (Dez's safety conditions, 2026-11-05) ----
 
     @Test
-    fun noStoredPort_noCandidate() {
-        assertNull(MoshOrphanCleaner { _, _ -> exec(0, "") }.candidatePort(null, setOf(60001)))
-        assertNull(MoshOrphanCleaner { _, _ -> exec(0, "") }.candidatePort(0, emptySet()))
+    fun noStoredRecords_noCandidate() {
+        assertTrue(MoshOrphanCleaner { _, _ -> exec(0, "") }.candidateRecords(emptyList(), setOf(60001)).isEmpty())
+        // Port <= 0 is never a candidate.
+        assertTrue(MoshOrphanCleaner { _, _ -> exec(0, "") }.candidateRecords(listOf(rec(0)), emptySet()).isEmpty())
     }
 
     @Test
     fun storedPortStillLive_parallelTab_noCandidate() {
         // Condition 3: a parallel tab's session is alive — its port is in the
         // live set and must NEVER become a candidate.
-        assertNull(MoshOrphanCleaner { _, _ -> exec(0, "") }.candidatePort(60001, setOf(60001)))
+        assertTrue(MoshOrphanCleaner { _, _ -> exec(0, "") }.candidateRecords(listOf(rec(60001)), setOf(60001)).isEmpty())
     }
 
     @Test
@@ -36,7 +38,32 @@ class MoshOrphanCleanerTest {
         // The target case: app restarted / tab closed — port on disk, no live
         // session holds it. (Conditions 2 and 4 hold structurally: a live or
         // waiting session always has its transport in memory.)
-        assertEquals(60001, MoshOrphanCleaner { _, _ -> exec(0, "") }.candidatePort(60001, setOf(60010)))
+        val candidates = MoshOrphanCleaner { _, _ -> exec(0, "") }
+            .candidateRecords(listOf(rec(60001)), setOf(60010))
+        assertEquals(1, candidates.size)
+        assertEquals(60001, candidates[0].port)
+    }
+
+    @Test
+    fun recordWithoutKey_neverCandidate() {
+        // Pre-A+ legacy entries carry no key — ownership cannot be verified,
+        // so they are not candidates (and get dropped from the store).
+        assertTrue(
+            MoshOrphanCleaner { _, _ -> exec(0, "") }
+                .candidateRecords(listOf(rec(60001, key = "")), emptySet())
+                .isEmpty(),
+        )
+    }
+
+    @Test
+    fun multipleRecords_someLive_someNot() {
+        // Dez's multi-tab scenario: 5 closed tabs of one profile leave 5 stored
+        // ports; the live set filters parallel/other-device sessions; every
+        // stored-but-not-live port is a candidate.
+        val stored = listOf(rec(60001), rec(60002), rec(60003), rec(60004), rec(60005))
+        val candidates = MoshOrphanCleaner { _, _ -> exec(0, "") }
+            .candidateRecords(stored, livePorts = setOf(60002, 60010))
+        assertEquals(listOf(60001, 60003, 60004, 60005), candidates.map { it.port })
     }
 
     // ---- cleanup flow ----
