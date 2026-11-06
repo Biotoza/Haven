@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.2-hd5
+
+- **Profile «Отключить» (disconnect) now runs the same graceful close as closing a tab (Dez + Shade, 2026-11-06).** The disconnect menu path bypassed the close-time graceful close from v5.94.2-hd4 and tore the mosh transport down silently — device tests (2026-11-06, structured A/B: крестик ×2 rounds vs «Отключить» ×2 rounds, server-side process watch) proved that every «Отключить» left a server-side orphan that lingered until the next connect's cleanup killed it, while every tab close died cleanly. Disconnect now sends EOF first and a port-targeted kill as guarantee over the session's own bootstrap SSH channel, and only then runs the registry teardown (which closes the SSH clients the kill exec needs), so «Отключить» and tab close now behave identically.
+
 ## v5.94.2-hd4
 
 - **Close-time graceful close: EOF + port kill when a mosh tab closes (Dez + Shade, 2026-11-06).** Closing a mosh tab (or disconnecting a profile) used to tear the transport down silently and always left a server-side orphan behind, waiting for the profile's next connect — possibly weeks away, for anyone using Haven. Now the client first sends EOF (Ctrl-D) into the session: the remote shell (or agent CLI) exits cleanly, mosh-server announces shutdown and dies on its own. If the session is still alive after a short grace period (the foreground ignored EOF — vim, a hung process), the client kills the mosh-server by port over the session's own bootstrap SSH channel. Orphans are no longer born at tab close; the port-targeted kill is idempotent and needs no ownership probe (the port belongs to the session being closed).
