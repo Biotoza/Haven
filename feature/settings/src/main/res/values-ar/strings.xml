@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">يخفي بطاقة Haven من شاشة التطبيقات الأخيرة؛ تستمر الجلسات في العمل. أعد الفتح من أيقونة التطبيق.</string>
     <string name="settings_connection_logging_title">تسجيل الاتصالات</string>
     <string name="settings_connection_logging_subtitle">تسجيل أحداث الاتصال (اتصال، قطع، أخطاء). يُخزّن محلياً ومحمي بتشفير الجهاز</string>
+    <string name="settings_event_journal_title">سجل الأحداث</string>
+    <string name="settings_event_journal_subtitle">يسجل أسباب انتهاء الجلسات أو إعادة اتصالها. على هذا الجهاز فقط؛ متوقف افتراضيًا</string>
+    <string name="settings_event_journal_export_title">تصدير سجل الأحداث</string>
+    <string name="settings_event_journal_export_subtitle">مشاركة الأحداث المسجلة للتشخيص</string>
     <string name="settings_view_connection_log_title">عرض سجل الاتصالات</string>
     <string name="settings_view_connection_log_subtitle">سجل الاتصالات والأحداث</string>
     <string name="settings_verbose_logging_title">تسجيل تفصيلي للاتصالات</string>

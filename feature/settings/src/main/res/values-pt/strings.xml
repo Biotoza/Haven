@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">Oculta o cartão do Haven em recentes; as sessões continuam. Reabra pelo ícone do app.</string>
     <string name="settings_connection_logging_title">Registro de conexões</string>
     <string name="settings_connection_logging_subtitle">Registrar eventos de conexão (conectar, desconectar, erros). Armazenado localmente, protegido pela criptografia do dispositivo</string>
+    <string name="settings_event_journal_title">Registro de eventos</string>
+    <string name="settings_event_journal_subtitle">Registra por que as sessões terminam ou se reconectam. Somente neste dispositivo; desativado por padrão</string>
+    <string name="settings_event_journal_export_title">Exportar registro de eventos</string>
+    <string name="settings_event_journal_export_subtitle">Compartilhe os eventos registrados para diagnóstico</string>
     <string name="settings_view_connection_log_title">Ver registro de conexões</string>
     <string name="settings_view_connection_log_subtitle">Histórico e eventos de conexão</string>
     <string name="settings_verbose_logging_title">Registro detalhado de conexões</string>

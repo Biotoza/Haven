@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">সাম্প্রতিক স্ক্রিনে Haven-এর কার্ড লুকায়; সেশন চলতে থাকে। অ্যাপ আইকন থেকে আবার খুলুন।</string>
     <string name="settings_connection_logging_title">সংযোগ লগিং</string>
     <string name="settings_connection_logging_subtitle">সংযোগ ইভেন্ট রেকর্ড করুন (সংযোগ, বিচ্ছিন্ন, ত্রুটি)। স্থানীয়ভাবে সংরক্ষিত, ডিভাইস এনক্রিপশন দ্বারা সুরক্ষিত</string>
+    <string name="settings_event_journal_title">ইভেন্ট লগ</string>
+    <string name="settings_event_journal_subtitle">সেশন বন্ধ বা পুনরায় সংযোগের কারণ রেকর্ড করে। শুধুমাত্র এই ডিভাইসে; ডিফল্ট বন্ধ</string>
+    <string name="settings_event_journal_export_title">ইভেন্ট লগ এক্সপোর্ট করুন</string>
+    <string name="settings_event_journal_export_subtitle">নির্ণয়ের জন্য রেকর্ড করা ইভেন্ট শেয়ার করুন</string>
     <string name="settings_view_connection_log_title">সংযোগ লগ দেখুন</string>
     <string name="settings_view_connection_log_subtitle">সংযোগের ইতিহাস ও ইভেন্ট</string>
     <string name="settings_verbose_logging_title">বিস্তারিত সংযোগ লগিং</string>
