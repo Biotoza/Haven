@@ -1128,6 +1128,8 @@ fun SettingsScreen(
         )
         if (eventJournalEnabled) {
             val context = LocalContext.current
+            // Hoisted out of the onClick callback (lint LocalContextGetResourceValueCall).
+            val exportChooserTitle = stringResource(R.string.settings_event_journal_export_title)
             SettingsItem(
                 icon = Icons.Filled.CloudUpload,
                 title = stringResource(R.string.settings_event_journal_export_title),
@@ -1146,10 +1148,7 @@ fun SettingsScreen(
                             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         context.startActivity(
-                            android.content.Intent.createChooser(
-                                send,
-                                context.getString(R.string.settings_event_journal_export_title),
-                            ),
+                            android.content.Intent.createChooser(send, exportChooserTitle),
                         )
                     }
                 },
