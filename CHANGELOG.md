@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.2-hd9
+
+- **In-app event journal for session-death forensics; no auto-reconnect after death (hd9, Dez + Shade, 2026-11-13).** A new opt-in event journal (Settings → Diagnostics → Event journal, off by default) records why sessions die or reconnect — transport verdicts, session-death triggers, and reconnection decisions — as a ring-buffered log file on device. Exported manually via the share sheet; never auto-uploaded. Auto-creation of a new session after death (scheduleMoshReconnect / decideMoshReconnect, #421 path) is removed entirely: a dead session stays dead, and the user reconnects manually. The orphan cleaner (hd3–hd5) is unchanged.
+
 ## v5.94.2-hd8
 
 - **Selection no longer hides the surrounding text (Dez + Shade, 2026-11-11).** hd7's run-direct renderer split a run into draw spans at selection boundaries, but the run edges themselves were not span boundaries: when a selection intersected a run, only the selected slice was drawn and the text around it disappeared while selecting. Span boundaries are now computed by `runSpanBoundaries`, which always includes the run edges (plus the selection and hyperlink intervals), extracted as a pure function with unit tests (`RunSpanBoundariesTest`, 11 cases) to keep this regressed. Termlib pin: Biotoza/termlib `compact-runs` 7be5e49.

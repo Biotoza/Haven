@@ -157,6 +157,7 @@ class UserPreferencesRepository @Inject constructor(
     private val keysCollapsedSectionsKey = stringPreferencesKey("keys_collapsed_sections")
     private val waylandShellCommandKey = stringPreferencesKey("wayland_shell_command")
     private val batteryPromptDismissedKey = booleanPreferencesKey("battery_prompt_dismissed")
+    private val eventJournalEnabledKey = booleanPreferencesKey("event_journal_enabled")
     private val batteryPromptNeverAskKey = booleanPreferencesKey("battery_prompt_never_ask")
     private val batteryLastKnownExemptKey = booleanPreferencesKey("battery_last_known_exempt")
     private val showLinuxVmCardKey = booleanPreferencesKey("show_linux_vm_card")
@@ -1122,6 +1123,21 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setBatteryPromptNeverAsk() {
         dataStore.edit { prefs ->
             prefs[batteryPromptNeverAskKey] = true
+        }
+    }
+
+    /**
+     * Opt-in diagnostics event journal (hd9): records why sessions die or
+     * reconnect, in-app, on-device only. Default OFF — nothing is written
+     * until the user turns it on in Settings → Diagnostics.
+     */
+    val eventJournalEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[eventJournalEnabledKey] ?: false
+    }
+
+    suspend fun setEventJournalEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[eventJournalEnabledKey] = enabled
         }
     }
 
