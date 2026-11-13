@@ -113,8 +113,7 @@ class EventJournalTest {
     @Test
     fun `exportCopy returns null when journal is empty`() {
         journal = EventJournal(context)
-        // Even enabled — nothing logged yet
-        journal.setEnabled(true)
+        // A disabled journal writes nothing at all — no start marker, no file.
         assertNull("export must be null for empty journal", journal.exportCopy())
     }
 
