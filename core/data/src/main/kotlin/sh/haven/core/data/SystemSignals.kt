@@ -120,11 +120,11 @@ class SystemSignals(
     private val powerReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
             when (intent.action) {
-                Intent.ACTION_POWER_SAVE_MODE_CHANGED -> {
+                android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> {
                     val powerSave = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isPowerSaveMode
                     journal.log("sys-power", "power-save mode changed: $powerSave")
                 }
-                Intent.ACTION_DEVICE_IDLE_MODE_CHANGED -> {
+                android.os.PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED -> {
                     val idle = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isDeviceIdleMode
                     journal.log("sys-power", "device idle (Doze) mode changed: $idle")
                 }
@@ -134,8 +134,8 @@ class SystemSignals(
 
     private fun registerPower() {
         val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_POWER_SAVE_MODE_CHANGED)
-            addAction(Intent.ACTION_DEVICE_IDLE_MODE_CHANGED)
+            addAction(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            addAction(android.os.PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)
         }
         context.registerReceiver(powerReceiver, filter)
     }
