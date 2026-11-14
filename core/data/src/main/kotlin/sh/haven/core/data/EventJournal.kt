@@ -40,8 +40,18 @@ class EventJournal(private val context: Context, private val maxBytes: Long = MA
 
     val isEnabled: Boolean get() = enabled
 
-    /** Called on app start and whenever the settings toggle changes. */
+    /**
+     * Called on app start and whenever the settings toggle changes.
+     *
+     * Idempotent (hd9.2): callers subscribe to the same preference flow from
+     * several places (HavenApp and each new ConnectionsViewModel), and every
+     * re-emission used to append another "enabled — process up" line. The
+     * start marker must mean "the process came up with the journal on",
+     * not "some subscriber saw the toggle again", so a state-preserving
+     * call is a no-op.
+     */
     fun setEnabled(flag: Boolean) {
+        if (enabled == flag) return
         enabled = flag
         if (flag) {
             log("journal", "enabled — process up (file=${file.name})")

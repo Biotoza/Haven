@@ -74,6 +74,36 @@ class EventJournalTest {
     }
 
     @Test
+    fun `repeated enable does not duplicate the process-up marker`() {
+        journal = EventJournal(context)
+        journal.setEnabled(true)
+        journal.setEnabled(true) // HavenApp + each ConnectionsViewModel re-subscribe
+        journal.setEnabled(true)
+
+        val text = File(context.filesDir, "event_journal.log").readText()
+        assertEquals(
+            "enabling an already-enabled journal must not append another marker",
+            1,
+            Regex("enabled — process up").findAll(text).count(),
+        )
+    }
+
+    @Test
+    fun `disable then enable logs the marker exactly once`() {
+        journal = EventJournal(context)
+        journal.setEnabled(true)
+        journal.setEnabled(false)
+        journal.setEnabled(true) // a real off→on transition logs again
+
+        val text = File(context.filesDir, "event_journal.log").readText()
+        assertEquals(
+            "each real off→on transition appends exactly one marker",
+            2,
+            Regex("enabled — process up").findAll(text).count(),
+        )
+    }
+
+    @Test
     fun `log line starts with ISO timestamp`() {
         journal = EventJournal(context)
         journal.setEnabled(true)
