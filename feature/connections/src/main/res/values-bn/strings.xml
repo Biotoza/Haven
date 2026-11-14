@@ -624,4 +624,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Shizuku (ADB uid 2000 বা root) এর মাধ্যমে উন্নত অনুমতিসহ Android শেল (/system/bin/sh) চালায়। এজন্য Shizuku চালু ও অনুমোদিত থাকতে হবে।</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

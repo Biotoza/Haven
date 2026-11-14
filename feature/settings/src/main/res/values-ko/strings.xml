@@ -47,6 +47,10 @@
     <string name="settings_exclude_recents_subtitle">최근 앱 화면에서 Haven 카드를 숨깁니다. 세션은 계속 실행됩니다. 앱 아이콘으로 다시 여세요.</string>
     <string name="settings_connection_logging_title">연결 로깅</string>
     <string name="settings_connection_logging_subtitle">연결 이벤트(연결, 연결 해제, 오류)를 기록합니다. 로컬에 저장되며 기기 암호화로 보호됩니다</string>
+    <string name="settings_event_journal_title">이벤트 로그</string>
+    <string name="settings_event_journal_subtitle">세션이 종료되거나 다시 연결되는 이유를 기록합니다. 이 기기에서만; 기본적으로 꺼짐</string>
+    <string name="settings_event_journal_export_title">이벤트 로그 내보내기</string>
+    <string name="settings_event_journal_export_subtitle">기록된 이벤트를 진단용으로 공유</string>
     <string name="settings_view_connection_log_title">연결 로그 보기</string>
     <string name="settings_view_connection_log_subtitle">연결 기록 및 이벤트</string>
     <string name="settings_verbose_logging_title">자세한 연결 로깅</string>

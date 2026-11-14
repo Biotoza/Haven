@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">在最近任务列表中隐藏 Haven 卡片；会话继续运行。从应用图标重新打开。</string>
     <string name="settings_connection_logging_title">连接日志</string>
     <string name="settings_connection_logging_subtitle">记录连接事件（连接、断开、错误）。存储在本地，受设备加密保护</string>
+    <string name="settings_event_journal_title">事件日志</string>
+    <string name="settings_event_journal_subtitle">记录会话结束或重新连接的原因。仅限本设备；默认关闭</string>
+    <string name="settings_event_journal_export_title">导出事件日志</string>
+    <string name="settings_event_journal_export_subtitle">分享记录的事件以进行诊断</string>
     <string name="settings_view_connection_log_title">查看连接日志</string>
     <string name="settings_view_connection_log_subtitle">连接历史和事件</string>
     <string name="settings_verbose_logging_title">详细连接日志</string>

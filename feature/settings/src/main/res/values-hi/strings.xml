@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">हाल के ऐप्स स्क्रीन में Haven का कार्ड छिपाता है; सत्र चलते रहते हैं। ऐप आइकन से दोबारा खोलें।</string>
     <string name="settings_connection_logging_title">कनेक्शन लॉगिंग</string>
     <string name="settings_connection_logging_subtitle">कनेक्शन इवेंट रिकॉर्ड करें (कनेक्ट, डिस्कनेक्ट, त्रुटियाँ)। स्थानीय रूप से संग्रहित, डिवाइस एन्क्रिप्शन से सुरक्षित</string>
+    <string name="settings_event_journal_title">इवेंट लॉग</string>
+    <string name="settings_event_journal_subtitle">सत्र बंद होने या फिर से जुड़ने के कारण रिकॉर्ड करता है। केवल इस डिवाइस पर; डिफ़ॉल्ट रूप से बंद</string>
+    <string name="settings_event_journal_export_title">इवेंट लॉग निर्यात करें</string>
+    <string name="settings_event_journal_export_subtitle">निदान के लिए रिकॉर्ड किए गए इवेंट साझा करें</string>
     <string name="settings_view_connection_log_title">कनेक्शन लॉग देखें</string>
     <string name="settings_view_connection_log_subtitle">कनेक्शन इतिहास और इवेंट</string>
     <string name="settings_verbose_logging_title">विस्तृत कनेक्शन लॉगिंग</string>

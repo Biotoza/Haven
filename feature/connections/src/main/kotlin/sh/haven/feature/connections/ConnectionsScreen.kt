@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.LazyColumn
+import sh.haven.core.redact.LogRedact
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -198,6 +200,7 @@ fun ConnectionsScreen(
     val profileStatuses by viewModel.profileStatuses.collectAsState()
     val mcpExposure by viewModel.mcpExposure.collectAsState()
     val agentActiveProfiles by viewModel.agentActiveProfiles.collectAsState()
+    val sessionDeathInfo by viewModel.sessionDeathInfo.collectAsState()
     val sessions by viewModel.sessions.collectAsState()
 
     // Derive profile colors matching terminal tab colors (by session registration order)
@@ -1452,6 +1455,8 @@ fun ConnectionsScreen(
                                     onReauthRclone = { viewModel.reauthRcloneProfile(profile) },
                                     onCancelOAuth = { viewModel.cancelPendingOAuth(profile) },
                                     onNewSession = { viewModel.openNewSession(profile.id) },
+                                    deathInfo = sessionDeathInfo[profile.id],
+                                    onDismissDeath = { viewModel.clearSessionDeathInfo(profile.id) },
                                     enableDrag = !isFiltering,
                                     dragModifier = if (!isFiltering) Modifier
                                         .zIndex(if (isDragged) 1f else 0f)
@@ -1573,6 +1578,8 @@ fun ConnectionsScreen(
                                         onReauthRclone = { viewModel.reauthRcloneProfile(dep) },
                                         onCancelOAuth = { viewModel.cancelPendingOAuth(dep) },
                                         onNewSession = { viewModel.openNewSession(dep.id) },
+                                        deathInfo = sessionDeathInfo[dep.id],
+                                        onDismissDeath = { viewModel.clearSessionDeathInfo(dep.id) },
                                         dragModifier = if (ancestorDragged) Modifier
                                             .zIndex(1f)
                                             .offset(
@@ -1642,6 +1649,10 @@ private fun effectiveIdentityFor(
     return identities.firstOrNull { it.id == id }
 }
 
+// #421 key-regression diagnostics: every branch of the tap chain is tagged
+// so a logcat capture shows exactly which decision produced a password prompt.
+private const val TAG = "ConnectionsTap"
+
 private fun onTapProfile(
     profile: ConnectionProfile,
     profileStatus: ProfileStatus?,
@@ -1654,6 +1665,12 @@ private fun onTapProfile(
     onNavigateToChat: (String) -> Unit,
     showPasswordDialog: () -> Unit,
 ) {
+    Log.d(
+        TAG,
+        "tap profile=${LogRedact.of(profile.label)} status=$profileStatus usr=${LogRedact.of(profile.username)} " +
+            "keyId=${profile.keyId} specs=${profile.authMethodSpecs} keys=${sshKeys.size} " +
+            "identity=$hasUsableIdentity mosh=${profile.useMosh} sshPassSet=${!profile.sshPassword.isNullOrBlank()}",
+    )
     if (profile.isLocal) {
         viewModel.connect(profile, "")
     } else if (profileStatus == ProfileStatus.CONNECTED && profile.isEmail) {
@@ -1736,17 +1753,22 @@ private fun onTapProfile(
         viewModel.connect(profile, "")
     } else if (profile.username.isBlank()) {
         // Profile saved without a username — always prompt so the user can pick one.
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> passwordDialog (username blank)")
         showPasswordDialog()
     } else if (profileUsesKeyAuth(profile) &&
         profile.authMethodSpecs.none { it is ConnectionProfile.AuthMethodSpec.Password } &&
         sshKeys.isNotEmpty()
     ) {
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> connectWithKey")
         viewModel.connectWithKey(profile)
     } else if (!profile.sshPassword.isNullOrBlank()) {
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> connect(savedPassword, keyAuth=${profileUsesKeyAuth(profile)})")
         viewModel.connect(profile, if (profileUsesKeyAuth(profile)) "" else profile.sshPassword!!)
     } else if (sshKeys.isNotEmpty()) {
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> connectWithKey (any-key)")
         viewModel.connectWithKey(profile)
     } else {
+        Log.d(TAG, "tap ${LogRedact.of(profile.label)} -> passwordDialog (no keys, no password)")
         showPasswordDialog()
     }
 }
@@ -1784,6 +1806,10 @@ private fun ConnectionTreeItem(
     onDragStart: () -> Unit = {},
     onDrag: (Float) -> Unit = {},
     onDragEnd: () -> Unit = {},
+    /** hd9.1: session death info for the banner (null = no death / no banner). */
+    deathInfo: ConnectionsViewModel.SessionDeathInfo? = null,
+    /** Dismiss the death banner (e.g. user tapped reconnect). */
+    onDismissDeath: () -> Unit = {},
 ) {
     val profileStatus = profileStatuses[profile.id]
     var showMenu by remember { mutableStateOf(false) }
@@ -1844,6 +1870,7 @@ private fun ConnectionTreeItem(
     }
 
     Box(modifier = dragModifier) {
+        Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Drag handle for top-level items (hidden when filtering)
             if (indent == 0 && enableDrag) {
@@ -2100,6 +2127,43 @@ private fun ConnectionTreeItem(
                 leadingIcon = { Icon(Icons.Filled.Delete, null) },
                 onClick = { showMenu = false; showDeleteConfirm = true },
             )
+        }
+        // hd9.1: session-death banner — shows "Сессия завершилась в HH:MM · причина: …"
+        // with a reconnect button, so the user sees why the session died without
+        // having to dig into the event journal.
+        if (deathInfo != null) {
+            val time = remember(deathInfo.timestampMs) {
+                android.text.format.DateFormat.format("HH:mm", java.util.Date(deathInfo.timestampMs))
+            }
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 28.dp, end = 8.dp, top = 2.dp, bottom = 4.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.connections_session_died_banner, time, deathInfo.reason),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = {
+                        onDismissDeath()
+                        onNewSession()
+                    }) {
+                        Text(
+                            stringResource(R.string.connections_session_died_reconnect),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            }
+        }
         }
     }
 }
