@@ -14,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import sh.haven.core.mosh.MoshSessionRecord
 import sh.haven.core.security.CredentialEncryption
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -156,6 +157,7 @@ class UserPreferencesRepository @Inject constructor(
     private val keysCollapsedSectionsKey = stringPreferencesKey("keys_collapsed_sections")
     private val waylandShellCommandKey = stringPreferencesKey("wayland_shell_command")
     private val batteryPromptDismissedKey = booleanPreferencesKey("battery_prompt_dismissed")
+    private val eventJournalEnabledKey = booleanPreferencesKey("event_journal_enabled")
     private val batteryPromptNeverAskKey = booleanPreferencesKey("battery_prompt_never_ask")
     private val batteryLastKnownExemptKey = booleanPreferencesKey("battery_last_known_exempt")
     private val showLinuxVmCardKey = booleanPreferencesKey("show_linux_vm_card")
@@ -1125,6 +1127,21 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /**
+     * Opt-in diagnostics event journal (hd9): records why sessions die or
+     * reconnect, in-app, on-device only. Default OFF — nothing is written
+     * until the user turns it on in Settings → Diagnostics.
+     */
+    val eventJournalEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[eventJournalEnabledKey] ?: false
+    }
+
+    suspend fun setEventJournalEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[eventJournalEnabledKey] = enabled
+        }
+    }
+
+    /**
      * Last observed `isIgnoringBatteryOptimizations` value; null until first
      * observed. A stored true against a current false = the exemption was
      * dropped out from under us (#494).
@@ -1795,32 +1812,51 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    /** Last recorded mosh-session port per profile id ("profileId:port" entries). */
-    val moshLastPorts: Flow<Map<String, Int>> = dataStore.data.map { prefs ->
+    /** Last recorded mosh-session ports + session keys per profile id ("profileId:port:key" entries). */
+    val moshLastPorts: Flow<Map<String, List<MoshSessionRecord>>> = dataStore.data.map { prefs ->
         val entries = prefs[moshLastPortsKey] ?: emptySet()
         buildMap {
             for (entry in entries) {
-                val sep = entry.lastIndexOf(':')
-                if (sep <= 0 || sep == entry.length - 1) continue
-                val port = entry.substring(sep + 1).toIntOrNull() ?: continue
-                put(entry.substring(0, sep), port)
+                val parts = entry.split(':')
+                // Legacy "profileId:port" entries (pre-A+) carry no key — skip them;
+                // they are dropped from the store on the next write for that profile.
+                if (parts.size != 3) continue
+                val port = parts[1].toIntOrNull() ?: continue
+                val key = parts[2]
+                if (port <= 0 || key.isBlank()) continue
+                val list = this[parts[0]] as? MutableList<MoshSessionRecord>
+                    ?: mutableListOf<MoshSessionRecord>().also { put(parts[0], it) }
+                list.add(MoshSessionRecord(port, key))
             }
         }
     }
 
-    /** Record the port of a freshly started mosh session for later orphan cleanup. */
-    suspend fun setMoshLastPort(profileId: String, port: Int) {
-        if (port <= 0) return
+    /** Record the port+key of a freshly started mosh session for later orphan cleanup. */
+    suspend fun setMoshLastPort(profileId: String, port: Int, sessionKey: String) {
+        if (port <= 0 || sessionKey.isBlank()) return
         dataStore.edit { prefs ->
             val current = prefs[moshLastPortsKey] ?: emptySet()
             val prefix = "$profileId:"
-            val cleaned = current.filterNot { it.startsWith(prefix) }.toSet()
-            prefs[moshLastPortsKey] = cleaned + "$profileId:$port"
+            val otherProfiles = current.filterNot { it.startsWith(prefix) }.toSet()
+            val sameProfile = current.filter { it.startsWith(prefix) }.toSet()
+            // Replace an existing entry for the same port (reconnect reusing the port
+            // gets a fresh key), keep entries for other ports of this profile.
+            val kept = sameProfile.filterNot { it.startsWith("$prefix$port:") }.toSet()
+            prefs[moshLastPortsKey] = otherProfiles + kept + "$profileId:$port:$sessionKey"
         }
     }
 
-    /** Forget the recorded port for [profileId] (orphan cleaned up / session ended). */
-    suspend fun clearMoshLastPort(profileId: String) {
+    /** Forget one recorded port for [profileId] (orphan cleaned up / port free or foreign). */
+    suspend fun clearMoshLastPort(profileId: String, port: Int) {
+        dataStore.edit { prefs ->
+            val current = prefs[moshLastPortsKey] ?: return@edit
+            val prefix = "$profileId:$port:"
+            prefs[moshLastPortsKey] = current.filterNot { it.startsWith(prefix) }.toSet()
+        }
+    }
+
+    /** Forget all recorded ports for [profileId]. */
+    suspend fun clearMoshLastPorts(profileId: String) {
         dataStore.edit { prefs ->
             val current = prefs[moshLastPortsKey] ?: return@edit
             val prefix = "$profileId:"

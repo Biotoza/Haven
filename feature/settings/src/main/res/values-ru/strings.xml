@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">Скрывает карточку Haven на экране недавних; сеансы продолжают работать. Открыть снова — с иконки приложения.</string>
     <string name="settings_connection_logging_title">Журнал подключений</string>
     <string name="settings_connection_logging_subtitle">Записывать события подключений (подключение, отключение, ошибки). Хранится локально, защищено шифрованием устройства</string>
+    <string name="settings_event_journal_title">Журнал событий</string>
+    <string name="settings_event_journal_subtitle">Записывает причины завершения и переподключения сессий. Только на этом устройстве; по умолчанию выключен</string>
+    <string name="settings_event_journal_export_title">Экспорт журнала событий</string>
+    <string name="settings_event_journal_export_subtitle">Поделиться записанными событиями для диагностики</string>
     <string name="settings_view_connection_log_title">Просмотр журнала подключений</string>
     <string name="settings_view_connection_log_subtitle">История подключений и события</string>
     <string name="settings_verbose_logging_title">Подробный журнал подключений</string>

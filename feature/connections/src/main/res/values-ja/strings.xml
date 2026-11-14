@@ -622,4 +622,6 @@
     <string name="connections_helper_saved_password">任意。Android Keystore で暗号化され、SSH パスワードログインおよびターミナルでの生体認証付き sudo 自動入力に使用されます。</string>
     <string name="connections_auth_banner_title">SSH 認証</string>
     <string name="connections_auth_banner_open_link">リンクを開く</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

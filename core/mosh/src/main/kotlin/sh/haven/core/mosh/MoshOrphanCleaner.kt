@@ -1,19 +1,34 @@
 package sh.haven.core.mosh
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import sh.haven.mosh.crypto.MoshCrypto
+import sh.haven.mosh.network.MoshConnection
+
+/** A recorded mosh session: server port plus the session key that client and server share. */
+data class MoshSessionRecord(val port: Int, val sessionKey: String)
+
 /**
- * Orphan-mosh cleanup at NEW connect time (Dez's idea, 2026-11-05).
+ * Orphan-mosh cleanup at NEW connect time (Dez's idea, 2026-11-05) — the
+ * backstop layer. The primary defence is the close-time graceful close
+ * (MoshSessionManager.gracefulClose: EOF + port kill), which prevents
+ * orphans from being born when a tab is closed through the UI. This layer
+ * catches what that one could not: the app killed by the system (swipe from
+ * recents), a crash, or a phone that died mid-session.
  *
  * Problem: when the client goes away (tab closed, phone died, network lost)
  * the server-side mosh-server has no idea — mosh has no client-shutdown
  * packet — and it lingers as an orphan until the server's 7-day network
  * timeout. Orphans pile up on the host.
  *
- * Fix: the client remembers the port of the session it started. On the NEXT
- * connect of the same profile — and ONLY there, never on network recovery —
- * it asks the server over the bootstrap SSH channel "is that port still
- * bound?" If yes, that process has no client anymore (re-attach is impossible
- * anyway, #371), so the client tells the server to kill it. All fact-based,
- * no timers: the check is a probe, the kill is a direct command.
+ * Fix: the client remembers the port AND session key of every session it
+ * started. On the NEXT connect of the same profile — and ONLY there, never
+ * on network recovery — it asks the server over the bootstrap SSH channel
+ * "is that port still bound?" and verifies ownership by probing the port
+ * with its own session key: a server holding the same key answers, any
+ * other process (another device's waiting session) silently drops the
+ * packet. Only a verified-ours process is killed. All fact-based, no
+ * timers: the check is a probe, the kill is a direct command.
  *
  * Safety conditions (Dez, 2026-11-05 — hard requirements):
  *  1. Runs only when a NEW session is being created, never on reconnect /
@@ -22,6 +37,9 @@ package sh.haven.core.mosh
  *  3. Never kills sessions of parallel tabs.
  *  4. Never kills a "waiting" session (one that rode out an outage and is
  *     waiting for the network to return).
+ *  5. Never kills another device's session (port reuse included) — the key
+ *     probe makes this structural: without a matching key there is no
+ *     answer, and without an answer there is no kill.
  *
  * Conditions 2-4 hold structurally: only a port that is stored on disk AND
  * absent from the in-memory live-session set is a candidate. A live or
@@ -39,14 +57,47 @@ class MoshOrphanCleaner(
 ) {
 
     /**
-     * The stored port is a cleanup candidate iff it is set and no live
-     * session (any tab) currently uses it. Pure so the safety rules are
+     * The stored ports that are cleanup candidates: set on disk and no live
+     * session (any tab) currently uses them. Pure so the safety rules are
      * testable without a network.
      */
-    fun candidatePort(storedPort: Int?, livePorts: Set<Int>): Int? {
-        if (storedPort == null || storedPort <= 0) return null
-        if (storedPort in livePorts) return null
-        return storedPort
+    fun candidateRecords(
+        stored: List<MoshSessionRecord>,
+        livePorts: Set<Int>,
+    ): List<MoshSessionRecord> =
+        stored.filter { it.port > 0 && it.port !in livePorts && it.sessionKey.isNotBlank() }
+
+    /**
+     * Ownership probe: send one encrypted packet to [port] with the stored
+     * session key. The server answers only when it holds the SAME key — a
+     * foreign process (or a free port) stays silent. Safe: a foreign waiting
+     * session cannot even decrypt the probe, so nothing is disturbed.
+     */
+    suspend fun probeSessionAlive(
+        host: String,
+        port: Int,
+        sessionKey: String,
+        timeoutMs: Long = 1_500L,
+    ): Boolean = withContext(Dispatchers.IO) {
+        var connection: MoshConnection? = null
+        try {
+            val crypto = MoshCrypto(sessionKey)
+            connection = MoshConnection(
+                serverIp = host,
+                port = port,
+                crypto = crypto,
+                // Fresh random nonce range: the old client transport already
+                // consumed low nonces, and a server-side replay filter must
+                // not mistake our probe for a duplicate of the dead session.
+                initialSendNonceSeq = (System.currentTimeMillis() shl 8) and Long.MAX_VALUE,
+            )
+            connection.sendProbePacket()
+            connection.receiveInstruction(timeoutMs.toInt()) != null
+        } catch (e: Exception) {
+            false
+        } finally {
+            runCatching { connection?.close() }
+        }
     }
 
     /**

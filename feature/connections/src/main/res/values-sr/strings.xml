@@ -554,4 +554,6 @@
     <string name="connections_helper_persist_rediscovered_host">Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).</string>
     <string name="connections_auth_banner_title">SSH аутентификација</string>
     <string name="connections_auth_banner_open_link">Отвори везу</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

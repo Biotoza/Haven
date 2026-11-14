@@ -620,4 +620,6 @@
     <string name="connections_helper_saved_password">可选。在 Android Keystore 中加密保存，用于 SSH 密码登录以及终端中受生物识别保护的 sudo 自动填充。</string>
     <string name="connections_auth_banner_title">SSH 身份验证</string>
     <string name="connections_auth_banner_open_link">打开链接</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

@@ -2,6 +2,7 @@ package sh.haven.core.mosh
 
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,7 +49,7 @@ class MoshSessionManager @Inject constructor(
      * cleanup candidate, so live/parallel/waiting sessions are never
      * touched by construction.
      */
-    var onSessionPortResolved: ((profileId: String, port: Int) -> Unit)? = null
+    var onSessionPortResolved: ((profileId: String, port: Int, sessionKey: String) -> Unit)? = null
 
     /**
      * Whether the device currently has a network that is validated for internet
@@ -192,7 +193,7 @@ class MoshSessionManager @Inject constructor(
 
         val profileId = _sessions.value[sessionId]?.profileId
         if (profileId != null && moshPort > 0) {
-            onSessionPortResolved?.invoke(profileId, moshPort)
+            onSessionPortResolved?.invoke(profileId, moshPort, moshKey)
         }
     }
 
@@ -337,6 +338,51 @@ class MoshSessionManager @Inject constructor(
                     Log.e(TAG, "tearDown failed for ${session.sessionId}", e)
                 }
             }
+        }
+    }
+
+    /**
+     * Graceful close of a mosh session at tab-close time (Dez 2026-11-06).
+     *
+     * Closing a tab used to tear the transport down silently, leaving the
+     * server-side mosh-server waiting for a client that will never return —
+     * an orphan that lingered until the profile's next connect (or for
+     * weeks, if the profile was not reopened). Orphans must not be born in
+     * the first place.
+     *
+     * Two stages:
+     *  1. EOF (0x04) into the transport input — the remote foreground
+     *     (shell / agent CLI) sees Ctrl-D and exits cleanly; mosh-server
+     *     announces shutdown and dies on its own. We wait up to [eofGraceMs]
+     *     for the clean end (the session leaves the map via the clean-exit
+     *     path).
+     *  2. Guarantee: whatever ignored the EOF (vim, a hung process) is
+     *     killed by port over [exec] (the caller wires it to the session's
+     *     bootstrap SSH client). The port belongs to the session being
+     *     closed — ownership is ours by construction, no probe needed. If
+     *     stage 1 already ended the session, the kill finds nothing.
+     *
+     * The caller must remove the session afterwards (removeSession /
+     * removeAllSessionsForProfile), which closes the SSH client and the
+     * transport.
+     */
+    suspend fun gracefulClose(
+        sessionId: String,
+        exec: suspend (command: String, timeoutMs: Long?) -> MoshServerSessionProbe.ProbeExecResult,
+        eofGraceMs: Long = 1_500L,
+    ) {
+        val session = _sessions.value[sessionId] ?: return
+        // Stage 1: EOF — clean path.
+        runCatching { session.moshSession?.sendInput(byteArrayOf(0x04)) }
+        val deadline = System.currentTimeMillis() + eofGraceMs
+        while (System.currentTimeMillis() < deadline && _sessions.value.containsKey(sessionId)) {
+            delay(100)
+        }
+        if (!_sessions.value.containsKey(sessionId)) return // clean exit won
+        // Stage 2: guarantee kill by port.
+        val port = _sessions.value[sessionId]?.moshPort ?: return
+        if (port > 0) {
+            runCatching { exec(MoshOrphanCleaner.killCommand(port), MoshServerSessionProbe.DEFAULT_TIMEOUT_MS) }
         }
     }
 

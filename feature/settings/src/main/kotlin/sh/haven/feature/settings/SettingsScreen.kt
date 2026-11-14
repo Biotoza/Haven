@@ -215,6 +215,7 @@ fun SettingsScreen(
     val autoShowKeyboardInTerminal by viewModel.autoShowKeyboardInTerminal.collectAsState()
     val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
+    val eventJournalEnabled by viewModel.eventJournalEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
     val rdpProgressiveUpgrade by viewModel.rdpProgressiveUpgrade.collectAsState()
@@ -998,6 +999,41 @@ fun SettingsScreen(
             checked = connectionLoggingEnabled,
             onCheckedChange = viewModel::setConnectionLoggingEnabled,
         )
+        SettingsToggleItem(
+            icon = Icons.Filled.BugReport,
+            title = stringResource(R.string.settings_event_journal_title),
+            subtitle = stringResource(R.string.settings_event_journal_subtitle),
+            checked = eventJournalEnabled,
+            onCheckedChange = viewModel::setEventJournalEnabled,
+        )
+        if (eventJournalEnabled) {
+            val context = LocalContext.current
+            // Hoisted out of the onClick callback (lint LocalContextGetResourceValueCall).
+            val exportChooserTitle = stringResource(R.string.settings_event_journal_export_title)
+            SettingsItem(
+                icon = Icons.Filled.CloudUpload,
+                title = stringResource(R.string.settings_event_journal_export_title),
+                subtitle = stringResource(R.string.settings_event_journal_export_subtitle),
+                onClick = {
+                    val file = sh.haven.core.data.EventJournal(context).exportCopy()
+                    if (file != null) {
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            context.packageName + ".fileprovider",
+                            file,
+                        )
+                        val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(
+                            android.content.Intent.createChooser(send, exportChooserTitle),
+                        )
+                    }
+                },
+            )
+        }
         // RDP-only decode tuning.
         if (nativeFeatures.rdp) {
             SettingsToggleItem(
