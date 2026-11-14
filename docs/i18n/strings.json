@@ -21460,6 +21460,49 @@
       "sr": "Покреће привилеговану Андроид љуску (/system/bin/sh) преко сервиса Shizuku (ADB uid 2000 или root). Потребно је да Shizuku буде покренут и одобрен.",
       "zh": "通过 Shizuku（ADB uid 2000 或 root）运行特权 Android shell (/system/bin/sh)。需要 Shizuku 正在运行且已授权。"
      }
+    },
+    {
+     "name": "connections_session_died_banner",
+     "en": "Session ended at %1$s · reason: %2$s",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [
+      "%1$s",
+      "%2$s"
+     ],
+     "t": {
+      "ar": "Session ended at %1$s · reason: %2$s",
+      "bn": "Session ended at %1$s · reason: %2$s",
+      "de": "Session ended at %1$s · reason: %2$s",
+      "es": "Session ended at %1$s · reason: %2$s",
+      "fr": "Session ended at %1$s · reason: %2$s",
+      "hi": "Session ended at %1$s · reason: %2$s",
+      "ja": "Session ended at %1$s · reason: %2$s",
+      "ko": "Session ended at %1$s · reason: %2$s",
+      "pt": "Session ended at %1$s · reason: %2$s",
+      "ru": "Сессия завершилась в %1$s · причина: %2$s",
+      "sr": "Session ended at %1$s · reason: %2$s",
+      "zh": "Session ended at %1$s · reason: %2$s"
+     }
+    },
+    {
+     "name": "connections_session_died_reconnect",
+     "en": "Reconnect",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "Reconnect",
+      "bn": "Reconnect",
+      "de": "Reconnect",
+      "es": "Reconnect",
+      "fr": "Reconnect",
+      "hi": "Reconnect",
+      "ja": "Reconnect",
+      "ko": "Reconnect",
+      "pt": "Reconnect",
+      "ru": "Подключить заново",
+      "sr": "Reconnect",
+      "zh": "Reconnect"
+     }
     }
    ]
   },
