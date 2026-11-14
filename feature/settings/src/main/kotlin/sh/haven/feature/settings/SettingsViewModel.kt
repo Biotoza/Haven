@@ -553,6 +553,14 @@ class SettingsViewModel @Inject constructor(
     val connectionLoggingEnabled: StateFlow<Boolean> = preferencesRepository.connectionLoggingEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    /** hd9 opt-in event journal: why sessions die/reconnect, on-device only. */
+    val eventJournalEnabled: StateFlow<Boolean> = preferencesRepository.eventJournalEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setEventJournalEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setEventJournalEnabled(enabled) }
+    }
+
     val excludeFromRecents: StateFlow<Boolean> = preferencesRepository.excludeFromRecents
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 

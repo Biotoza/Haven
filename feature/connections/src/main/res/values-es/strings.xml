@@ -622,4 +622,6 @@
     <string name="connections_helper_saved_password">Opcional. Cifrada en Android Keystore y usada para el inicio de sesión SSH por contraseña y el autocompletado biométrico de sudo en la terminal.</string>
     <string name="connections_auth_banner_title">Autenticación SSH</string>
     <string name="connections_auth_banner_open_link">Abrir enlace</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

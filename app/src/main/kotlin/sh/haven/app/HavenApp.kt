@@ -10,7 +10,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import sh.haven.app.agent.ConsentActionReceiver
+import sh.haven.core.data.EventJournal
 import sh.haven.core.data.NativeCrashLog
+import sh.haven.core.data.SystemSignals
 import sh.haven.core.data.agent.AgentConsentManager
 import sh.haven.core.data.agent.ConsentRequest
 import androidx.hilt.work.HiltWorkerFactory
@@ -51,6 +53,10 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var sshTerminalEmulatorOwner: sh.haven.feature.terminal.SshTerminalEmulatorOwner
     @Inject lateinit var updateNotifier: sh.haven.app.update.UpdateNotifier
     @Inject lateinit var usbMountCorrelator: sh.haven.app.usb.UsbMountCorrelator
+
+    /** App-wide event journal instance, shared with ConnectionsViewModel and SystemSignals. */
+    val eventJournal = EventJournal(this)
+    private val systemSignals = SystemSignals(this, eventJournal)
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -121,6 +127,22 @@ class HavenApp : Application(), Configuration.Provider {
                 android.util.Log.w("HavenApp", "process exit sweep failed: ${e.message}")
             }
         }
+
+        // hd9.1: event journal + system signals — toggle on/off with the
+        // diagnostics preference. When enabled, the journal records system
+        // events (network, screen, power, memory) alongside session verdicts.
+        // When disabled: zero overhead, zero writes, all receivers unregistered.
+        preferencesRepository.eventJournalEnabled
+            .distinctUntilChanged()
+            .onEach { enabled ->
+                eventJournal.setEnabled(enabled)
+                if (enabled) {
+                    systemSignals.start()
+                } else {
+                    systemSignals.stop()
+                }
+            }
+            .launchIn(appScope)
 
         // Mirror saved connections (#699) and workspaces into Android
         // launcher long-press shortcuts — "Connect <profile>" and

@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">Masque la carte de Haven dans les applis récentes ; les sessions continuent. Rouvrez via l\'icône.</string>
     <string name="settings_connection_logging_title">Journal des connexions</string>
     <string name="settings_connection_logging_subtitle">Enregistrer les événements de connexion (connexion, déconnexion, erreurs). Stocké localement, protégé par le chiffrement de l\'appareil</string>
+    <string name="settings_event_journal_title">Journal des événements</string>
+    <string name="settings_event_journal_subtitle">Enregistre pourquoi les sessions se terminent ou se reconnectent. Sur cet appareil uniquement; désactivé par défaut</string>
+    <string name="settings_event_journal_export_title">Exporter le journal des événements</string>
+    <string name="settings_event_journal_export_subtitle">Partager les événements enregistrés pour diagnostic</string>
     <string name="settings_view_connection_log_title">Voir le journal des connexions</string>
     <string name="settings_view_connection_log_subtitle">Historique et événements de connexion</string>
     <string name="settings_verbose_logging_title">Journal détaillé des connexions</string>

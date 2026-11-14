@@ -52,6 +52,10 @@
     <string name="settings_exclude_recents_subtitle">Hide Haven\'s card in the recents screen; sessions keep running. Reopen from the app icon.</string>
     <string name="settings_connection_logging_title">Connection logging</string>
     <string name="settings_connection_logging_subtitle">Record connection events (connect, disconnect, errors). Stored locally, protected by device encryption</string>
+    <string name="settings_event_journal_title">Event journal</string>
+    <string name="settings_event_journal_subtitle">Records why sessions die or reconnect. On this device only; off by default.</string>
+    <string name="settings_event_journal_export_title">Export event journal</string>
+    <string name="settings_event_journal_export_subtitle">Share the recorded events for diagnostics</string>
     <string name="settings_view_connection_log_title">View connection log</string>
     <string name="settings_view_connection_log_subtitle">Connection history and events</string>
     <string name="settings_verbose_logging_title">Verbose connection logging</string>

@@ -29505,6 +29505,82 @@
      }
     },
     {
+     "name": "settings_event_journal_title",
+     "en": "Event journal",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "سجل الأحداث",
+      "bn": "ইভেন্ট লগ",
+      "de": "Ereignisprotokoll",
+      "es": "Registro de eventos",
+      "fr": "Journal des événements",
+      "hi": "इवेंट लॉग",
+      "ja": "イベントログ",
+      "ko": "이벤트 로그",
+      "pt": "Registro de eventos",
+      "ru": "Журнал событий",
+      "zh": "事件日志"
+     }
+    },
+    {
+     "name": "settings_event_journal_subtitle",
+     "en": "Records why sessions die or reconnect. On this device only; off by default.",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "يسجل أسباب انتهاء الجلسات أو إعادة اتصالها. على هذا الجهاز فقط؛ متوقف افتراضيًا",
+      "bn": "সেশন বন্ধ বা পুনরায় সংযোগের কারণ রেকর্ড করে। শুধুমাত্র এই ডিভাইসে; ডিফল্ট বন্ধ",
+      "de": "Zeichnet auf, warum Sitzungen enden oder sich neu verbinden. Nur auf diesem Gerät; standardmäßig aus",
+      "es": "Registra por qué las sesiones terminan o se reconectan. Solo en este dispositivo; desactivado por defecto",
+      "fr": "Enregistre pourquoi les sessions se terminent ou se reconnectent. Sur cet appareil uniquement; désactivé par défaut",
+      "hi": "सत्र बंद होने या फिर से जुड़ने के कारण रिकॉर्ड करता है। केवल इस डिवाइस पर; डिफ़ॉल्ट रूप से बंद",
+      "ja": "セッションの終了・再接続の理由を記録します。この端末のみ。既定ではオフ",
+      "ko": "세션이 종료되거나 다시 연결되는 이유를 기록합니다. 이 기기에서만; 기본적으로 꺼짐",
+      "pt": "Registra por que as sessões terminam ou se reconectam. Somente neste dispositivo; desativado por padrão",
+      "ru": "Записывает причины завершения и переподключения сессий. Только на этом устройстве; по умолчанию выключен",
+      "zh": "记录会话结束或重新连接的原因。仅限本设备；默认关闭"
+     }
+    },
+    {
+     "name": "settings_event_journal_export_title",
+     "en": "Export event journal",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "تصدير سجل الأحداث",
+      "bn": "ইভেন্ট লগ এক্সপোর্ট করুন",
+      "de": "Ereignisprotokoll exportieren",
+      "es": "Exportar registro de eventos",
+      "fr": "Exporter le journal des événements",
+      "hi": "इवेंट लॉग निर्यात करें",
+      "ja": "イベントログをエクスポート",
+      "ko": "이벤트 로그 내보내기",
+      "pt": "Exportar registro de eventos",
+      "ru": "Экспорт журнала событий",
+      "zh": "导出事件日志"
+     }
+    },
+    {
+     "name": "settings_event_journal_export_subtitle",
+     "en": "Share the recorded events for diagnostics",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "مشاركة الأحداث المسجلة للتشخيص",
+      "bn": "নির্ণয়ের জন্য রেকর্ড করা ইভেন্ট শেয়ার করুন",
+      "de": "Aufgezeichnete Ereignisse zur Diagnose teilen",
+      "es": "Comparte los eventos registrados para diagnóstico",
+      "fr": "Partager les événements enregistrés pour diagnostic",
+      "hi": "निदान के लिए रिकॉर्ड किए गए इवेंट साझा करें",
+      "ja": "記録したイベントを診断用に共有",
+      "ko": "기록된 이벤트를 진단용으로 공유",
+      "pt": "Compartilhe os eventos registrados para diagnóstico",
+      "ru": "Поделиться записанными событиями для диагностики",
+      "zh": "分享记录的事件以进行诊断"
+     }
+    },
+    {
      "name": "settings_view_connection_log_title",
      "en": "View connection log",
      "comment": "Logging section",
