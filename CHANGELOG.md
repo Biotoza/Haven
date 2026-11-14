@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.2-hd9.1
+
+- **System signals in the event journal + on-screen session-death banner (Dez + Shade, 2026-11-13).** The opt-in event journal (Settings → Diagnostics) now also records the system signals around a session: default-network loss/rise and transport changes (Wi-Fi/cellular/VPN), screen on/off, power-save and Doze mode changes, and memory-pressure trims — the environmental events that kill or disrupt sessions, tagged sys-net/sys-screen/sys-power/sys-memory. Registration is conditional on the journal toggle: when the journal is off nothing is registered and nothing is written. A dead session's profile row now shows a banner with the death time and the reason extracted from the transport trace, with a one-tap reconnect; the banner clears on reconnect. Auto-reconnect stays removed (hd9).
+
 ## v5.94.2-hd9
 
 - **In-app event journal for session-death forensics; no auto-reconnect after death (hd9, Dez + Shade, 2026-11-13).** A new opt-in event journal (Settings → Diagnostics → Event journal, off by default) records why sessions die or reconnect — transport verdicts, session-death triggers, and reconnection decisions — as a ring-buffered log file on device. Exported manually via the share sheet; never auto-uploaded. Auto-creation of a new session after death (scheduleMoshReconnect / decideMoshReconnect, #421 path) is removed entirely: a dead session stays dead, and the user reconnects manually. The orphan cleaner (hd3–hd5) is unchanged.
