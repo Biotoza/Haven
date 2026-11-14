@@ -614,4 +614,6 @@
     <string name="connections_helper_saved_password">선택 사항. Android Keystore에 암호화되어 저장되며 SSH 비밀번호 로그인 및 터미널의 생체인증 기반 sudo 자동 입력에 사용됩니다.</string>
     <string name="connections_auth_banner_title">SSH 인증</string>
     <string name="connections_auth_banner_open_link">링크 열기</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

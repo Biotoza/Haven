@@ -235,6 +235,14 @@ class ConnectionsViewModel @Inject constructor(
     /** hd9 opt-in event journal: why sessions die/reconnect, on-device only. */
     private val eventJournal = sh.haven.core.data.EventJournal(appContext)
 
+    /** hd9.1: reason + timestamp for the last session death per profile, for the death banner. */
+    data class SessionDeathInfo(
+        val timestampMs: Long,
+        val reason: String,
+    )
+    private val _sessionDeathInfo = MutableStateFlow<Map<String, SessionDeathInfo>>(emptyMap())
+    val sessionDeathInfo: StateFlow<Map<String, SessionDeathInfo>> = _sessionDeathInfo.asStateFlow()
+
     init {
         // Journal enablement follows the settings toggle (default OFF).
         viewModelScope.launch {
@@ -1328,7 +1336,8 @@ class ConnectionsViewModel @Inject constructor(
             // in-memory trace otherwise, so a log captured after auto-recovery
             // only ever shows the fresh replacement session — the freeze window
             // we actually need is lost.
-            moshSessionManager.sessions.value[sessionId]?.moshSession?.drainTransportLog()?.let { trace ->
+            val trace = moshSessionManager.sessions.value[sessionId]?.moshSession?.drainTransportLog()
+            if (trace != null) {
                 viewModelScope.launch {
                     connectionLogRepository.logEvent(
                         profileId,
@@ -1337,6 +1346,16 @@ class ConnectionsViewModel @Inject constructor(
                     )
                 }
             }
+            // hd9.1: capture the death reason BEFORE removing the session,
+            // so the connections screen can show a banner ("Сессия завершилась
+            // в HH:MM · причина: …") without the user having to dig into the
+            // journal. The reason comes from the tail of the transport trace
+            // (the last verdict or error line), or a generic fallback.
+            val deathReason = extractDeathReason(trace)
+            _sessionDeathInfo.value = _sessionDeathInfo.value + (profileId to SessionDeathInfo(
+                timestampMs = System.currentTimeMillis(),
+                reason = deathReason,
+            ))
             // Drop the dead session rather than leaving it behind: every
             // reconnect used to add a tab while the corpse lingered, so a few
             // cycles left a pile of DISCONNECTED entries for one profile.
@@ -1346,7 +1365,7 @@ class ConnectionsViewModel @Inject constructor(
             // "who killed it" question is answerable from the device.
             eventJournal.log(
                 "session-died",
-                "profile=$profileId session=$sessionId — transport declared the session dead (clean=false); no auto-reconnect (hd9)",
+                "profile=$profileId session=$sessionId reason=$deathReason — transport declared the session dead (clean=false); no auto-reconnect (hd9)",
             )
         }
     }
@@ -1360,6 +1379,11 @@ class ConnectionsViewModel @Inject constructor(
     private var etPendingClient: SshClient? = null
     private var etPendingProfile: ConnectionProfile? = null
     private var etPendingVerboseLogger: SshVerboseLogger? = null
+
+    /** Dismiss the death banner for a profile (e.g. user tapped "reconnect"). */
+    fun clearSessionDeathInfo(profileId: String) {
+        _sessionDeathInfo.value = _sessionDeathInfo.value - profileId
+    }
 
     fun onNavigated() {
         _navigateToTerminal.value = null
@@ -1392,6 +1416,9 @@ class ConnectionsViewModel @Inject constructor(
 
     /** Open a new terminal session on an already-connected profile. */
     fun openNewSession(profileId: String) {
+        // Clear any death banner for this profile — the user is explicitly
+        // reconnecting, so the banner is no longer relevant.
+        _sessionDeathInfo.value = _sessionDeathInfo.value - profileId
         _newSessionProfileId.value = profileId
     }
 

@@ -658,4 +658,6 @@
     <string name="connections_helper_persist_rediscovered_host">Update the profile when a local machine presents the same SSH host key at a new IPv4 address. Turn off to connect at the rediscovered address for that session only and keep your configured host (e.g. a WireGuard IP).</string>
     <string name="connections_field_saved_password">Saved password (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Optional. Encrypted in the Android Keystore and used for SSH password login and biometric-gated sudo fill in the terminal.</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>
