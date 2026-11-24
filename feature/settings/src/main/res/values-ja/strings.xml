@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">最近のアプリ画面でHavenのカードを非表示にします。セッションは継続します。アプリアイコンから再度開けます。</string>
     <string name="settings_connection_logging_title">接続ログ</string>
     <string name="settings_connection_logging_subtitle">接続イベントを記録（接続、切断、エラー）。ローカルに保存、デバイス暗号化で保護</string>
+    <string name="settings_event_journal_title">イベントログ</string>
+    <string name="settings_event_journal_subtitle">セッションの終了・再接続の理由を記録します。この端末のみ。既定ではオフ</string>
+    <string name="settings_event_journal_export_title">イベントログをエクスポート</string>
+    <string name="settings_event_journal_export_subtitle">記録したイベントを診断用に共有</string>
     <string name="settings_view_connection_log_title">接続ログを表示</string>
     <string name="settings_view_connection_log_subtitle">接続履歴とイベント</string>
     <string name="settings_verbose_logging_title">詳細な接続ログ</string>

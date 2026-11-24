@@ -14,7 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -62,7 +66,10 @@ import sh.haven.core.session.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshVerboseLogger
 import sh.haven.core.data.db.entities.KnownHost
+import sh.haven.core.mosh.MoshOrphanCleaner
+import sh.haven.core.mosh.MoshServerSessionProbe
 import sh.haven.core.mosh.MoshSessionManager
+import sh.haven.mosh.transport.MoshTransport
 import sh.haven.core.et.EtSessionManager
 import sh.haven.core.fido.FidoAuthenticator
 import sh.haven.core.fido.FidoTouchPrompt
@@ -96,58 +103,6 @@ import javax.inject.Inject
 import sh.haven.core.redact.LogRedact
 
 private const val TAG = "ConnectionsVM"
-
-/**
- * Consecutive #421 auto-reconnects allowed before Haven stops trying. Each one
- * costs an SSH connect and a new mosh-server on the host, so an unreachable
- * server must not be retried forever — after this the session stays down and
- * the user reconnects when they know the server is back.
- */
-internal const val MOSH_RECONNECT_MAX_ATTEMPTS = 3
-
-/** Linear backoff between those attempts (0s, 30s, 60s). */
-internal const val MOSH_RECONNECT_BACKOFF_MS = 30_000L
-
-/**
- * Quiet period after which a profile's attempt counter resets. Longer than the
- * escalation threshold plus a couple of backoffs, so a session that genuinely
- * came back and ran for a while is treated as recovered rather than as another
- * failure in the same streak.
- */
-internal const val MOSH_RECONNECT_RESET_MS = 10 * 60_000L
-
-/** Outcome of the #421 reconnect policy: whether to retry, and after how long. */
-internal data class MoshReconnectDecision(
-    val reconnect: Boolean,
-    val backoffMs: Long,
-    val attempt: Int,
-)
-
-/**
- * Decide whether a died mosh session should be reconnected (#421).
- *
- * [attempts] is how many consecutive auto-reconnects this profile has already
- * had, [lastAttemptMs] when the last one was. A streak older than
- * [MOSH_RECONNECT_RESET_MS] is not a streak — the session recovered and later
- * failed for its own reasons — so the count starts over. Pure so the give-up
- * rule is tested directly: the whole point of this policy is that it *stops*,
- * and a policy that silently never stops looks identical in a passing test.
- */
-internal fun decideMoshReconnect(
-    attempts: Int,
-    lastAttemptMs: Long,
-    nowMs: Long,
-): MoshReconnectDecision {
-    val streak = if (nowMs - lastAttemptMs > MOSH_RECONNECT_RESET_MS) 0 else attempts
-    if (streak >= MOSH_RECONNECT_MAX_ATTEMPTS) {
-        return MoshReconnectDecision(reconnect = false, backoffMs = 0, attempt = streak)
-    }
-    return MoshReconnectDecision(
-        reconnect = true,
-        backoffMs = MOSH_RECONNECT_BACKOFF_MS * streak,
-        attempt = streak + 1,
-    )
-}
 
 /**
  * True when [profile] would offer an SSH key during auth: it has an explicit
@@ -199,6 +154,11 @@ private const val HOST_KEY_PROMPT_TIMEOUT_MS = 90_000L
  * `http://127.0.0.1:8730/mcp`.
  */
 private const val MCP_REVERSE_TUNNEL_PORT = 8730
+
+/** Initial delay between server-side liveness probes during a stall (#421). */
+private const val PROBE_BACKOFF_INITIAL_MS = 30_000L
+/** Ceiling for the probe backoff — probing costs one SSH exec on the kept-alive bootstrap client. */
+private const val PROBE_BACKOFF_MAX_MS = 300_000L
 
 /** Unified connection status that maps both SSH and Reticulum states. */
 enum class ProfileStatus { CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED, ERROR }
@@ -272,6 +232,26 @@ class ConnectionsViewModel @Inject constructor(
     private val sessionSelectionHolder: sh.haven.core.data.agent.SessionSelectionHolder,
     private val connectionPreflight: sh.haven.core.data.repository.ConnectionPreflight,
 ) : ViewModel() {
+
+    /** hd9 opt-in event journal: why sessions die/reconnect, on-device only. */
+    private val eventJournal = sh.haven.core.data.EventJournal(appContext)
+
+    /** hd9.1: reason + timestamp for the last session death per profile, for the death banner. */
+    data class SessionDeathInfo(
+        val timestampMs: Long,
+        val reason: String,
+    )
+    private val _sessionDeathInfo = MutableStateFlow<Map<String, SessionDeathInfo>>(emptyMap())
+    val sessionDeathInfo: StateFlow<Map<String, SessionDeathInfo>> = _sessionDeathInfo.asStateFlow()
+
+    init {
+        // Journal enablement follows the settings toggle (default OFF).
+        viewModelScope.launch {
+            preferencesRepository.eventJournalEnabled.collect { enabled ->
+                eventJournal.setEnabled(enabled)
+            }
+        }
+    }
 
     /**
      * Gate revealing a stored credential behind a biometric/device-credential
@@ -1342,27 +1322,28 @@ class ConnectionsViewModel @Inject constructor(
                 )
             }
         }
-        // #421: a mosh session that died unexpectedly (transport declared it dead
-        // while online, or a fatal local error) is reconnected with the same
-        // bootstrap the user's manual close-and-reconnect runs, which recovers
-        // immediately where the transport's own retries never do.
-        //
-        // Bounded on purpose. One reconnect per death is not enough on its own:
-        // when the server side stays unreachable while the phone is online, the
-        // replacement session is dead too, escalates ~45s later, and reconnects
-        // again — a loop by succession rather than repetition, each cycle costing
-        // an SSH connect and a fresh mosh-server on the host. Device-verified with
-        // scripts/mosh-fault-rig.py. So: back off between attempts, give up after
-        // MOSH_RECONNECT_MAX_ATTEMPTS, and only re-arm once a session has actually
-        // survived (MOSH_RECONNECT_RESET_MS), which is what distinguishes a
-        // one-off stall from a server that is simply gone.
+        // #421: record the port + session key of every mosh session so the
+        // orphan cleaner can probe and kill stale server processes at the
+        // NEXT connect of the same profile (hd3–hd5). Auto-reconnect after
+        // death was removed in hd9 — a dead session stays dead; the user
+        // reconnects manually.
+        moshSessionManager.onSessionPortResolved = { profileId, port, sessionKey ->
+            // Record the fresh session's port + key for orphan cleanup at the NEXT
+            // connect (Dez's idea, 2026-11-05). Live sessions are in memory,
+            // so this record alone never makes a live/parallel/waiting
+            // session a cleanup candidate.
+            viewModelScope.launch {
+                preferencesRepository.setMoshLastPort(profileId, port, sessionKey)
+            }
+        }
         moshSessionManager.onSessionDied = { profileId, sessionId ->
             // Drain the dead session's transport trace into the connection log
             // before dropping it (#421). The #421 escalation discards the
             // in-memory trace otherwise, so a log captured after auto-recovery
             // only ever shows the fresh replacement session — the freeze window
             // we actually need is lost.
-            moshSessionManager.sessions.value[sessionId]?.moshSession?.drainTransportLog()?.let { trace ->
+            val trace = moshSessionManager.sessions.value[sessionId]?.moshSession?.drainTransportLog()
+            if (trace != null) {
                 viewModelScope.launch {
                     connectionLogRepository.logEvent(
                         profileId,
@@ -1371,86 +1352,29 @@ class ConnectionsViewModel @Inject constructor(
                     )
                 }
             }
+            // hd9.1: capture the death reason BEFORE removing the session,
+            // so the connections screen can show a banner ("Сессия завершилась
+            // в HH:MM · причина: …") without the user having to dig into the
+            // journal. The reason comes from the tail of the transport trace
+            // (the last verdict or error line), or a generic fallback.
+            val deathReason = extractDeathReason(trace)
+            _sessionDeathInfo.value = _sessionDeathInfo.value + (profileId to SessionDeathInfo(
+                timestampMs = System.currentTimeMillis(),
+                reason = deathReason,
+            ))
             // Drop the dead session rather than leaving it behind: every
             // reconnect used to add a tab while the corpse lingered, so a few
             // cycles left a pile of DISCONNECTED entries for one profile.
             moshSessionManager.removeSession(sessionId)
-            scheduleMoshReconnect(profileId)
+            // hd9: no automatic replacement session — a new session is the
+            // user's tap. The event journal carries the reason, so the
+            // "who killed it" question is answerable from the device.
+            eventJournal.log(
+                "session-died",
+                "profile=$profileId session=$sessionId reason=$deathReason — transport declared the session dead (clean=false); no auto-reconnect (hd9)",
+            )
         }
     }
-
-    /**
-     * Run the #421 reconnect policy for [profileId], and keep running it if the
-     * reconnect itself fails.
-     *
-     * That last part is the fix for the second half of #421. The policy used to
-     * live inline in `onSessionDied`, so the only thing that could start an
-     * attempt was a session *dying*. When `connectMoshSilent` threw, the
-     * exception was logged and nothing rescheduled — and there was no session
-     * left to die a second time, so the chain ended there. A reporter's log
-     * caught exactly that: the transport escalated correctly, the reconnect
-     * fired 15s after the network came back, and
-     *
-     *     Mosh auto-reconnect failed for …: Could not resolve hostname: fire.walla
-     *
-     * was the last thing that ever happened. A name that had resolved fine when
-     * the session was established failed once during the network transition, and
-     * "no automatic reconnect" — the issue title — followed from that single
-     * transient DNS miss.
-     *
-     * Retrying is safe because the bound is in [decideMoshReconnect], not in the
-     * caller: the attempt counter is recorded *before* the connect is tried, so a
-     * failed attempt still counts against MOSH_RECONNECT_MAX_ATTEMPTS and the
-     * backoff still grows. Each retry is a fresh coroutine, not stack recursion.
-     */
-    private fun scheduleMoshReconnect(profileId: String) {
-        if (!reconnectingMoshProfiles.add(profileId)) return
-        viewModelScope.launch {
-            var retryAfterFailure = false
-            try {
-                val profile = repository.getById(profileId)
-                if (profile == null || !profile.isMosh) return@launch
-                val now = System.currentTimeMillis()
-                val state = moshReconnectState[profileId]
-                val decision = decideMoshReconnect(
-                    attempts = state?.attempts ?: 0,
-                    lastAttemptMs = state?.lastAttemptMs ?: 0L,
-                    nowMs = now,
-                )
-                if (!decision.reconnect) {
-                    Log.w(
-                        TAG,
-                        "Mosh session for ${profile.label} died again after ${decision.attempt} " +
-                            "reconnects — giving up, reconnect manually (#421)",
-                    )
-                    moshReconnectState[profileId] = MoshReconnectState(decision.attempt, now)
-                    return@launch
-                }
-                if (decision.backoffMs > 0) {
-                    Log.d(TAG, "Mosh reconnect for ${LogRedact.of(profile.label)} in ${decision.backoffMs}ms (attempt ${decision.attempt})")
-                    delay(decision.backoffMs)
-                }
-                moshReconnectState[profileId] =
-                    MoshReconnectState(decision.attempt, System.currentTimeMillis())
-                Log.d(TAG, "Mosh session for ${LogRedact.of(profile.label)} died — reconnecting (attempt ${decision.attempt}) (#421)")
-                connectMoshSilent(profile)
-            } catch (e: Exception) {
-                Log.e(TAG, "Mosh auto-reconnect failed for $profileId: ${e.message} — retrying (#421)", e)
-                retryAfterFailure = true
-            } finally {
-                reconnectingMoshProfiles.remove(profileId)
-            }
-            if (retryAfterFailure) scheduleMoshReconnect(profileId)
-        }
-    }
-
-    /** Consecutive #421 auto-reconnects for a profile, for the give-up rule. */
-    private data class MoshReconnectState(val attempts: Int, val lastAttemptMs: Long)
-
-    private val moshReconnectState = java.util.concurrent.ConcurrentHashMap<String, MoshReconnectState>()
-
-    /** Profiles with an in-flight #421 auto-reconnect, so a death can't re-enter. */
-    private val reconnectingMoshProfiles = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     /** SSH client + host kept alive during mosh session picker (for mosh-server exec). */
     private var moshPendingClient: SshClient? = null
@@ -1461,6 +1385,11 @@ class ConnectionsViewModel @Inject constructor(
     private var etPendingClient: SshClient? = null
     private var etPendingProfile: ConnectionProfile? = null
     private var etPendingVerboseLogger: SshVerboseLogger? = null
+
+    /** Dismiss the death banner for a profile (e.g. user tapped "reconnect"). */
+    fun clearSessionDeathInfo(profileId: String) {
+        _sessionDeathInfo.value = _sessionDeathInfo.value - profileId
+    }
 
     fun onNavigated() {
         _navigateToTerminal.value = null
@@ -1493,6 +1422,9 @@ class ConnectionsViewModel @Inject constructor(
 
     /** Open a new terminal session on an already-connected profile. */
     fun openNewSession(profileId: String) {
+        // Clear any death banner for this profile — the user is explicitly
+        // reconnecting, so the banner is no longer relevant.
+        _sessionDeathInfo.value = _sessionDeathInfo.value - profileId
         _newSessionProfileId.value = profileId
     }
 
@@ -1862,39 +1794,51 @@ class ConnectionsViewModel @Inject constructor(
         cfTunnel: EmbeddedCloudflareTunnelInput?,
     ) {
         viewModelScope.launch {
-            val existing = repository.getById(profile.id)
-            val saved = if (cfTunnel != null) {
-                val hostname = cfTunnel.hostname.trim()
-                    .removePrefix("https://")
-                    .removePrefix("http://")
-                    .substringBefore('/')
-                val blob = sh.haven.core.tunnel.CloudflareAccessConfigBlob(
-                    hostname = hostname,
-                    teamDomain = cfTunnel.teamDomain.trim()
+            try {
+                val existing = repository.getById(profile.id)
+                val saved = if (cfTunnel != null) {
+                    val hostname = cfTunnel.hostname.trim()
                         .removePrefix("https://")
-                        .removePrefix("http://"),
-                    jwt = cfTunnel.jwt.trim(),
-                    jwtExpiresAt = cfTunnel.jwtExpiresAt,
-                    jumpDestination = cfTunnel.jumpDestination.trim(),
-                )
-                val tunnelId = tunnelConfigRepository.upsertEmbedded(
-                    profileId = profile.id,
-                    type = sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS.name,
-                    label = "Cloudflare Tunnel: $hostname",
-                    configText = blob.encode(),
-                )
-                profile.copy(
-                    tunnelConfigId = tunnelId,
-                    port = 22,
-                    proxyType = null,
-                    proxyHost = null,
-                ).also { repository.save(it) }
-            } else {
-                tunnelConfigRepository.deleteByOwner(profile.id)
-                profile.also { repository.save(it) }
-            }
-            if (existing != null && routingOrEndpointChanged(existing, saved)) {
-                disconnectSessionsOnRouteChange(existing, saved)
+                        .removePrefix("http://")
+                        .substringBefore('/')
+                    val blob = sh.haven.core.tunnel.CloudflareAccessConfigBlob(
+                        hostname = hostname,
+                        teamDomain = cfTunnel.teamDomain.trim()
+                            .removePrefix("https://")
+                            .removePrefix("http://"),
+                        jwt = cfTunnel.jwt.trim(),
+                        jwtExpiresAt = cfTunnel.jwtExpiresAt,
+                        jumpDestination = cfTunnel.jumpDestination.trim(),
+                    )
+                    val tunnelId = tunnelConfigRepository.upsertEmbedded(
+                        profileId = profile.id,
+                        type = sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS.name,
+                        label = "Cloudflare Tunnel: $hostname",
+                        configText = blob.encode(),
+                    )
+                    profile.copy(
+                        tunnelConfigId = tunnelId,
+                        port = 22,
+                        proxyType = null,
+                        proxyHost = null,
+                    ).also { repository.save(it) }
+                } else {
+                    tunnelConfigRepository.deleteByOwner(profile.id)
+                    profile.also { repository.save(it) }
+                }
+                if (existing != null && routingOrEndpointChanged(existing, saved)) {
+                    disconnectSessionsOnRouteChange(existing, saved)
+                }
+            } catch (e: CredentialEncryption.KeystoreUnavailableException) {
+                // #421: mirror saveConnection(). A Keystore that cannot serve the
+                // master key (e.g. the uninstall/reinstall cycle broke the pair)
+                // used to take the process down from this path — surface the
+                // error instead of crashing.
+                Log.e(TAG, "save failed: credential Keystore unavailable", e)
+                _error.value = appContext.getString(R.string.connections_error_keystore_unavailable)
+            } catch (e: Exception) {
+                Log.e(TAG, "save failed", e)
+                _error.value = e.message ?: "Could not save the connection"
             }
         }
     }
@@ -2352,8 +2296,10 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     fun connectWithKey(profile: ConnectionProfile) {
+        Log.d(TAG, "connectWithKey ${LogRedact.of(profile.label)}: keyOnly, usr=${LogRedact.of(profile.username)}")
         if (profile.username.isBlank() && (profile.isSsh || profile.isReticulum)) {
             // Route through the prompt dialog so the user can supply a username first.
+            Log.d(TAG, "connectWithKey ${LogRedact.of(profile.label)} -> passwordFallback (username blank)")
             _passwordFallback.value = profile
             return
         }
@@ -2745,6 +2691,7 @@ class ConnectionsViewModel @Inject constructor(
         // reuse one connection entry for many users.
         val runtimeUsername = usernameOverride?.takeIf { it.isNotBlank() }
         if (profile.username.isBlank() && runtimeUsername == null) {
+            Log.d(TAG, "connect ${LogRedact.of(profile.label)} -> passwordFallback (username blank)")
             _passwordFallback.value = profile
             return
         }
@@ -5019,6 +4966,15 @@ class ConnectionsViewModel @Inject constructor(
                     bootstrapMoshEtSsh(profile, password, config, verboseLogger, interactive = true)
                 }
 
+                // Phase 1.5: orphan cleanup — NEW connect only, never on
+                // network recovery (Dez 2026-11-05). Runs before the new
+                // mosh-server exists, so a live stored port can only belong
+                // to a session whose client is gone. Backstop for sessions
+                // whose client died without a graceful close (app killed by
+                // the system, crash) — the primary defence is the close-time
+                // graceful close (EOF + port kill).
+                cleanupMoshOrphans(client)
+
                 // Phase 2: Resolve session manager, check for existing sessions
                 val smgr = resolveSessionManager(profile)
 
@@ -5945,6 +5901,7 @@ class ConnectionsViewModel @Inject constructor(
         }
 
         repository.markConnected(profileId)
+        watchMoshServerSession(sessionId)
         if (effectiveSessionName != null) {
             repository.getById(profileId)?.let { profile ->
                 repository.save(profile.copy(lastSessionName = effectiveSessionName))
@@ -5954,6 +5911,137 @@ class ConnectionsViewModel @Inject constructor(
         startForegroundServiceIfNeeded()
         if (!silent) {
             _navigateToTerminal.value = profileId
+        }
+    }
+
+    /**
+     * Feed the mosh transport its out-of-band server-side liveness verdict
+     * (#421, #92). The transport never gives up on silence alone — once the
+     * stall counter crosses [MoshTransport.DEAD_SESSION_MS] we probe the
+     * server over the kept-alive bootstrap SSH channel: the session's port
+     * still bound means the network is the problem (keep waiting), a free
+     * port means the mosh-server process is gone (the only silence case that
+     * may end the session), and an unreachable server means unknown (keep
+     * waiting). Probes back off exponentially and reset when packets flow.
+     */
+    private fun watchMoshServerSession(sessionId: String) {
+        // IO, не Main: у вотчера нет UI-работы (только SSH-проба через
+        // Dispatchers.IO), а JVM-юнит-тесты модуля (FIDO jump host и др.)
+        // идут без Main-лупера — запуск на Main ломает весь тест-раннер.
+        viewModelScope.launch(Dispatchers.IO) {
+            val mosh = moshSessionManager.sessions
+                .takeWhile { it[sessionId] != null }
+                .mapNotNull { it[sessionId]?.moshSession }
+                .firstOrNull() ?: return@launch
+            var backoffMs = 0L
+            var nextProbeAt = 0L
+            mosh.stallSeconds.collect { stallSeconds ->
+                val state = moshSessionManager.sessions.value[sessionId] ?: return@collect
+                if (state.status != MoshSessionManager.SessionState.Status.CONNECTED) return@collect
+                if (stallSeconds == null || stallSeconds < MoshTransport.DEAD_SESSION_MS / 1000) {
+                    // Packets flowing (or a short blip): nothing to probe,
+                    // and a previous verdict no longer applies.
+                    nextProbeAt = 0L
+                    backoffMs = 0L
+                    moshSessionManager.updateServerSessionVerdict(sessionId, null)
+                    return@collect
+                }
+                val now = System.currentTimeMillis()
+                if (now < nextProbeAt) return@collect
+                val verdict = probeMoshServerSession(state)
+                moshSessionManager.updateServerSessionVerdict(sessionId, verdict)
+                eventJournal.log(
+                    "mosh-verdict",
+                    "session=$sessionId port=${state.moshPort} stall=${stallSeconds}s verdict=${verdict ?: "unknown"}",
+                )
+                backoffMs = if (backoffMs == 0L) {
+                    PROBE_BACKOFF_INITIAL_MS
+                } else {
+                    (backoffMs * 2).coerceAtMost(PROBE_BACKOFF_MAX_MS)
+                }
+                nextProbeAt = System.currentTimeMillis() + backoffMs
+            }
+        }
+    }
+
+    /** Run one liveness probe over the session's kept-alive bootstrap SSH client. */
+    private suspend fun probeMoshServerSession(session: MoshSessionManager.SessionState): Boolean? {
+        val client = session.sshClient as? SshClient ?: return null
+        val probe = MoshServerSessionProbe { command, timeoutMs ->
+            try {
+                val result = client.execCommand(command, timeoutMs)
+                MoshServerSessionProbe.ProbeExecResult(
+                    exitStatus = result.exitStatus,
+                    output = result.stdout + "\n" + result.stderr,
+                    timedOut = result.timedOut,
+                )
+            } catch (e: Exception) {
+                // SSH-level failure (not connected, network down, server
+                // unreachable): the verdict is unknown — keep waiting.
+                MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+            }
+        }
+        return probe.isServerSessionDead(session.moshPort)
+    }
+
+    /**
+     * Orphan cleanup at new-connect time (Dez 2026-11-05) — the backstop for
+     * sessions whose client died without a graceful close (app killed by the
+     * system, crash). The primary defence is the close-time graceful close
+     * (EOF + port kill, see MoshSessionManager.gracefulClose).
+     *
+     * Scope: ALL profiles stored on this device, not just the connecting one
+     * (Dez correction, 2026-11-06): a closed profile may not be reopened for
+     * weeks, and its orphan must not wait that long. Every candidate port is
+     * probed with its OWN stored session key — the server answers only when
+     * it holds the same key, so another device's waiting session (even on a
+     * reused port) stays silent and is never killed.
+     */
+    private suspend fun cleanupMoshOrphans(client: SshClient) {
+        val storedByProfile = preferencesRepository.moshLastPorts.first()
+        if (storedByProfile.isEmpty()) return
+        // Live = any session with a transport in memory, ANY profile — a
+        // live, parallel, or waiting session can never become a candidate.
+        val livePorts = moshSessionManager.sessions.value.values
+            .mapNotNull { it.moshPort }
+            .filter { it > 0 }
+            .toSet()
+        val cleaner = MoshOrphanCleaner { command, timeoutMs ->
+            try {
+                val result = client.execCommand(command, timeoutMs)
+                MoshServerSessionProbe.ProbeExecResult(
+                    exitStatus = result.exitStatus,
+                    output = result.stdout + "\n" + result.stderr,
+                    timedOut = result.timedOut,
+                )
+            } catch (e: Exception) {
+                MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+            }
+        }
+        for ((profileId, records) in storedByProfile) {
+            val profile = repository.getById(profileId) ?: continue
+            for (record in cleaner.candidateRecords(records, livePorts)) {
+                // Ownership probe with our OWN session key: the server answers only
+                // when it holds the same key. A foreign process (another device's
+                // waiting session, port reuse) cannot decrypt the probe and stays
+                // silent — and is never killed.
+                val ours = cleaner.probeSessionAlive(profile.host, record.port, record.sessionKey, timeoutMs = 1_000L)
+                if (!ours) {
+                    // Port free, or occupied by someone else — nothing to kill.
+                    preferencesRepository.clearMoshLastPort(profileId, record.port)
+                    continue
+                }
+                val killed = cleaner.cleanupOrphan(record.port)
+                Log.d(
+                    TAG,
+                    if (killed) {
+                        "Mosh orphan cleaned up at new connect: ${profile.host}:${record.port} (profile $profileId)"
+                    } else {
+                        "Mosh orphan kill failed for ${profile.host}:${record.port} (profile $profileId) — retrying next connect"
+                    },
+                )
+                if (killed) preferencesRepository.clearMoshLastPort(profileId, record.port)
+            }
         }
     }
 
@@ -6783,41 +6871,68 @@ class ConnectionsViewModel @Inject constructor(
         // over a dead forward). Before the registry so the carrier's
         // transports can't vanish first and leave the forward orphaned.
         teardownAiRoutesFor(profileId)
-        sessionManagerRegistry.disconnectProfile(profileId)
-        // Tear down this profile's tunnel-dependent resources: close its VNC/
-        // RDP Desktop tab (via the lease's parent-gone callback) AND release
-        // its SSH dependent. Closing the tab here is required because when the
-        // carrying SSH is a shared / user-opened session (e.g. a terminal the
-        // VNC reused) it legitimately survives, so the SSH-teardown cascade
-        // alone would leave the tab open over a now-detached tunnel (#121).
-        sshSessionManager.teardownTunnelDependent(profileId)
-        // If tearing down a tunnel dependent closed a carrier jump session that
-        // held a USB forward (#613), clean up its forwarder handle too.
-        val liveSessionIds = sshSessionManager.sessions.value.keys
-        usbForwardHandles.keys.toList()
-            .filterNot { it in liveSessionIds }
-            .forEach { closedSessionId ->
-                usbForwardHandles.remove(closedSessionId)?.let { handle ->
-                    viewModelScope.launch(Dispatchers.IO) {
-                        usbipForwarder.teardown(closedSessionId, handle) { msg ->
-                            userMessageBus.emit(
-                                sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+        // Graceful close BEFORE the plain teardown (Dez 2026-11-06, hd5):
+        // "Отключить" used to tear the transport down without EOF/kill,
+        // leaving server-side mosh orphans that lingered until the next
+        // connect. Mirror the tab-close path — EOF first, then a
+        // port-targeted kill as guarantee — and only then run the registry
+        // teardown, which closes the SSH clients the kill exec runs over.
+        // Hence the sequential coroutine: the teardown must wait.
+        viewModelScope.launch(Dispatchers.IO) {
+            for (session in moshSessionManager.getSessionsForProfile(profileId)) {
+                val ssh = session.sshClient as? SshClient ?: continue
+                moshSessionManager.gracefulClose(
+                    session.sessionId,
+                    exec = { command, timeoutMs ->
+                        try {
+                            val result = ssh.execCommand(command, timeoutMs)
+                            MoshServerSessionProbe.ProbeExecResult(
+                                exitStatus = result.exitStatus,
+                                output = result.stdout + "\n" + result.stderr,
+                                timedOut = result.timedOut,
                             )
+                        } catch (e: Exception) {
+                            MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+                        }
+                    },
+                )
+            }
+            sessionManagerRegistry.disconnectProfile(profileId)
+            // Tear down this profile's tunnel-dependent resources: close its VNC/
+            // RDP Desktop tab (via the lease's parent-gone callback) AND release
+            // its SSH dependent. Closing the tab here is required because when the
+            // carrying SSH is a shared / user-opened session (e.g. a terminal the
+            // VNC reused) it legitimately survives, so the SSH-teardown cascade
+            // alone would leave the tab open over a now-detached tunnel (#121).
+            sshSessionManager.teardownTunnelDependent(profileId)
+            // If tearing down a tunnel dependent closed a carrier jump session that
+            // held a USB forward (#613), clean up its forwarder handle too.
+            val liveSessionIds = sshSessionManager.sessions.value.keys
+            usbForwardHandles.keys.toList()
+                .filterNot { it in liveSessionIds }
+                .forEach { closedSessionId ->
+                    usbForwardHandles.remove(closedSessionId)?.let { handle ->
+                        viewModelScope.launch(Dispatchers.IO) {
+                            usbipForwarder.teardown(closedSessionId, handle) { msg ->
+                                userMessageBus.emit(
+                                    sh.haven.core.data.message.UserMessage(msg, sh.haven.core.data.message.UserMessage.Severity.INFO),
+                                )
+                            }
                         }
                     }
                 }
-            }
-        // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
-        // to cascade through — close them via the tab's registered close
-        // handle, matching McpTools.disconnectProfile (#437).
-        desktopSessionRegistry.closeHandle(profileId)?.invoke()
-        // Drop the WireGuard / Tailscale refcount this profile may have
-        // acquired via TunnelResolver. No-op if the profile didn't go
-        // through a tunnel; otherwise the underlying tunnel closes only
-        // when its last dependent disconnects (#149).
-        viewModelScope.launch { tunnelResolver.release(profileId) }
-        localSessionManager.desktopManager.stopAll()
-        updateServiceNotification()
+            // Direct (non-tunnelled) VNC/RDP/SPICE tabs have no SSH tunnel lease
+            // to cascade through — close them via the tab's registered close
+            // handle, matching McpTools.disconnectProfile (#437).
+            desktopSessionRegistry.closeHandle(profileId)?.invoke()
+            // Drop the WireGuard / Tailscale refcount this profile may have
+            // acquired via TunnelResolver. No-op if the profile didn't go
+            // through a tunnel; otherwise the underlying tunnel closes only
+            // when its last dependent disconnects (#149).
+            viewModelScope.launch { tunnelResolver.release(profileId) }
+            localSessionManager.desktopManager.stopAll()
+            updateServiceNotification()
+        }
     }
 
     private fun updateServiceNotification() {

@@ -2,6 +2,7 @@ package sh.haven.core.mosh
 
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,15 @@ class MoshSessionManager @Inject constructor(
      * fails leaves the session in ERROR rather than spinning.
      */
     var onSessionDied: ((profileId: String, sessionId: String) -> Unit)? = null
+
+    /**
+     * Invoked when a session's mosh port is resolved at connect time. The
+     * feature layer records it for orphan cleanup at the next connect
+     * (Dez's idea, 2026-11-05): only a stored-but-not-live port is a
+     * cleanup candidate, so live/parallel/waiting sessions are never
+     * touched by construction.
+     */
+    var onSessionPortResolved: ((profileId: String, port: Int, sessionKey: String) -> Unit)? = null
 
     /**
      * Whether the device currently has a network that is validated for internet
@@ -88,6 +98,33 @@ class MoshSessionManager @Inject constructor(
 
     private val _sessions = MutableStateFlow<Map<String, SessionState>>(emptyMap())
     val sessions: StateFlow<Map<String, SessionState>> = _sessions.asStateFlow()
+
+    /**
+     * Probe verdicts per session, fed by the connection layer's out-of-band
+     * liveness probe and read by the transport through the [MoshSession]
+     * callback. `true` = verified gone, `false` = alive, absent/null =
+     * unknown — the transport keeps waiting on anything but a verified `true`.
+     */
+    private val serverSessionVerdicts = java.util.concurrent.ConcurrentHashMap<String, Boolean?>()
+
+    /**
+     * Feed an out-of-band liveness verdict for [sessionId] into its transport.
+     * No-op for unknown sessions or sessions whose transport has ended.
+     */
+    fun updateServerSessionVerdict(sessionId: String, verdict: Boolean?) {
+        val session = _sessions.value[sessionId] ?: return
+        if (session.status != SessionState.Status.CONNECTED) return
+        // ConcurrentHashMap не принимает null-значений (put(null-значение) → NPE);
+        // семантика «вердикта нет» = отсутствие записи (см. док. к полю выше).
+        // Инцидент 02.11.2026: вотчер звал updateServerSessionVerdict(id, null)
+        // на первой же эмиссии stallSeconds → NPE → приложение падало на каждом
+        // нажатии «подключиться» (6 data_app_crash в dropbox телефона).
+        if (verdict == null) {
+            serverSessionVerdicts.remove(sessionId)
+        } else {
+            serverSessionVerdicts[sessionId] = verdict
+        }
+    }
 
     private val ioExecutor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "mosh-session-io").apply { isDaemon = true }
@@ -153,6 +190,11 @@ class MoshSessionManager @Inject constructor(
                 socketProvider = socketProvider,
             ))
         }
+
+        val profileId = _sessions.value[sessionId]?.profileId
+        if (profileId != null && moshPort > 0) {
+            onSessionPortResolved?.invoke(profileId, moshPort, moshKey)
+        }
     }
 
     /**
@@ -193,10 +235,11 @@ class MoshSessionManager @Inject constructor(
                 // so an outage of any length does not reach this callback. It
                 // fires when the server announced shutdown (shell exited,
                 // clean=true), when the transport hit a fatal local error, or
-                // when it declared the session dead because we were online and
-                // silent for a long time (#421 — both clean=false).
+                // when it declared the session dead after a verified
+                // server-side probe (#421 — both clean=false).
                 Log.d(TAG, "Mosh session $sessionId disconnected — " +
                     "clean=$cleanExit, server=${session.serverIp}:${session.moshPort}")
+                serverSessionVerdicts.remove(sessionId)
                 // A clean exit means the user's shell ended — remove the
                 // session and close its bootstrap SSH client so it doesn't
                 // linger open; reconnecting would resurrect a session they
@@ -211,7 +254,7 @@ class MoshSessionManager @Inject constructor(
             verboseBuffer = session.verboseBuffer,
             socketProvider = session.socketProvider
                 ?: UdpSocketProvider { sh.haven.mosh.network.AndroidUdpAdapter() },
-            networkAvailable = ::hasNetwork,
+            serverSessionDead = { serverSessionVerdicts[sessionId] },
         )
 
         _sessions.update { map ->
@@ -258,6 +301,7 @@ class MoshSessionManager @Inject constructor(
     fun removeSession(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
         _sessions.update { it - sessionId }
+        serverSessionVerdicts.remove(sessionId)
         ioExecutor.execute {
             try {
                 session.sshClient?.close()
@@ -294,6 +338,51 @@ class MoshSessionManager @Inject constructor(
                     Log.e(TAG, "tearDown failed for ${session.sessionId}", e)
                 }
             }
+        }
+    }
+
+    /**
+     * Graceful close of a mosh session at tab-close time (Dez 2026-11-06).
+     *
+     * Closing a tab used to tear the transport down silently, leaving the
+     * server-side mosh-server waiting for a client that will never return —
+     * an orphan that lingered until the profile's next connect (or for
+     * weeks, if the profile was not reopened). Orphans must not be born in
+     * the first place.
+     *
+     * Two stages:
+     *  1. EOF (0x04) into the transport input — the remote foreground
+     *     (shell / agent CLI) sees Ctrl-D and exits cleanly; mosh-server
+     *     announces shutdown and dies on its own. We wait up to [eofGraceMs]
+     *     for the clean end (the session leaves the map via the clean-exit
+     *     path).
+     *  2. Guarantee: whatever ignored the EOF (vim, a hung process) is
+     *     killed by port over [exec] (the caller wires it to the session's
+     *     bootstrap SSH client). The port belongs to the session being
+     *     closed — ownership is ours by construction, no probe needed. If
+     *     stage 1 already ended the session, the kill finds nothing.
+     *
+     * The caller must remove the session afterwards (removeSession /
+     * removeAllSessionsForProfile), which closes the SSH client and the
+     * transport.
+     */
+    suspend fun gracefulClose(
+        sessionId: String,
+        exec: suspend (command: String, timeoutMs: Long?) -> MoshServerSessionProbe.ProbeExecResult,
+        eofGraceMs: Long = 1_500L,
+    ) {
+        val session = _sessions.value[sessionId] ?: return
+        // Stage 1: EOF — clean path.
+        runCatching { session.moshSession?.sendInput(byteArrayOf(0x04)) }
+        val deadline = System.currentTimeMillis() + eofGraceMs
+        while (System.currentTimeMillis() < deadline && _sessions.value.containsKey(sessionId)) {
+            delay(100)
+        }
+        if (!_sessions.value.containsKey(sessionId)) return // clean exit won
+        // Stage 2: guarantee kill by port.
+        val port = _sessions.value[sessionId]?.moshPort ?: return
+        if (port > 0) {
+            runCatching { exec(MoshOrphanCleaner.killCommand(port), MoshServerSessionProbe.DEFAULT_TIMEOUT_MS) }
         }
     }
 

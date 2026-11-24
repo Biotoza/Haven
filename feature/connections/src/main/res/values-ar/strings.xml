@@ -631,4 +631,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">يشغّل صدفة Android بصلاحيات مرتفعة (/system/bin/sh) عبر Shizuku (معرّف ADB 2000 أو root). يتطلب أن تكون خدمة Shizuku قيد التشغيل ومصرّحًا بها.</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

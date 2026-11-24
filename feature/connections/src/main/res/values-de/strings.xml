@@ -631,4 +631,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Führt eine privilegierte Android-Shell (/system/bin/sh) über Shizuku (ADB UID 2000 oder Root) aus. Erfordert einen laufenden und autorisierten Shizuku-Dienst.</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

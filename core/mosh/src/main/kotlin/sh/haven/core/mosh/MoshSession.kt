@@ -47,12 +47,13 @@ class MoshSession(
     private val socketProvider: UdpSocketProvider =
         UdpSocketProvider { AndroidUdpAdapter() },
     /**
-     * Reports whether the device has a usable network, so the transport can
-     * tell a roaming session apart from one the server no longer has (#421).
-     * Defaults to "assume online"; [MoshSessionManager] supplies the real
-     * ConnectivityManager-backed check.
+     * Out-of-band verdict on whether the server-side session still exists.
+     * Forwarded to the transport: silence alone never kills a session, and
+     * this callback is the only gate on the silence-death escalation
+     * (`true` = verified gone, `false` = alive, `null` = unknown — keep
+     * waiting). Wired by [MoshSessionManager] from the probe verdict cache.
      */
-    private val networkAvailable: () -> Boolean = { true },
+    private val serverSessionDead: (() -> Boolean?)? = null,
 ) : Closeable {
 
     @Volatile
@@ -125,7 +126,7 @@ class MoshSession(
             initialCols = initialCols,
             initialRows = initialRows,
             socketProvider = socketProvider,
-            networkAvailable = networkAvailable,
+            serverSessionDead = serverSessionDead,
         )
         transport = t
         t.start(scope)
