@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">সাম্প্রতিক স্ক্রিনে Haven-এর কার্ড লুকায়; সেশন চলতে থাকে। অ্যাপ আইকন থেকে আবার খুলুন।</string>
     <string name="settings_connection_logging_title">সংযোগ লগিং</string>
     <string name="settings_connection_logging_subtitle">সংযোগ ইভেন্ট রেকর্ড করুন (সংযোগ, বিচ্ছিন্ন, ত্রুটি)। স্থানীয়ভাবে সংরক্ষিত, ডিভাইস এনক্রিপশন দ্বারা সুরক্ষিত</string>
+    <string name="settings_event_journal_title">ইভেন্ট লগ</string>
+    <string name="settings_event_journal_subtitle">সেশন বন্ধ বা পুনরায় সংযোগের কারণ রেকর্ড করে। শুধুমাত্র এই ডিভাইসে; ডিফল্ট বন্ধ</string>
+    <string name="settings_event_journal_export_title">ইভেন্ট লগ এক্সপোর্ট করুন</string>
+    <string name="settings_event_journal_export_subtitle">নির্ণয়ের জন্য রেকর্ড করা ইভেন্ট শেয়ার করুন</string>
     <string name="settings_view_connection_log_title">সংযোগ লগ দেখুন</string>
     <string name="settings_view_connection_log_subtitle">সংযোগের ইতিহাস ও ইভেন্ট</string>
     <string name="settings_verbose_logging_title">বিস্তারিত সংযোগ লগিং</string>
@@ -50,6 +54,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">সেশন স্থায়িত্ব</string>
+    <string name="settings_default_address_family_title">ডিফল্ট অ্যাড্রেস ফ্যামিলি</string>
+    <string name="settings_default_address_family_subtitle">নতুন SSH সংযোগের জন্য</string>
+    <string name="settings_address_family_auto">অটো</string>
+    <string name="settings_address_family_ipv4_only">শুধু IPv4</string>
+    <string name="settings_address_family_ipv6_only">শুধু IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 পছন্দসই</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 পছন্দসই</string>
     <string name="settings_session_persistence_none">নেই</string>
     <string name="settings_font_size_title">টার্মিনাল ফন্ট সাইজ</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -296,7 +307,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — ব্যবহারকারী-নির্বাচিত EditorInfo ফ্ল্যাগ</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — ডিফল্ট, autocorrect দমন করে</string>
     <string name="settings_keyboard_mode_secure_label">Secure (ডিফল্ট)</string>
-    <string name="settings_keyboard_mode_secure_desc">গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে।</string>
+    <string name="settings_keyboard_mode_secure_desc">গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে। এই মোডে চীনা/জাপানি/কোরিয়ান composition নিষ্ক্রিয়। CJK ইনপুটের জন্য টুলবারের 中 (compose) টগল বা Standard মোড ব্যবহার করুন।</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">সম্পূর্ণ Gboard সুবিধা — ভয়েস ইনপুট, swipe typing, autocorrect, শব্দ prediction। Secure মোডে কীবোর্ড কাজ না করলে বা autocorrect চাইলে এটি বেছে নিন।</string>
     <string name="settings_keyboard_mode_raw_label">Raw — Bluetooth/USB শুধু</string>
@@ -308,6 +319,8 @@
     <string name="settings_ctrl_shift_v_subtitle">হার্ডওয়্যার কীবোর্ড Ctrl+Shift+V Android ক্লিপবোর্ড থেকে পেস্ট করে। বন্ধ থাকলে কী রিমোট শেলে পাঠায়।</string>
     <string name="settings_auto_show_keyboard_title">টার্মিনাল খোলার সময় কীবোর্ড দেখান</string>
     <string name="settings_auto_show_keyboard_subtitle">একটি টার্মিনাল সেশন খুললে বা বদলালে সফট কীবোর্ড স্বয়ংক্রিয়ভাবে ওঠে। শুধু-পড়ার সেশনে এটি নিচে রাখতে অফ করুন; টুলবারের কীবোর্ড কী ও ডাবল-ট্যাপ দিয়ে যেকোনো সময় তোলা যায়</string>
+    <string name="settings_default_compose_mode_title">ডিফল্ট CJK compose মোড</string>
+    <string name="settings_default_compose_mode_subtitle">চীনা/জাপানি/কোরিয়ান ইনপুটের জন্য প্রতি সেশনে 中 টগল না করে নতুন টার্মিনাল সেশন compose (中) মোডে শুরু করুন। টুলবারের 中 কী প্রতি সেশনে এটি বন্ধ করতে পারে</string>
 
     <!-- Navigation Tabs dialog -->
 
@@ -320,6 +333,8 @@
     <string name="settings_usb_guest_subtitle">সংযুক্ত USB ডিভাইসগুলি haven-usb shim-এর মাধ্যমে গেস্ট অ্যাপে পৌঁছাতে দিন। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।</string>
     <string name="settings_gps_guest_title">Linux গেস্টে GPS প্রকাশ করুন</string>
     <string name="settings_gps_guest_subtitle">ফোনের GPS অবস্থান NMEA ডিভাইস হিসেবে গেস্টে স্ট্রিম করুন (haven-gps)। চালু থাকলে গেস্টের যেকোনো প্রসেস অবস্থান পড়তে পারে। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।</string>
+    <string name="settings_notify_guest_title">গেস্ট বিজ্ঞপ্তি</string>
+    <string name="settings_notify_guest_subtitle">Linux গেস্ট প্রোগ্রামগুলোকে haven-notify এর মাধ্যমে Android বিজ্ঞপ্তি পোস্ট করতে দিন। চালু থাকলে গেস্টের যেকোনো প্রসেস শেডে বিজ্ঞপ্তি যোগ করতে পারে। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।</string>
     <string name="settings_proot_install_log_title">PRoot ইনস্টল লগ দেখুন</string>
     <string name="settings_proot_install_log_subtitle">Linux ডিস্ট্রো ইনস্টল থেকে প্রতি-ধাপের ইভেন্ট (issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat ক্যাপচার</string>
@@ -503,6 +518,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">টার্মিনালে অ্যাপ ট্যাব বার লুকান</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">টার্মিনাল স্ক্রিনে Haven-এর নিচের ট্যাব বার লুকায়। Android-এর স্ট্যাটাস ও নেভিগেশন বার দৃশ্যমান থাকে।</string>
+    <string name="settings_shortcut_toolbar_title">শর্টকাট টুলবার</string>
+    <string name="settings_shortcut_toolbar_subtitle">টার্মিনালের নিচে অতিরিক্ত কী সারি। ভৌত কীবোর্ড সংযুক্ত থাকলে স্বয়ংক্রিয় সেগুলো লুকায়।</string>
+    <string name="settings_shortcut_toolbar_show">সবসময় দেখান</string>
+    <string name="settings_shortcut_toolbar_auto">স্বয়ংক্রিয়</string>
+    <string name="settings_shortcut_toolbar_hide">সবসময় লুকান</string>
     <string name="settings_credential_keystore_broken_title">ক্রেডেনশিয়াল স্টোরেজ অনুপলব্ধ</string>
     <string name="settings_credential_keystore_broken_subtitle">এই ডিভাইসের কীস্টোর Haven-এর ক্রেডেনশিয়াল কী হারিয়েছে। সংরক্ষিত পাসওয়ার্ড পড়া যাবে না এবং নতুন সংরক্ষণ করা যাবে না। মেরামত করতে ট্যাপ করুন।</string>
     <string name="settings_credential_reset_title">ক্রেডেনশিয়াল স্টোরেজ মেরামত করবেন?</string>

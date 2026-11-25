@@ -32,6 +32,7 @@ import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshSessionManager.SessionState
 import sh.haven.core.et.EtSessionManager
 import sh.haven.core.mosh.MoshSessionManager
+import sh.haven.core.mosh.MoshServerSessionProbe
 import sh.haven.core.reticulum.ReticulumSessionManager
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.preferences.UserPreferencesRepository
@@ -284,6 +285,11 @@ data class TerminalTab(
      *  tab strip uses it to let the user's multiplexer labelling win over
      *  program-set OSC titles when that preference is on. */
     val multiplexerName: String? = null,
+    /** The connection this tab belongs to (its profile/session label), kept
+     *  apart from [label] because a session-manager rename replaces that.
+     *  The tab strip shows it under the title when the two differ. Null for
+     *  on-device shells, which have no machine to name. */
+    val hostLabel: String? = null,
     /** Post-attach session-manager verification result (#731). Non-null when
      *  the shell came up but the session manager didn't (not installed / the
      *  start command failed), so the terminal can say why the user landed in
@@ -1418,6 +1424,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = profile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = source.transportType,
                     emulator = emulator,
                     mouseMode = mouseTracker.mouseMode,
@@ -1532,6 +1539,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = profile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = source.transportType,
                     emulator = emulator,
                     mouseMode = mouseTracker.mouseMode,
@@ -2068,6 +2076,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = sshProfile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = "SSH",
                     emulator = b.emulator,
                     mouseMode = b.mouseTracker.mouseMode,
@@ -2174,6 +2183,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = rnsProfile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = "RETICULUM",
                     emulator = emulator,
                     mouseMode = rnsMouseTracker.mouseMode,
@@ -2579,7 +2589,12 @@ class TerminalViewModel @Inject constructor(
 
     fun closeTab(sessionId: String) {
         val tab = _tabs.value.firstOrNull { it.sessionId == sessionId }
-        if (tab != null && tab.transportType in TRANSPORTS_NEEDING_EXPLICIT_DETACH) {
+        if (tab != null && tab.transportType == "MOSH") {
+            viewModelScope.launch(Dispatchers.IO) {
+                closeMoshTabGracefully(tab)
+                removeTabAndSync(sessionId)
+            }
+        } else if (tab != null && tab.transportType in TRANSPORTS_NEEDING_EXPLICIT_DETACH) {
             viewModelScope.launch(Dispatchers.IO) {
                 sendSessionManagerDetach(tab)
                 removeTabAndSync(sessionId)
@@ -2592,19 +2607,64 @@ class TerminalViewModel @Inject constructor(
     /** Close all sessions for a profile (called from connections disconnect). */
     fun closeSession(profileId: String) {
         val profileTabs = _tabs.value.filter { it.profileId == profileId }
-        val needsDetach = profileTabs.filter { it.transportType in TRANSPORTS_NEEDING_EXPLICIT_DETACH }
-        if (needsDetach.isNotEmpty()) {
-            viewModelScope.launch(Dispatchers.IO) {
-                val smName = effectiveSessionManagerName(profileId)
-                val detachBytes = detachBytesFor(smName)
-                if (detachBytes != null) {
-                    needsDetach.forEach { it.sendInput(detachBytes) }
-                    kotlinx.coroutines.delay(SESSION_MANAGER_DETACH_DELAY_MS)
-                }
-                removeAllForProfileAndSync(profileId)
-            }
-        } else {
+        if (profileTabs.isEmpty()) {
             removeAllForProfileAndSync(profileId)
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            for (tab in profileTabs) {
+                when {
+                    tab.transportType == "MOSH" -> closeMoshTabGracefully(tab)
+                    tab.transportType in TRANSPORTS_NEEDING_EXPLICIT_DETACH -> sendSessionManagerDetach(tab)
+                }
+            }
+            removeAllForProfileAndSync(profileId)
+        }
+    }
+
+    /**
+     * Mosh tab close (Dez 2026-11-06): session-manager detach when the
+     * session is wrapped in a multiplexer (tmux/zellij/…), otherwise the
+     * graceful close — EOF into the session so the remote shell exits
+     * cleanly, then a port-targeted kill as guarantee. Without this, closing
+     * a tab always left a server-side orphan that lingered until the
+     * profile's next connect.
+     */
+    private suspend fun closeMoshTabGracefully(tab: TerminalTab) {
+        val smName = effectiveSessionManagerName(tab.profileId)
+        val detachBytes = detachBytesFor(smName)
+        if (detachBytes != null) {
+            tab.sendInput(detachBytes)
+            kotlinx.coroutines.delay(SESSION_MANAGER_DETACH_DELAY_MS)
+        } else {
+            moshSessionManager.gracefulClose(
+                tab.sessionId,
+                exec = { command, timeoutMs -> moshCloseExec(tab.profileId, command, timeoutMs) },
+            )
+        }
+    }
+
+    /**
+     * Exec adapter for the close-time port kill: runs over the closing
+     * session's own bootstrap SSH client (still alive until the session is
+     * removed). Mirrors the orphan cleaner's exec contract.
+     */
+    private suspend fun moshCloseExec(
+        profileId: String,
+        command: String,
+        timeoutMs: Long?,
+    ): MoshServerSessionProbe.ProbeExecResult {
+        val ssh = moshSessionManager.getSshClientForProfile(profileId) as? SshClient
+            ?: return MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
+        return try {
+            val result = ssh.execCommand(command, timeoutMs)
+            MoshServerSessionProbe.ProbeExecResult(
+                exitStatus = result.exitStatus,
+                output = result.stdout + "\n" + result.stderr,
+                timedOut = result.timedOut,
+            )
+        } catch (e: Exception) {
+            MoshServerSessionProbe.ProbeExecResult(exitStatus = null, output = "")
         }
     }
 

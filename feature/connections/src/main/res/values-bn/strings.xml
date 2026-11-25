@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">টানেল</string>
     <string name="connections_action_reauthenticate">পুনরায় প্রমাণীকরণ</string>
     <string name="connections_action_cancel_oauth">OAuth বাতিল করুন</string>
+    <string name="connections_storage_connect_timeout">স্টোরেজ সংযোগের সময়সীমা শেষ — সেটিংস → সংযোগ লগ দেখুন</string>
 
     <string name="connections_hostkey_verify_hint">বিশ্বাস করার আগে যাচাই করুন এই ফিঙ্গারপ্রিন্ট সার্ভারের কী-এর সঙ্গে মেলে।</string>
     <string name="connections_hostkey_changed_title">হোস্ট কী পরিবর্তিত</string>
@@ -335,6 +336,8 @@
     <string name="connection_address_family_auto">স্বয়ংক্রিয়</string>
     <string name="connection_address_family_ipv4_only">শুধু IPv4</string>
     <string name="connection_address_family_ipv6_only">শুধু IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 পছন্দসই</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 পছন্দসই</string>
     <string name="connection_address_family_ipv4_hint">AAAA রেকর্ড এড়িয়ে IPv4-এ সংযোগ করে। DNS IPv6 ফেরত দিলে কিন্তু নেটওয়ার্ক তা রুট করতে না পারলে উপযোগী।</string>
     <string name="connection_address_family_ipv6_hint">A রেকর্ড এড়িয়ে IPv6-এ সংযোগ করে। শুধু-IPv6 নেটওয়ার্কে উপযোগী যেখানে IPv4 NAT কাজ করে না।</string>
     <string name="connections_field_bind_address">লোকাল বাইন্ড ঠিকানা</string>
@@ -611,6 +614,10 @@
     <string name="connections_helper_forward_pulseaudio">ফোনের PulseAudio ব্রিজ চালু করে, রিমোট পোর্ট 14713 লোকাল পোর্ট 4713-এ টানেল করে এবং SSH শেলে PULSE_SERVER=tcp:127.0.0.1:14713 এক্সপোর্ট করে।</string>
     <string name="connections_toggle_persist_rediscovered_host">পুনরায় খুঁজে পাওয়া LAN ঠিকানা সংরক্ষণ করুন</string>
     <string name="connections_helper_persist_rediscovered_host">কোনো লোকাল মেশিন নতুন IPv4 ঠিকানায় একই SSH হোস্ট কী প্রদান করলে প্রোফাইল আপডেট করুন। শুধুমাত্র সেই সেশনের জন্য পুনরায় খুঁজে পাওয়া ঠিকানায় সংযুক্ত হতে এবং আপনার কনফিগার করা হোস্ট (যেমন WireGuard IP) অপরিবর্তিত রাখতে এটি বন্ধ করুন।</string>
+    <string name="connections_toggle_legacy_host_key_fallback">পুরনো ssh-rsa হোস্ট কী দিয়ে আবার চেষ্টা করুন</string>
+    <string name="connections_helper_legacy_host_key_fallback">যখন সার্ভার শুধুমাত্র পুরনো SHA-1 ssh-rsa হোস্ট কী অফার করে, তখন এই অ্যালগরিদম যোগ করে একবার আবার সংযোগের চেষ্টা করুন। আধুনিক অ্যালগরিদম এখনও আগে চেষ্টা করা হয়, তাই যেসব সার্ভার সেগুলো সমর্থন করে সেগুলো প্রভাবিত হয় না। হ্যান্ডশেক দুর্বল করার বদলে ব্যর্থ হতে এটি বন্ধ করুন।</string>
+    <string name="connections_toggle_netbird_ssh_jwt">NetBird SSH সাইন-ইন (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">যেসব NetBird SSH সার্ভারে সাইন-ইন প্রয়োজন: ব্রাউজারে আপনার NetBird পরিচয় দিয়ে authenticate করুন এবং প্রাপ্ত টোকেনকে SSH পাসওয়ার্ড হিসেবে ব্যবহার করুন। শুধুমাত্র তখনই প্রযোজ্য যখন এই সংযোগ NetBird টানেল ব্যবহার করে।</string>
     <string name="connections_field_saved_password">সংরক্ষিত পাসওয়ার্ড (SSH / sudo)</string>
     <string name="connections_helper_saved_password">ঐচ্ছিক। Android Keystore-এ এনক্রিপ্ট করা থাকে এবং SSH পাসওয়ার্ড লগইন ও টার্মিনালে বায়োমেট্রিক sudo অটোফিলের জন্য ব্যবহৃত হয়।</string>
     <string name="connections_auth_banner_title">SSH প্রমাণীকরণ</string>
@@ -624,4 +631,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Shizuku (ADB uid 2000 বা root) এর মাধ্যমে উন্নত অনুমতিসহ Android শেল (/system/bin/sh) চালায়। এজন্য Shizuku চালু ও অনুমোদিত থাকতে হবে।</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">トンネル</string>
     <string name="connections_action_reauthenticate">再認証</string>
     <string name="connections_action_cancel_oauth">OAuth をキャンセル</string>
+    <string name="connections_storage_connect_timeout">ストレージ接続がタイムアウトしました — 設定 → 接続ログを確認してください</string>
 
     <string name="connections_hostkey_verify_hint">信頼する前に、このフィンガープリントがサーバーの鍵と一致することを確認してください。</string>
     <string name="connections_hostkey_changed_title">ホスト鍵が変更されました</string>
@@ -335,6 +336,8 @@
     <string name="connection_address_family_auto">自動</string>
     <string name="connection_address_family_ipv4_only">IPv4のみ</string>
     <string name="connection_address_family_ipv6_only">IPv6のみ</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 優先</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 優先</string>
     <string name="connection_address_family_ipv4_hint">AAAAレコードをスキップしてIPv4で接続します。DNSがIPv6を返すがネットワークがそれをルーティングできない場合に便利です。</string>
     <string name="connection_address_family_ipv6_hint">AレコードをスキップしてIPv6で接続します。IPv4 NATが壊れているIPv6専用ネットワークで便利です。</string>
     <string name="connections_field_bind_address">ローカルバインドアドレス</string>
@@ -611,6 +614,10 @@
     <string name="connections_helper_forward_pulseaudio">端末の PulseAudio ブリッジを起動し、リモートポート 14713 をローカルポート 4713 にトンネルして SSH シェルで PULSE_SERVER=tcp:127.0.0.1:14713 をエクスポートします。</string>
     <string name="connections_toggle_persist_rediscovered_host">再検出された LAN アドレスを保存</string>
     <string name="connections_helper_persist_rediscovered_host">ローカルマシンが新しい IPv4 アドレスで同じ SSH ホスト鍵を提示したときにプロファイルを更新します。オフにすると、そのセッションのみ再検出されたアドレスで接続し、設定済みのホスト（WireGuard IP など）を保持します。</string>
+    <string name="connections_toggle_legacy_host_key_fallback">旧式の ssh-rsa ホストキーで再試行</string>
+    <string name="connections_helper_legacy_host_key_fallback">サーバーが旧式の SHA-1 ssh-rsa ホストキーのみを提供している場合、そのアルゴリズムを追加して接続を一度だけ再試行します。モダンなアルゴリズムが引き続き優先されるため、それらに対応したサーバーには影響しません。ハンドシェイクを弱める代わりに失敗させたい場合はオフにしてください。</string>
+    <string name="connections_toggle_netbird_ssh_jwt">NetBird SSH サインイン (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">サインインが必要な NetBird SSH サーバー向け：ブラウザで NetBird の ID で認証し、取得したトークンを SSH パスワードとして使用します。この接続が NetBird トンネルを使う場合のみ適用されます。</string>
     <string name="connections_field_saved_password">保存されたパスワード (SSH / sudo)</string>
     <string name="connections_helper_saved_password">任意。Android Keystore で暗号化され、SSH パスワードログインおよびターミナルでの生体認証付き sudo 自動入力に使用されます。</string>
     <string name="connections_auth_banner_title">SSH 認証</string>
@@ -624,4 +631,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Shizuku（ADB uid 2000 または root）経由で特権 Android シェル (/system/bin/sh) を実行します。Shizuku が起動しており、権限が許可されている必要があります。</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

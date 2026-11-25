@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -55,15 +56,19 @@ class RebindImeTargetTest {
             listOf(root, other, holder, editor).forEach { it.layout(0, 0, SIZE, SIZE) }
         }
 
-        /** Run [rebindImeTarget]; [requestFocus] is the fake Compose request. */
+        /**
+         * Run [rebindImeTarget]; [requestFocus] is the fake Compose request.
+         * Robolectric never reports the window visible, so say it is.
+         */
         fun rebind(requestFocus: () -> Unit) {
             rebindImeTarget(
                 root.rootView,
                 requestFocus = requestFocus,
                 clearFocus = { clears++ },
                 restartInput = { restarted += it },
+                windowVisible = true,
             )
-            shadowOf(Looper.getMainLooper()).idle()
+            shadowOf(Looper.getMainLooper()).runToEndOfTasks()
         }
 
         private companion object {
@@ -114,13 +119,68 @@ class RebindImeTargetTest {
     }
 
     @Test
-    fun withNoEditorToFocusItGivesUpAfterOneRetry() {
+    fun withNoEditorToFocusItPollsButNeverRestarts() {
         val f = Fixture(context)
         assertTrue(f.other.requestFocus())
 
         f.rebind { /* never lands on an editor (e.g. raw keyboard mode) */ }
 
-        assertEquals("retries once, never loops", 1, f.clears)
+        assertTrue("polls by re-clearing focus, never restarts on a non-editor", f.clears > 1)
         assertTrue("never restarts input on a non-editor", f.restarted.isEmpty())
+    }
+
+    @Test
+    fun anEditorThatAttachesSeveralFramesLateIsStillRestarted() {
+        val f = Fixture(context)
+        assertTrue(f.other.requestFocus())
+        var requests = 0
+
+        // A tab switch recreates the pane; the fresh ImeInputView only takes
+        // focus a few frames later (#869). The old single retry gave up before
+        // then (restarted=false); the poll must keep trying until it lands.
+        f.rebind {
+            requests++
+            if (requests >= 4) f.editor.requestFocus()
+        }
+
+        assertSame(f.editor, f.root.findFocus())
+        assertEquals(listOf<View>(f.editor), f.restarted)
+    }
+
+    @Test
+    fun anEditorThatLostFocusabilityIsRearmedAndRestarted() {
+        val f = Fixture(context)
+        assertTrue(f.other.requestFocus())
+        // What ImeInputView leaves when its post-return refocus misses: on
+        // screen, window visible, but no longer focusable.
+        f.editor.isFocusable = false
+
+        f.rebind { f.editor.requestFocus() }
+
+        assertTrue(f.editor.isFocusable)
+        assertSame(f.editor, f.root.findFocus())
+        assertEquals(listOf<View>(f.editor), f.restarted)
+    }
+
+    @Test
+    fun rearmLeavesNonEditorsAndDisabledEditorsAlone() {
+        val f = Fixture(context)
+        f.other.isFocusable = false
+        f.editor.isFocusable = false
+        f.editor.isEnabled = false
+
+        assertEquals(0, rearmUnfocusableEditors(f.root.rootView, windowVisible = true))
+        assertFalse(f.other.isFocusable)
+        assertFalse(f.editor.isFocusable)
+    }
+
+    @Test
+    fun rearmWaitsForAVisibleWindow() {
+        val f = Fixture(context)
+        f.editor.isFocusable = false
+
+        // The hidden-window focus drop is termlib's crash guard: never undo it early.
+        assertEquals(0, rearmUnfocusableEditors(f.root.rootView, windowVisible = false))
+        assertFalse(f.editor.isFocusable)
     }
 }

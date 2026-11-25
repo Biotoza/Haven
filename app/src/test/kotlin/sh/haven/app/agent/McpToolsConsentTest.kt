@@ -176,6 +176,8 @@ class McpToolsConsentTest {
             // Teardown verbs: stopping the GPS→guest bridge (and the USB
             // proxy's detach_from_guest) only reduces exposure — no consent.
             "detach_gps_from_guest",
+            // Guest notification bridge teardown (#851) likewise reduces exposure.
+            "detach_notify_from_guest",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -246,6 +248,10 @@ class McpToolsConsentTest {
             // one session grant on top, like the USB pair. Detach is the
             // teardown → NEVER.
             "attach_gps_to_guest",
+            // Guest notification bridge (#851): attach lets guest programs
+            // inject into the shade behind notify_guest_exposure_enabled —
+            // one session grant on top; detach is teardown → NEVER.
+            "attach_notify_to_guest",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -1175,5 +1181,42 @@ class McpToolsConsentTest {
         }.exceptionOrNull() as McpError
         assertEquals(-32602, bad.code)
         assertTrue(bad.message!!.contains("chroot-ng"))
+    }
+
+    /** #870: the shortcut-toolbar visibility policy is MCP-drivable so the
+     *  hide/reveal path can be exercised without tapping through Settings. */
+    @Test
+    fun `terminal_shortcut_toolbar preference round-trips all modes and rejects unknown values`() {
+        var current = UserPreferencesRepository.TerminalShortcutToolbar.SHOW
+        val prefs = mockk<UserPreferencesRepository>(relaxed = true)
+        every { prefs.terminalShortcutToolbar } answers { flowOf(current) }
+        coEvery { prefs.setTerminalShortcutToolbar(any()) } answers { current = firstArg() }
+        val tools = newTools(prefs)
+
+        val initial = runBlocking { tools.call("get_preference", JSONObject().put("key", "terminal_shortcut_toolbar")) }
+        assertEquals("SHOW", initial.getString("value"))
+
+        for (mode in UserPreferencesRepository.TerminalShortcutToolbar.entries) {
+            runBlocking {
+                tools.call("set_preference", JSONObject().put("key", "terminal_shortcut_toolbar").put("value", mode.name))
+            }
+            assertEquals(mode, current)
+            val after = runBlocking { tools.call("get_preference", JSONObject().put("key", "terminal_shortcut_toolbar")) }
+            assertEquals(mode.name, after.getString("value"))
+        }
+
+        // Case-insensitive like the other enum coercers.
+        runBlocking {
+            tools.call("set_preference", JSONObject().put("key", "terminal_shortcut_toolbar").put("value", "auto"))
+        }
+        assertEquals(UserPreferencesRepository.TerminalShortcutToolbar.AUTO, current)
+
+        val bad = runCatching {
+            runBlocking {
+                tools.call("set_preference", JSONObject().put("key", "terminal_shortcut_toolbar").put("value", "sometimes"))
+            }
+        }.exceptionOrNull() as McpError
+        assertEquals(-32602, bad.code)
+        assertTrue(bad.message!!.contains("SHOW/AUTO/HIDE"))
     }
 }

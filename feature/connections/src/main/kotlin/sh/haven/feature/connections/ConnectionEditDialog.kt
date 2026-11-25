@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -96,6 +97,7 @@ import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.rclone.RCLONE_OAUTH_PROVIDERS
 import sh.haven.core.knock.KnockSequence
 import sh.haven.core.spa.SpaConfig
+import sh.haven.core.ssh.LegacyHostKeyFallback
 import sh.haven.feature.tunnel.CloudflareAccessLoginContract
 import sh.haven.feature.tunnel.CloudflareInlineFields
 import sh.haven.feature.tunnel.TunnelViewModel
@@ -171,6 +173,7 @@ fun ConnectionEditDialog(
      */
     onManageTunnels: ((preselect: sh.haven.core.data.db.entities.TunnelConfigType?) -> Unit)? = null,
     globalSessionManagerLabel: String = "None",
+    defaultAddressFamily: String = "AUTO",
     subnetScanning: Boolean = false,
     smbSubnetScanning: Boolean = false,
     reticulumScanning: Boolean = false,
@@ -441,7 +444,7 @@ fun ConnectionEditDialog(
         mcpReverseTunnel = mcpReverseTunnelEnabled
     }
     var forwardAgent by rememberSaveable { mutableStateOf(existing?.forwardAgent ?: false) }
-    var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: "AUTO") }
+    var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: defaultAddressFamily) }
     var bindAddress by rememberSaveable { mutableStateOf(existing?.bindAddress ?: "") }
     var selectedSessionManager by rememberSaveable { mutableStateOf(seed?.sessionManager) }
     var etPort by rememberSaveable { mutableStateOf(existing?.etPort?.toString() ?: "2022") }
@@ -3219,6 +3222,37 @@ fun ConnectionEditDialog(
                         description = stringResource(R.string.connections_helper_persist_rediscovered_host),
                     )
 
+                    // Legacy ssh-rsa host key retry. On by default: an old server
+                    // that offers only the SHA-1 algorithm would otherwise fail
+                    // host key negotiation before authentication, while newer
+                    // clients (ConnectBot/Trilead) connect fine. Stored as a
+                    // `HavenLegacyHostKeyFallback no` directive in sshOptions, so
+                    // no DB schema change is needed.
+                    Spacer(Modifier.height(4.dp))
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_legacy_host_key_fallback),
+                        checked = LegacyHostKeyFallback.isEnabledFromOptionsText(sshOptions),
+                        onCheckedChange = { enabled ->
+                            sshOptions = LegacyHostKeyFallback.setEnabledInOptions(sshOptions, enabled)
+                        },
+                        description = stringResource(R.string.connections_helper_legacy_host_key_fallback),
+                    )
+
+                    // NetBird SSH JWT auth (#875). Off by default: a NetBird SSH
+                    // server (disable-ssh-auth off) authenticates a JWT obtained
+                    // via OIDC sign-in as the SSH password. Stored as a
+                    // `HavenNetbirdSshJwt yes` directive in sshOptions — no schema
+                    // change. Only applies when the connection rides a NetBird tunnel.
+                    Spacer(Modifier.height(4.dp))
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_netbird_ssh_jwt),
+                        checked = sh.haven.core.tunnel.NetbirdSshJwt.isEnabledFromOptionsText(sshOptions),
+                        onCheckedChange = { enabled ->
+                            sshOptions = sh.haven.core.tunnel.NetbirdSshJwt.setEnabledInOptions(sshOptions, enabled)
+                        },
+                        description = stringResource(R.string.connections_helper_netbird_ssh_jwt),
+                    )
+
                     // Per-profile terminal colour scheme (#144). Null on the
                     // profile means "inherit the global setting"; setting a
                     // scheme here overrides only this profile so users can
@@ -3384,8 +3418,15 @@ fun ConnectionEditDialog(
                         "AUTO" to stringResource(R.string.connection_address_family_auto),
                         "IPV4_ONLY" to stringResource(R.string.connection_address_family_ipv4_only),
                         "IPV6_ONLY" to stringResource(R.string.connection_address_family_ipv6_only),
+                        "IPV6_PREFERRED" to stringResource(R.string.connection_address_family_ipv6_preferred),
+                        "IPV4_PREFERRED" to stringResource(R.string.connection_address_family_ipv4_preferred),
                     )
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    // Five options can exceed a portrait width; scroll rather than clip.
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                    ) {
                         addressFamilyOptions.forEachIndexed { index, (key, label) ->
                             SegmentedButton(
                                 selected = addressFamily == key,
@@ -4633,6 +4674,7 @@ private fun friendlyTunnelTypeLabel(t: sh.haven.core.data.db.entities.TunnelConf
         sh.haven.core.data.db.entities.TunnelConfigType.TAILSCALE -> "Tailscale"
         sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
         sh.haven.core.data.db.entities.TunnelConfigType.NETBIRD -> "NetBird"
+        sh.haven.core.data.db.entities.TunnelConfigType.YGGDRASIL -> "Yggdrasil"
         sh.haven.core.data.db.entities.TunnelConfigType.OPENVPN -> "OpenVPN"
         sh.haven.core.data.db.entities.TunnelConfigType.ANYCONNECT -> "AnyConnect"
     }

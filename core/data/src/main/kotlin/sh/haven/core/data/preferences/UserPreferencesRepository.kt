@@ -14,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import sh.haven.core.mosh.MoshSessionRecord
 import sh.haven.core.security.CredentialEncryption
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -56,9 +57,20 @@ class UserPreferencesRepository @Inject constructor(
     private val terminalLocaleKey = stringPreferencesKey("terminal_locale")
     private val themeKey = stringPreferencesKey("theme")
     private val sessionManagerKey = stringPreferencesKey("session_manager")
+    // Global default address family for NEW SSH connections (#855): one of the
+    // ConnectionProfile.AddressFamily names (AUTO/IPV4_ONLY/IPV6_ONLY/
+    // IPV6_PREFERRED/IPV4_PREFERRED). Existing profiles keep their own value.
+    private val defaultAddressFamilyKey = stringPreferencesKey("default_address_family")
     private val reticulumRpcKeyKey = stringPreferencesKey("reticulum_rpc_key")
     private val reticulumHostKey = stringPreferencesKey("reticulum_host")
     private val reticulumPortKey = intPreferencesKey("reticulum_port")
+    /**
+     * Last mosh-session port per profile, for orphan cleanup at next connect
+     * (Dez's idea, 2026-11-05). Elements are "profileId:port"; the port is
+     * recorded when a mosh session starts and cleared once the orphan has
+     * been verified and killed, or when the session closes cleanly.
+     */
+    private val moshLastPortsKey = stringSetPreferencesKey("mosh_last_ports")
     private val terminalColorSchemeKey = stringPreferencesKey("terminal_color_scheme")
     private val terminalAutoSwitchSchemeKey = booleanPreferencesKey("terminal_auto_switch_scheme")
     private val terminalLightColorSchemeKey = stringPreferencesKey("terminal_light_color_scheme")
@@ -90,6 +102,7 @@ class UserPreferencesRepository @Inject constructor(
     private val showCopyOutputButtonKey = booleanPreferencesKey("show_copy_output_button")
     private val keepScreenOnInTerminalKey = booleanPreferencesKey("keep_screen_on_in_terminal")
     private val autoShowKeyboardInTerminalKey = booleanPreferencesKey("auto_show_keyboard_in_terminal")
+    private val defaultComposeModeKey = booleanPreferencesKey("default_compose_mode")
     private val hideNavBarInTerminalKey = booleanPreferencesKey("hide_nav_bar_in_terminal")
     private val connectionLoggingEnabledKey = booleanPreferencesKey("connection_logging_enabled")
     private val excludeFromRecentsKey = booleanPreferencesKey("exclude_from_recents")
@@ -125,6 +138,7 @@ class UserPreferencesRepository @Inject constructor(
     private val alwaysShowAllTabsKey = booleanPreferencesKey("always_show_all_tabs")
     private val usbGuestExposureEnabledKey = booleanPreferencesKey("usb_guest_exposure_enabled")
     private val gpsGuestExposureEnabledKey = booleanPreferencesKey("gps_guest_exposure_enabled")
+    private val notifyGuestExposureEnabledKey = booleanPreferencesKey("notify_guest_exposure_enabled")
     private val tailscaleDiscoveryEnabledKey = booleanPreferencesKey("tailscale_discovery_enabled")
     private val remoteClipboardToLocalKey = booleanPreferencesKey("remote_clipboard_to_local")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
@@ -147,6 +161,7 @@ class UserPreferencesRepository @Inject constructor(
     private val reflowTerminalOnKeyboardKey = booleanPreferencesKey("reflow_terminal_on_keyboard")
     private val terminalTabTitlesFollowSessionKey = booleanPreferencesKey("terminal_tab_titles_follow_session")
     private val showTerminalTabBarKey = booleanPreferencesKey("show_terminal_tab_bar")
+    private val terminalShortcutToolbarKey = stringPreferencesKey("terminal_shortcut_toolbar")
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
     private val screenOrderKey = stringPreferencesKey("screen_order")
     private val sshKeyOrderKey = stringPreferencesKey("ssh_key_order")
@@ -154,6 +169,7 @@ class UserPreferencesRepository @Inject constructor(
     private val keysCollapsedSectionsKey = stringPreferencesKey("keys_collapsed_sections")
     private val waylandShellCommandKey = stringPreferencesKey("wayland_shell_command")
     private val batteryPromptDismissedKey = booleanPreferencesKey("battery_prompt_dismissed")
+    private val eventJournalEnabledKey = booleanPreferencesKey("event_journal_enabled")
     private val batteryPromptNeverAskKey = booleanPreferencesKey("battery_prompt_never_ask")
     private val batteryLastKnownExemptKey = booleanPreferencesKey("battery_last_known_exempt")
     private val showLinuxVmCardKey = booleanPreferencesKey("show_linux_vm_card")
@@ -356,6 +372,24 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setAutoShowKeyboardInTerminal(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[autoShowKeyboardInTerminalKey] = enabled
+        }
+    }
+
+    /**
+     * Start new terminal sessions in compose (中) mode by default (#872).
+     * Compose mode hands the IME a composition-friendly InputConnection so
+     * CJK (Chinese/Japanese/Korean) input works; it is sticky within a
+     * session, so this only removes the need to toggle 中 on each new
+     * session. Off by default — Secure mode's privacy flags are unchanged
+     * for everyone else. The toolbar 中 toggle still overrides per session.
+     */
+    val defaultComposeMode: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[defaultComposeModeKey] ?: false
+    }
+
+    suspend fun setDefaultComposeMode(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[defaultComposeModeKey] = enabled
         }
     }
 
@@ -744,6 +778,25 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setGpsGuestExposureEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[gpsGuestExposureEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * Master opt-in for the guest → Android notification bridge (#851): the
+     * \0haven-notify abstract socket + staged `haven-notify` helper that lets
+     * Linux guest programs post Android notifications. Default OFF: unlike GPS
+     * (which leaks position *out*), this lets *any* guest process inject content
+     * *into* the phone's notification shade — a phishing-shaped surface — so it
+     * stays off until explicitly enabled. The attach consent sheet still gates
+     * each attach, and a token-bucket rate limiter caps spam once enabled.
+     */
+    val notifyGuestExposureEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[notifyGuestExposureEnabledKey] ?: false
+    }
+
+    suspend fun setNotifyGuestExposureEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[notifyGuestExposureEnabledKey] = enabled
         }
     }
 
@@ -1225,6 +1278,21 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setBatteryPromptNeverAsk() {
         dataStore.edit { prefs ->
             prefs[batteryPromptNeverAskKey] = true
+        }
+    }
+
+    /**
+     * Opt-in diagnostics event journal (hd9): records why sessions die or
+     * reconnect, in-app, on-device only. Default OFF — nothing is written
+     * until the user turns it on in Settings → Diagnostics.
+     */
+    val eventJournalEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[eventJournalEnabledKey] ?: false
+    }
+
+    suspend fun setEventJournalEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[eventJournalEnabledKey] = enabled
         }
     }
 
@@ -1835,6 +1903,17 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Global default address family for new SSH connections (#855); "AUTO" when unset. */
+    val defaultAddressFamily: Flow<String> = dataStore.data.map { prefs ->
+        prefs[defaultAddressFamilyKey] ?: "AUTO"
+    }
+
+    suspend fun setDefaultAddressFamily(family: String) {
+        dataStore.edit { prefs ->
+            prefs[defaultAddressFamilyKey] = family
+        }
+    }
+
     suspend fun setBiometricEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[biometricEnabledKey] = enabled
@@ -1924,6 +2003,59 @@ class UserPreferencesRepository @Inject constructor(
             prefs[reticulumPortKey] = port
         }
     }
+
+    /** Last recorded mosh-session ports + session keys per profile id ("profileId:port:key" entries). */
+    val moshLastPorts: Flow<Map<String, List<MoshSessionRecord>>> = dataStore.data.map { prefs ->
+        val entries = prefs[moshLastPortsKey] ?: emptySet()
+        buildMap {
+            for (entry in entries) {
+                val parts = entry.split(':')
+                // Legacy "profileId:port" entries (pre-A+) carry no key — skip them;
+                // they are dropped from the store on the next write for that profile.
+                if (parts.size != 3) continue
+                val port = parts[1].toIntOrNull() ?: continue
+                val key = parts[2]
+                if (port <= 0 || key.isBlank()) continue
+                val list = this[parts[0]] as? MutableList<MoshSessionRecord>
+                    ?: mutableListOf<MoshSessionRecord>().also { put(parts[0], it) }
+                list.add(MoshSessionRecord(port, key))
+            }
+        }
+    }
+
+    /** Record the port+key of a freshly started mosh session for later orphan cleanup. */
+    suspend fun setMoshLastPort(profileId: String, port: Int, sessionKey: String) {
+        if (port <= 0 || sessionKey.isBlank()) return
+        dataStore.edit { prefs ->
+            val current = prefs[moshLastPortsKey] ?: emptySet()
+            val prefix = "$profileId:"
+            val otherProfiles = current.filterNot { it.startsWith(prefix) }.toSet()
+            val sameProfile = current.filter { it.startsWith(prefix) }.toSet()
+            // Replace an existing entry for the same port (reconnect reusing the port
+            // gets a fresh key), keep entries for other ports of this profile.
+            val kept = sameProfile.filterNot { it.startsWith("$prefix$port:") }.toSet()
+            prefs[moshLastPortsKey] = otherProfiles + kept + "$profileId:$port:$sessionKey"
+        }
+    }
+
+    /** Forget one recorded port for [profileId] (orphan cleaned up / port free or foreign). */
+    suspend fun clearMoshLastPort(profileId: String, port: Int) {
+        dataStore.edit { prefs ->
+            val current = prefs[moshLastPortsKey] ?: return@edit
+            val prefix = "$profileId:$port:"
+            prefs[moshLastPortsKey] = current.filterNot { it.startsWith(prefix) }.toSet()
+        }
+    }
+
+    /** Forget all recorded ports for [profileId]. */
+    suspend fun clearMoshLastPorts(profileId: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[moshLastPortsKey] ?: return@edit
+            val prefix = "$profileId:"
+            prefs[moshLastPortsKey] = current.filterNot { it.startsWith(prefix) }.toSet()
+        }
+    }
+
 
     suspend fun clearReticulumConfig() {
         dataStore.edit { prefs ->
@@ -2245,6 +2377,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setTerminalInlineImages(mode: TerminalInlineImages) {
         dataStore.edit { prefs ->
             prefs[terminalInlineImagesKey] = mode.name
+        }
+    }
+
+    /** Shortcut-toolbar visibility policy (#870): SHOW (default) / AUTO / HIDE. */
+    val terminalShortcutToolbar: Flow<TerminalShortcutToolbar> = dataStore.data.map { prefs ->
+        TerminalShortcutToolbar.fromString(prefs[terminalShortcutToolbarKey])
+    }
+
+    suspend fun setTerminalShortcutToolbar(mode: TerminalShortcutToolbar) {
+        dataStore.edit { prefs ->
+            prefs[terminalShortcutToolbarKey] = mode.name
         }
     }
 
@@ -2659,6 +2802,23 @@ class UserPreferencesRepository @Inject constructor(
         companion object {
             fun fromString(value: String?): TerminalInlineImages =
                 entries.find { it.name == value } ?: ASK
+        }
+    }
+
+    /**
+     * Shortcut-toolbar (extra key rows) visibility policy for the terminal
+     * (#870). SHOW keeps the pre-#870 behaviour; AUTO hides the rows while a
+     * physical keyboard is attached and usable; HIDE always hides them. A
+     * slim reveal handle brings the rows back per session when hidden.
+     */
+    enum class TerminalShortcutToolbar {
+        SHOW,
+        AUTO,
+        HIDE;
+
+        companion object {
+            fun fromString(value: String?): TerminalShortcutToolbar =
+                entries.find { it.name == value } ?: SHOW
         }
     }
 

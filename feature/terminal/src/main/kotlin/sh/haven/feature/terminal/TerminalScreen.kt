@@ -1,6 +1,8 @@
 package sh.haven.feature.terminal
 
 import sh.haven.core.toolbar.KeyboardToolbar
+import sh.haven.core.toolbar.shortcutToolbarBaseVisible
+import sh.haven.core.toolbar.shortcutToolbarVisible
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -25,6 +27,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +56,8 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Search
@@ -86,6 +91,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -125,6 +132,7 @@ import sh.haven.core.ui.repairBrokenFocusChain
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -240,6 +248,54 @@ private fun tabContentColor(tabColor: Color?, selected: Boolean): Color {
     val surfaceLum = MaterialTheme.colorScheme.surface.luminance()
     val effectiveLum = surfaceLum * (1 - alpha) + bg.luminance() * alpha
     return if (effectiveLum > 0.5f) Color.Black else Color.White
+}
+
+/**
+ * A tab chip's fixed minimum height. A chip whose title gains a host line
+ * stays as tall as one without, so a strip mixing both stays level and the
+ * second line costs no terminal rows.
+ */
+private val TAB_CHIP_MIN_HEIGHT = 40.dp
+
+/**
+ * A tab's title, with the connection it belongs to in small type underneath
+ * when [subtitle] is set (see [resolveTabSubtitle]). Line heights are trimmed
+ * in the two-line form so both fit the chip height a single line used.
+ */
+@Composable
+private fun TabTitleText(
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+    centered: Boolean = true,
+    fontWeight: FontWeight? = null,
+    titleStyle: TextStyle = MaterialTheme.typography.labelLarge,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+    ) {
+        Text(
+            title,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            fontWeight = fontWeight,
+            style = if (subtitle == null) titleStyle else titleStyle.copy(lineHeight = 17.sp),
+        )
+        if (subtitle != null) {
+            Text(
+                subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 14.sp,
+                    letterSpacing = 0.2.sp,
+                ),
+                color = LocalContentColor.current.copy(alpha = 0.72f),
+            )
+        }
+    }
 }
 
 /**
@@ -527,6 +583,14 @@ fun TerminalScreen(
      */
     terminalFontPath: String? = null,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    /**
+     * #870: visibility of the shortcut (extra keys) toolbar. SHOW keeps the
+     * rows always; AUTO hides them while a physical keyboard is attached and
+     * usable; HIDE always hides them. When hidden, a slim reveal handle
+     * brings the rows back for the session.
+     */
+    shortcutToolbarMode: sh.haven.core.data.preferences.UserPreferencesRepository.TerminalShortcutToolbar =
+        sh.haven.core.data.preferences.UserPreferencesRepository.TerminalShortcutToolbar.SHOW,
     navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
     toolbarUniformGrid: Boolean = false,
     editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
@@ -538,6 +602,7 @@ fun TerminalScreen(
     showCopyOutputButton: Boolean = false,
     keepScreenOnInTerminal: Boolean = false,
     autoShowKeyboardInTerminal: Boolean = true,
+    defaultComposeMode: Boolean = false,
     mouseInputEnabled: Boolean = true,
     terminalRightClick: Boolean = false,
     tapToPositionCursorOnPrompt: Boolean = false,
@@ -1408,6 +1473,7 @@ fun TerminalScreen(
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .heightIn(min = TAB_CHIP_MIN_HEIGHT)
                                         .combinedClickable(
                                             onClick = { comboOpen = true },
                                             onLongClick = { tabMenuFor = comboTab.sessionId },
@@ -1421,21 +1487,23 @@ fun TerminalScreen(
                                     Row(
                                         modifier = Modifier.padding(
                                             horizontal = 12.dp,
-                                            vertical = 8.dp,
+                                            vertical = 2.dp,
                                         ),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        Text(
-                                            resolveTabTitle(
-                                                programTitle = comboTitle,
-                                                label = comboTab.label,
-                                                multiplexerName = comboTab.multiplexerName,
-                                                followSession = tabTitlesFollowSession,
-                                            ),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                        val comboText = resolveTabTitle(
+                                            programTitle = comboTitle,
+                                            label = comboTab.label,
+                                            multiplexerName = comboTab.multiplexerName,
+                                            followSession = tabTitlesFollowSession,
+                                        )
+                                        TabTitleText(
+                                            title = comboText,
+                                            subtitle = resolveTabSubtitle(comboText, comboTab.hostLabel),
                                             modifier = Modifier.weight(1f, fill = false),
-                                            style = MaterialTheme.typography.labelLarge,
+                                            // The chip is start-aligned (the dropdown arrow
+                                            // follows the text), so its lines are too.
+                                            centered = false,
                                         )
                                         Icon(
                                             Icons.Filled.ArrowDropDown,
@@ -1470,15 +1538,17 @@ fun TerminalScreen(
                                                                 .background(color, CircleShape),
                                                         )
                                                     }
-                                                    Text(
-                                                        resolveTabTitle(
-                                                            programTitle = listTitle,
-                                                            label = listTab.label,
-                                                            multiplexerName = listTab.multiplexerName,
-                                                            followSession = tabTitlesFollowSession,
-                                                        ),
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
+                                                    val listText = resolveTabTitle(
+                                                        programTitle = listTitle,
+                                                        label = listTab.label,
+                                                        multiplexerName = listTab.multiplexerName,
+                                                        followSession = tabTitlesFollowSession,
+                                                    )
+                                                    TabTitleText(
+                                                        title = listText,
+                                                        subtitle = resolveTabSubtitle(listText, listTab.hostLabel),
+                                                        centered = false,
+                                                        titleStyle = LocalTextStyle.current,
                                                         // The active row is marked by weight, not a
                                                         // check glyph — the trailing icons are
                                                         // actions (close), mixing a state indicator
@@ -1569,6 +1639,7 @@ fun TerminalScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 2.dp)
+                                            .heightIn(min = TAB_CHIP_MIN_HEIGHT)
                                             .then(
                                                 if (inSplitUnfocused) {
                                                     Modifier.border(
@@ -1603,7 +1674,7 @@ fun TerminalScreen(
                                         Row(
                                             modifier = Modifier.padding(
                                                 horizontal = 12.dp,
-                                                vertical = 8.dp,
+                                                vertical = 2.dp,
                                             ),
                                             verticalAlignment = Alignment.CenterVertically,
                                             // Left-aligned text in a tab that now spans a
@@ -1618,20 +1689,19 @@ fun TerminalScreen(
                                                     tint = MaterialTheme.colorScheme.error,
                                                 )
                                             }
-                                            Text(
-                                                resolveTabTitle(
-                                                    programTitle = tabTitle,
-                                                    label = tab.label,
-                                                    multiplexerName = tab.multiplexerName,
-                                                    followSession = tabTitlesFollowSession,
-                                                ),
-                                                maxLines = 1,
-                                                // A stretched tab has a fixed width, so a long
-                                                // label must give way to the close button
-                                                // rather than push it off the edge.
-                                                overflow = TextOverflow.Ellipsis,
+                                            val stripText = resolveTabTitle(
+                                                programTitle = tabTitle,
+                                                label = tab.label,
+                                                multiplexerName = tab.multiplexerName,
+                                                followSession = tabTitlesFollowSession,
+                                            )
+                                            // A stretched tab has a fixed width, so a long
+                                            // label must give way to the close button
+                                            // rather than push it off the edge.
+                                            TabTitleText(
+                                                title = stripText,
+                                                subtitle = resolveTabSubtitle(stripText, tab.hostLabel),
                                                 modifier = Modifier.weight(1f, fill = false),
-                                                style = MaterialTheme.typography.labelLarge,
                                             )
                                             // #306: a one-tap close on the active tab so
                                             // ending a session no longer needs the
@@ -1720,6 +1790,20 @@ fun TerminalScreen(
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
+                        }
+                        // While the strip is up the fullscreen toggle lives here, not
+                        // over the terminal: a TUI's own corner controls (herdr's
+                        // switch/close, a tmux status line) sat under the overlay and
+                        // a tap meant for them toggled fullscreen instead.
+                        IconButton(
+                            onClick = { fullscreen = true },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Fullscreen,
+                                contentDescription = stringResource(R.string.terminal_enter_fullscreen),
+                                modifier = Modifier.size(18.dp),
+                            )
                         }
                     }
                 }
@@ -1836,6 +1920,7 @@ fun TerminalScreen(
                                         hackTypeface = hackTypeface,
                                         termlibAmbiwidthMode = termlibAmbiwidthMode,
                                         autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                        defaultComposeMode = defaultComposeMode,
                                         imeRestoreTick = imeRestoreTick,
                                         reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                                         mouseInputEnabled = mouseInputEnabled,
@@ -1895,6 +1980,7 @@ fun TerminalScreen(
                                         hackTypeface = hackTypeface,
                                         termlibAmbiwidthMode = termlibAmbiwidthMode,
                                         autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                        defaultComposeMode = defaultComposeMode,
                                         imeRestoreTick = imeRestoreTick,
                                         reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                                         mouseInputEnabled = mouseInputEnabled,
@@ -1932,6 +2018,7 @@ fun TerminalScreen(
                                 hackTypeface = hackTypeface,
                                 termlibAmbiwidthMode = termlibAmbiwidthMode,
                                 autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                defaultComposeMode = defaultComposeMode,
                                 imeRestoreTick = imeRestoreTick,
                                 reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                                 mouseInputEnabled = mouseInputEnabled,
@@ -1958,52 +2045,57 @@ fun TerminalScreen(
                     // disconnect banner's, so they never collide). Tap toggles
                     // fullscreen; hold-drag moves it to another corner, snapping
                     // to whichever it's released nearest and remembering it (#445).
-                    var fsDragOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-                    var fsButtonCoords by remember {
-                        mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
-                    }
-                    IconButton(
-                        onClick = { fullscreen = !fullscreen },
-                        modifier = Modifier
-                            .align(fullscreenButtonCorner.toComposeAlignment())
-                            .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
-                            .onGloballyPositioned { fsButtonCoords = it }
-                            .pointerInput(Unit) {
-                                detectDragGesturesAfterLongPress(
-                                    onDrag = { change, delta ->
-                                        change.consume()
-                                        fsDragOffset += delta
-                                    },
-                                    onDragEnd = {
-                                        val coords = fsButtonCoords
-                                        val parent = coords?.parentLayoutCoordinates
-                                        if (coords != null && parent != null) {
-                                            val c = coords.boundsInParent().center
-                                            onFullscreenButtonCornerChange(
-                                                sh.haven.core.data.preferences.FullscreenButtonCorner.nearest(
-                                                    c.x, c.y,
-                                                    parent.size.width.toFloat(),
-                                                    parent.size.height.toFloat(),
-                                                ),
-                                            )
-                                        }
-                                        fsDragOffset = androidx.compose.ui.geometry.Offset.Zero
-                                    },
-                                )
-                            }
-                            .padding(2.dp)
-                            .size(32.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (fullscreen) Icons.Filled.FullscreenExit
-                            else Icons.Filled.Fullscreen,
-                            contentDescription = stringResource(
-                                if (fullscreen) R.string.terminal_exit_fullscreen
-                                else R.string.terminal_enter_fullscreen,
-                            ),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                            modifier = Modifier.size(20.dp),
-                        )
+                    // Only when there is no tab strip to hold it — in fullscreen,
+                    // or with the strip turned off — since an overlay covers
+                    // whatever the remote draws in that corner.
+                    if (fullscreen || !showTabBar) {
+                        var fsDragOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+                        var fsButtonCoords by remember {
+                            mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
+                        }
+                        IconButton(
+                            onClick = { fullscreen = !fullscreen },
+                            modifier = Modifier
+                                .align(fullscreenButtonCorner.toComposeAlignment())
+                                .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
+                                .onGloballyPositioned { fsButtonCoords = it }
+                                .pointerInput(Unit) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDrag = { change, delta ->
+                                            change.consume()
+                                            fsDragOffset += delta
+                                        },
+                                        onDragEnd = {
+                                            val coords = fsButtonCoords
+                                            val parent = coords?.parentLayoutCoordinates
+                                            if (coords != null && parent != null) {
+                                                val c = coords.boundsInParent().center
+                                                onFullscreenButtonCornerChange(
+                                                    sh.haven.core.data.preferences.FullscreenButtonCorner.nearest(
+                                                        c.x, c.y,
+                                                        parent.size.width.toFloat(),
+                                                        parent.size.height.toFloat(),
+                                                    ),
+                                                )
+                                            }
+                                            fsDragOffset = androidx.compose.ui.geometry.Offset.Zero
+                                        },
+                                    )
+                                }
+                                .padding(2.dp)
+                                .size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = if (fullscreen) Icons.Filled.FullscreenExit
+                                else Icons.Filled.Fullscreen,
+                                contentDescription = stringResource(
+                                    if (fullscreen) R.string.terminal_exit_fullscreen
+                                    else R.string.terminal_enter_fullscreen,
+                                ),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
                 }
 
@@ -2069,155 +2161,169 @@ fun TerminalScreen(
                         }
                     }
 
-                    // Keep the extra key rows in fullscreen — Ctrl/Esc/arrows are
-                    // needed while typing. Fullscreen still hides the system + tab bars.
-                    KeyboardToolbar(
-                        onSendBytes = { bytes -> activeTab.sendInput(bytes) },
-                        // The toolbar folds its own sticky Shift into the mods it
-                        // passes (#665); this wrapper folds the tapped Ctrl/Alt the
-                        // toolbar can't see — bits 1 = Alt, 2 = Ctrl, per
-                        // Terminal.cpp's dispatchKey. libvterm builds the sequence:
-                        // Ctrl+End becomes ESC[1;5F, Shift+Left ESC[1;2D.
-                        onDispatchKey = { mods, key ->
-                            val tapped = viewModel.toolbarModifierMask()
-                            activeTab.emulator?.dispatchKey(mods or tapped, key)
-                            if (tapped != 0) viewModel.clearStickyModifiers()
-                        },
-                        focusRequester = focusRequester,
-                        ctrlActive = ctrlActive,
-                        altActive = altActive,
-                        ctrlLocked = ctrlLocked,
-                        altLocked = altLocked,
-                        // #736: Shift lives here now (was internal to
-                        // KeyboardToolbar) so the swipe path above reads the
-                        // same latch the arrow buttons do.
-                        shiftActive = shiftActive,
-                        onToggleShift = { shiftActive = !shiftActive },
-                        onShiftUsed = { shiftActive = false },
-                        bracketPasteMode = isBracketPaste,
-                        layout = toolbarLayout,
-                        navBlockMode = navBlockMode,
-                        uniformGrid = toolbarUniformGrid,
-                        editModeControlsPlacement = editModeControlsPlacement,
-                        desktopKeyPlacement = desktopKeyPlacement,
-                        minKeyWidth = toolbarMinKeyWidth.dp,
-                        keyScale = toolbarKeyScale,
-                        onToggleCtrl = viewModel::toggleCtrl,
-                        onToggleAlt = viewModel::toggleAlt,
-                        onVncTap = if (activeTab.transportType == "SSH") {{
-                            coroutineScope.launch {
-                                val info = viewModel.getActiveVncInfo() ?: return@launch
-                                if (info.stored) {
-                                    onNavigateToVnc(info.host, info.port, info.username, info.password, info.sshForward, info.sessionId, info.colorDepth)
-                                } else {
-                                    vncDialogInfo = info
-                                }
-                            }
-                        }} else if (activeTab.transportType == "LOCAL" && viewModel.isLocalDesktopInstalled) {{
-                            if (!localVncLoading) {
-                                localVncLoading = true
+                    // #870: the extra key rows can be hidden — always, or only
+                    // while a physical keyboard makes them redundant. The gate
+                    // is independent of fullscreen (which still hides the system
+                    // + tab bars). Selection forces the rows back because they
+                    // carry the copy/paste content; the reveal handle below
+                    // brings them back per session otherwise.
+                    var shortcutToolbarRevealed by rememberSaveable { mutableStateOf(false) }
+                    val shortcutToolbarBase = shortcutToolbarBaseVisible(shortcutToolbarMode, physicalKeyboardAttached)
+                    if (shortcutToolbarVisible(shortcutToolbarMode, physicalKeyboardAttached, shortcutToolbarRevealed, selectionActive)) {
+                        KeyboardToolbar(
+                            onSendBytes = { bytes -> activeTab.sendInput(bytes) },
+                            // The toolbar folds its own sticky Shift into the mods it
+                            // passes (#665); this wrapper folds the tapped Ctrl/Alt the
+                            // toolbar can't see — bits 1 = Alt, 2 = Ctrl, per
+                            // Terminal.cpp's dispatchKey. libvterm builds the sequence:
+                            // Ctrl+End becomes ESC[1;5F, Shift+Left ESC[1;2D.
+                            onDispatchKey = { mods, key ->
+                                val tapped = viewModel.toolbarModifierMask()
+                                activeTab.emulator?.dispatchKey(mods or tapped, key)
+                                if (tapped != 0) viewModel.clearStickyModifiers()
+                            },
+                            focusRequester = focusRequester,
+                            ctrlActive = ctrlActive,
+                            altActive = altActive,
+                            ctrlLocked = ctrlLocked,
+                            altLocked = altLocked,
+                            // #736: Shift lives here now (was internal to
+                            // KeyboardToolbar) so the swipe path above reads the
+                            // same latch the arrow buttons do.
+                            shiftActive = shiftActive,
+                            onToggleShift = { shiftActive = !shiftActive },
+                            onShiftUsed = { shiftActive = false },
+                            bracketPasteMode = isBracketPaste,
+                            layout = toolbarLayout,
+                            navBlockMode = navBlockMode,
+                            uniformGrid = toolbarUniformGrid,
+                            editModeControlsPlacement = editModeControlsPlacement,
+                            desktopKeyPlacement = desktopKeyPlacement,
+                            minKeyWidth = toolbarMinKeyWidth.dp,
+                            keyScale = toolbarKeyScale,
+                            onToggleCtrl = viewModel::toggleCtrl,
+                            onToggleAlt = viewModel::toggleAlt,
+                            onVncTap = if (activeTab.transportType == "SSH") {{
                                 coroutineScope.launch {
-                                    // try/finally so a failure (e.g. keystore decrypt,
-                                    // server start) can't leave the spinner stuck true and
-                                    // lock the button out forever. (#208 finding 17)
-                                    try {
-                                        viewModel.ensureLocalVncProfile()
-                                        viewModel.startLocalVncServer()
-                                        kotlinx.coroutines.delay(4000)
-                                        val pwd = viewModel.getLocalVncPassword()
-                                        onNavigateToVnc("localhost", 5901, null, pwd, false, null, "BPP_24_TRUE")
-                                    } catch (e: Exception) {
-                                        android.util.Log.e("TerminalScreen", "local VNC launch failed", e)
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            localVncFailedMessage,
-                                            android.widget.Toast.LENGTH_LONG,
-                                        ).show()
-                                    } finally {
-                                        localVncLoading = false
+                                    val info = viewModel.getActiveVncInfo() ?: return@launch
+                                    if (info.stored) {
+                                        onNavigateToVnc(info.host, info.port, info.username, info.password, info.sshForward, info.sessionId, info.colorDepth)
+                                    } else {
+                                        vncDialogInfo = info
                                     }
                                 }
-                            }
-                        }} else null,
-                        vncLoading = localVncLoading,
-                        selectionController = selectionController,
-                        selectionActive = selectionActive,
-                        hyperlinkUri = currentHyperlinkUri,
-                        onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
-                        reorderMode = reorderMode,
-                        onReorderModeChanged = {
-                            reorderMode = it
-                            onReorderModeChanged(it)
-                        },
-                        onToolbarLayoutChanged = onToolbarLayoutChanged,
-                        snippetLibrary = snippetLibrary,
-                        onSnippetLibraryChanged = onSnippetLibraryChanged,
-                        onOpenSettings = onOpenToolbarSettings,
-                        allowStandardKeyboard = allowStandardKeyboard,
-                        onToggleStandardKeyboard = onToggleStandardKeyboard,
-                        rawKeyboardMode = rawKeyboardMode,
-                        onToggleRawKeyboard = onToggleRawKeyboard,
-                        swipeArrowsActive = swipeArrowsMode,
-                        onToggleSwipeArrows = { viewModel.toggleSwipeArrows() },
-                        composeModeActive = composeController?.isComposeModeActive == true,
-                        onToggleComposeMode = { composeController?.toggleComposeMode() },
-                        onAttachTap = { attachSheetVisible = true },
-                        onOpenTextInput = { textInputDialogVisible = true },
-                        onSudoTap = { viewModel.triggerSudoFill(activeTab.sessionId) },
-                        onDictateTap = {
-                            // #604: resolve a speech recognizer explicitly rather
-                            // than startActivity(ACTION_RECOGNIZE_SPEECH) blind —
-                            // some devices (Supernote) ship none. Launching the
-                            // plain implicit intent (rather than wrapping it in
-                            // Intent.createChooser) lets Android's normal
-                            // default-app resolution apply: with one recognizer
-                            // installed it launches directly, and with several
-                            // installed the OS picker's "Just once / Always"
-                            // choice is remembered, so Dictate stops asking after
-                            // the first pick instead of prompting on every tap.
-                            val recognize = android.content.Intent(
-                                android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,
-                            ).apply {
-                                putExtra(
-                                    android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                                    android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+                            }} else if (activeTab.transportType == "LOCAL" && viewModel.isLocalDesktopInstalled) {{
+                                if (!localVncLoading) {
+                                    localVncLoading = true
+                                    coroutineScope.launch {
+                                        // try/finally so a failure (e.g. keystore decrypt,
+                                        // server start) can't leave the spinner stuck true and
+                                        // lock the button out forever. (#208 finding 17)
+                                        try {
+                                            viewModel.ensureLocalVncProfile()
+                                            viewModel.startLocalVncServer()
+                                            kotlinx.coroutines.delay(4000)
+                                            val pwd = viewModel.getLocalVncPassword()
+                                            onNavigateToVnc("localhost", 5901, null, pwd, false, null, "BPP_24_TRUE")
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("TerminalScreen", "local VNC launch failed", e)
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                localVncFailedMessage,
+                                                android.widget.Toast.LENGTH_LONG,
+                                            ).show()
+                                        } finally {
+                                            localVncLoading = false
+                                        }
+                                    }
+                                }
+                            }} else null,
+                            vncLoading = localVncLoading,
+                            selectionController = selectionController,
+                            selectionActive = selectionActive,
+                            hyperlinkUri = currentHyperlinkUri,
+                            onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
+                            reorderMode = reorderMode,
+                            onReorderModeChanged = {
+                                reorderMode = it
+                                onReorderModeChanged(it)
+                            },
+                            onToolbarLayoutChanged = onToolbarLayoutChanged,
+                            snippetLibrary = snippetLibrary,
+                            onSnippetLibraryChanged = onSnippetLibraryChanged,
+                            onOpenSettings = onOpenToolbarSettings,
+                            allowStandardKeyboard = allowStandardKeyboard,
+                            onToggleStandardKeyboard = onToggleStandardKeyboard,
+                            rawKeyboardMode = rawKeyboardMode,
+                            onToggleRawKeyboard = onToggleRawKeyboard,
+                            swipeArrowsActive = swipeArrowsMode,
+                            onToggleSwipeArrows = { viewModel.toggleSwipeArrows() },
+                            composeModeActive = composeController?.isComposeModeActive == true,
+                            onToggleComposeMode = { composeController?.toggleComposeMode() },
+                            onAttachTap = { attachSheetVisible = true },
+                            onOpenTextInput = { textInputDialogVisible = true },
+                            onSudoTap = { viewModel.triggerSudoFill(activeTab.sessionId) },
+                            onDictateTap = {
+                                // #604: resolve a speech recognizer explicitly rather
+                                // than startActivity(ACTION_RECOGNIZE_SPEECH) blind —
+                                // some devices (Supernote) ship none. Launching the
+                                // plain implicit intent (rather than wrapping it in
+                                // Intent.createChooser) lets Android's normal
+                                // default-app resolution apply: with one recognizer
+                                // installed it launches directly, and with several
+                                // installed the OS picker's "Just once / Always"
+                                // choice is remembered, so Dictate stops asking after
+                                // the first pick instead of prompting on every tap.
+                                val recognize = android.content.Intent(
+                                    android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,
+                                ).apply {
+                                    putExtra(
+                                        android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                        android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+                                    )
+                                }
+                                if (recognize.resolveActivity(context.packageManager) != null) {
+                                    dictateLauncher.launch(recognize)
+                                } else {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        dictateUnavailableMessage,
+                                        android.widget.Toast.LENGTH_LONG,
+                                    ).show()
+                                }
+                            },
+                            selectionContent = selectionController?.let { ctrl -> {
+                                // The long-press menu's macros section lists the
+                                // same set the toolbar's scissors sheet does —
+                                // toolbar-pinned snippets plus the off-toolbar
+                                // library — so the two stay in sync (#661).
+                                val macros = remember(toolbarLayout, snippetLibrary) {
+                                    sh.haven.core.data.preferences.SnippetOps.allSnippets(
+                                        toolbarLayout,
+                                        snippetLibrary,
+                                    )
+                                }
+                                SelectionToolbarContent(
+                                    controller = ctrl,
+                                    hyperlinkUri = currentHyperlinkUri,
+                                    bracketPasteMode = isBracketPaste,
+                                    onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
+                                    snippets = macros,
+                                    onSendSnippet = { snippet ->
+                                        // Same path as a toolbar snippet tap.
+                                        activeTab.sendInput(snippet.send.toByteArray())
+                                    },
                                 )
-                            }
-                            if (recognize.resolveActivity(context.packageManager) != null) {
-                                dictateLauncher.launch(recognize)
-                            } else {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    dictateUnavailableMessage,
-                                    android.widget.Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                        },
-                        selectionContent = selectionController?.let { ctrl -> {
-                            // The long-press menu's macros section lists the
-                            // same set the toolbar's scissors sheet does —
-                            // toolbar-pinned snippets plus the off-toolbar
-                            // library — so the two stay in sync (#661).
-                            val macros = remember(toolbarLayout, snippetLibrary) {
-                                sh.haven.core.data.preferences.SnippetOps.allSnippets(
-                                    toolbarLayout,
-                                    snippetLibrary,
-                                )
-                            }
-                            SelectionToolbarContent(
-                                controller = ctrl,
-                                hyperlinkUri = currentHyperlinkUri,
-                                bracketPasteMode = isBracketPaste,
-                                onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
-                                snippets = macros,
-                                onSendSnippet = { snippet ->
-                                    // Same path as a toolbar snippet tap.
-                                    activeTab.sendInput(snippet.send.toByteArray())
-                                },
-                            )
-                        } },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                            } },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (!shortcutToolbarBase && !selectionActive) {
+                        ShortcutToolbarRevealHandle(
+                            expanded = shortcutToolbarRevealed,
+                            onToggle = { shortcutToolbarRevealed = !shortcutToolbarRevealed },
+                        )
+                    }
 
                     // Floating text-input dialog — MUST stay inside the
                     // key(activeTab.sessionId) block: an active-tab change of
@@ -2343,6 +2449,7 @@ private fun TerminalPaneHost(
     hackTypeface: android.graphics.Typeface,
     termlibAmbiwidthMode: org.connectbot.terminal.AmbiwidthMode,
     autoShowKeyboardInTerminal: Boolean,
+    defaultComposeMode: Boolean,
     imeRestoreTick: Int,
     reflowTerminalOnKeyboard: Boolean,
     mouseInputEnabled: Boolean,
@@ -2589,6 +2696,13 @@ private fun TerminalPaneHost(
                     localComposeController = it
                     composeControllers[tab.sessionId] = it
                     viewModel.terminalSessionRegistry.setComposeController(tab.sessionId, it)
+                    // #872: start new sessions in compose (中) mode when the
+                    // user defaults to it, so CJK input works without toggling
+                    // 中 each session. Compose mode is sticky within a session;
+                    // the toolbar toggle still overrides per session.
+                    if (defaultComposeMode && !it.isComposeModeActive) {
+                        it.startComposeMode()
+                    }
                 },
                 onTerminalTap = {
                     if (!isFocusedPane) onRequestPaneFocus()
@@ -3368,6 +3482,44 @@ private fun AttachNoticeBanner(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * #870: the slim stand-in for a hidden shortcut toolbar. A single chevron
+ * strip at the bottom of the terminal — tap to reveal the extra key rows for
+ * this session, tap again to hide them. Kept deliberately short so the point
+ * of the setting (reclaimed vertical space) is not given back to a fat bar.
+ * The chevron direction mirrors the action: up = "pull the rows up", down =
+ * "put them away".
+ */
+@Composable
+private fun ShortcutToolbarRevealHandle(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val description = stringResource(
+        if (expanded) R.string.terminal_shortcut_toolbar_hide else R.string.terminal_shortcut_toolbar_show,
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 2.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(20.dp)
+                .clickable(onClick = onToggle)
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowUp,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -5,6 +5,139 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.71
+
+- Fix hybrid post-quantum SSH keys (ssh-mldsa44-ed25519) importing but then falling back to password: the sshlib engine only offers these key types when the device's crypto providers can perform the composite signature, which most Android builds cannot. Haven now registers its bundled BouncyCastle when the platform lacks the service, so the key is actually offered to the server (#859).
+
+## v5.94.70
+
+- Yggdrasil mesh dial timeouts now explain the likely cause: the local node needs at least one working peer link, and LAN-only peer addresses are unreachable from a remote network. The error points at the fix (join that LAN, or add a public peer both ends can reach) instead of a bare timeout (#876).
+
+## v5.94.69
+
+- When a self-hosted NetBird management server cannot be reached, Haven now explains the likely cause instead of showing a bare timeout: a LAN-only management address is unreachable from a remote network, so the phone needs to be on that LAN or on a VPN that routes to it. Timeouts against the hosted NetBird service point at the phone's connectivity instead (#876).
+
+## v5.94.68
+
+- GLKVM remote-desktop agent tools are now mouse-jiggler aware: capture_desktop_tab and inspect_desktop_tab report the jiggler's state, whether the pointer position is last-sent (the jiggler can drift it), and seconds since the last HID input on upstream PiKVM. The OCR cache only dismisses tiny screen changes as jiggler wobble while the jiggler is actually running, so real small changes are no longer dropped when it is off, for example after a KVM reboot.
+
+## v5.94.67
+
+- Fix the false "Connection timed out" on slow cloud-storage first-connects: storage connections get a five-minute watchdog instead of the generic 20 seconds, and Cancel now stops a pending storage connect even when it is a token refresh rather than a browser sign-in (#839, thanks ghanan).
+
+## v5.94.66
+
+- Add a shortcut toolbar setting (Settings → Terminal): Always show, Always hide, or Auto, which hides the Ctrl/Alt/arrow rows while a physical keyboard is attached and usable. When the rows are hidden, a small handle at the bottom of the terminal brings them back for the session, and they return automatically while text is selected so copy/paste stays reachable (#870, thanks Ign1x).
+
+## v5.94.65
+
+- Make cloud storage first-connect more reliable: Haven now raises rclone's connect timeout and retry counts, so the initial Google Drive (and other OAuth remote) connection recovers from a brief network blip on its own instead of showing a timeout that a reconnect then clears (#839, thanks ghanan).
+
+## v5.94.64
+
+- Add NetBird SSH sign-in (JWT): for NetBird SSH servers that require authentication, a per-connection option signs in with your NetBird identity in a browser and uses the resulting token as the SSH password (#875, thanks Slayerx96).
+
+## v5.94.63
+
+- Add a "CJK compose mode by default" keyboard setting: new terminal sessions start in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still overrides per session (#872, thanks Ign1x).
+- Release builds now ship the arm64 assets immediately and fill the rarer armv7/x64 assets nightly for the latest release.
+
+## v5.94.62
+
+- Add a storage build: the terminal app plus rclone cloud storage (Filen, Mega, Google Drive and the other rclone remotes), without the desktop and media parts — a smaller option for remote-storage use (#848, thanks ghanan). Take the `-storage` APK from the release assets; the lean `-terminal` APK now correctly documents that it has SFTP files but not rclone cloud storage.
+
+## v5.94.61
+
+- Fix Left/Right arrow keys navigating the tab strip instead of moving the terminal cursor after switching sessions on Samsung keyboards: the keyboard rebind now forces focus onto the terminal editor on slow IMEs (#869, thanks Ign1x).
+
+## v5.94.60
+
+- Clarify the Secure keyboard mode description: it now notes that Chinese/Japanese/Korean composition is disabled in Secure mode, and points to the toolbar 中 (compose) toggle or Standard mode for CJK input (#872, thanks Ign1x).
+
+## v5.94.59
+
+- Fix Backspace, arrows and Enter being ignored or toggling fullscreen after switching between terminal tabs. The keyboard is now rebound to the newly-active session's editor once it is ready, rather than giving up before it attaches (#869, thanks Ign1x).
+
+## v5.94.58
+
+- Add Yggdrasil as a tunnel type: a decentralized, end-to-end-encrypted IPv6 mesh with no coordination server. Add peers manually in the tunnel editor, or use `create_tunnel` with type `YGGDRASIL`; SSH, SFTP and other backends then route over the mesh by its IPv6 address. Like the other tunnels it runs as an in-process proxy and does not take the system VPN slot.
+- NetBird tunnels that use Rosenpass post-quantum key exchange now complete the handshake when the phone initiates it, as well as when the peer does (#662, thanks Slayerx96).
+- Connect to servers that only offer the legacy SHA-1 `ssh-rsa` host key. When host key negotiation fails, the connection is retried once with `ssh-rsa` appended to the proposal, so modern algorithms stay first and unaffected servers never see the retry. A "Retry with legacy ssh-rsa host key" switch in the connection's Terminal options (on by default) turns this off, and a warning names the weakened handshake when it is used (#865, thanks zy8270).
+- Preview Markdown files in a built-in viewer from the file browser (#850, thanks boyce-ywr).
+- Fix a crash when starting a Tailscale tunnel on devices whose default log-state directories are unwritable: the tunnel now sets a writable log directory before starting (#866, thanks ikizu-aep).
+- Answer OSC 10/11 foreground and background color queries so terminal programs can detect the active light or dark scheme (#867, thanks chmouel).
+- Move the terminal fullscreen toggle into the tab strip so it no longer overlaps TUI corners (#868, thanks boyce-ywr).
+- Fix an external keyboard's arrows, Backspace and Enter being ignored or toggling fullscreen in SSH sessions: the terminal editor is re-armed to take focus before the keyboard is raised (#869, #871, thanks boyce-ywr).
+
+## v5.94.57
+
+- Add a global default address family that new SSH connections inherit (Settings → Default address family), including IPv6-preferred / IPv4-preferred modes that fall back to the other family when the preferred one is unreachable. Existing connections keep their own setting (#855, thanks Az-1-2).
+
+## v5.94.56
+
+- Give guest notifications (posted by Linux guest programs via haven-notify) a Haven-branded terminal-prompt small icon instead of the generic system info icon (#851, thanks DragonXen).
+
+## v5.94.55
+
+- Add IPv6-preferred and IPv4-preferred address-family modes for SSH connections: try the preferred family first and fall back to the other if it is unreachable, rather than the hard only-modes that fail outright (#855, thanks Az-1-2).
+
+## v5.94.54
+
+- Show the connection a terminal tab belongs to under its session name, so a strip of tmux tabs no longer reads "default default default" with nothing saying which machine each one is (#862, thanks boyce-ywr).
+- Import post-quantum SSH keys such as ssh-mldsa44-ed25519 that the default engine's key parser rejects; use them with the sshlib engine (#859, thanks Slayerx96).
+
+## v5.94.53
+
+- Add a Rosenpass (post-quantum key exchange) toggle for NetBird tunnels, for networks whose peers require it. It is in the NetBird tunnel editor, and on the agent surface as `netbirdRosenpass` in `create_tunnel` (#662, thanks Slayerx96).
+
+## v5.94.52
+
+- Fix USB/IP device forwarding stalling when the host keeps an interrupt endpoint polled (for example a forwarded SDR's RNDIS network function): idle IN polls now yield the shared connection lock and complete zero-length reads, so control and data transfers no longer time out (#854).
+
+## v5.94.51
+
+- Let Linux guest programs post Android notifications through a new `haven-notify` helper, so scripts and long-running jobs in the proot guest can alert you on the phone. Off by default; enable it under Settings, or attach it on demand from the agent MCP surface (#851, thanks DragonXen).
+## v5.94.50-hd9.2
+
+- Make the event journal's enable call idempotent, so repeated preference-flow subscriptions (app start plus each new connections screen) no longer append duplicate "process up" markers and the journal stays readable for session-death forensics.
+
+## v5.94.2-hd9.1
+
+- **System signals in the event journal + on-screen session-death banner (Dez + Shade, 2026-11-13).** The opt-in event journal (Settings → Diagnostics) now also records the system signals around a session: default-network loss/rise and transport changes (Wi-Fi/cellular/VPN), screen on/off, power-save and Doze mode changes, and memory-pressure trims — the environmental events that kill or disrupt sessions, tagged sys-net/sys-screen/sys-power/sys-memory. Registration is conditional on the journal toggle: when the journal is off nothing is registered and nothing is written. A dead session's profile row now shows a banner with the death time and the reason extracted from the transport trace, with a one-tap reconnect; the banner clears on reconnect. Auto-reconnect stays removed (hd9).
+
+## v5.94.2-hd9
+
+- **In-app event journal for session-death forensics; no auto-reconnect after death (hd9, Dez + Shade, 2026-11-13).** A new opt-in event journal (Settings → Diagnostics → Event journal, off by default) records why sessions die or reconnect — transport verdicts, session-death triggers, and reconnection decisions — as a ring-buffered log file on device. Exported manually via the share sheet; never auto-uploaded. Auto-creation of a new session after death (scheduleMoshReconnect / decideMoshReconnect, #421 path) is removed entirely: a dead session stays dead, and the user reconnects manually. The orphan cleaner (hd3–hd5) is unchanged.
+
+## v5.94.2-hd8
+
+- **Selection no longer hides the surrounding text (Dez + Shade, 2026-11-11).** hd7's run-direct renderer split a run into draw spans at selection boundaries, but the run edges themselves were not span boundaries: when a selection intersected a run, only the selected slice was drawn and the text around it disappeared while selecting. Span boundaries are now computed by `runSpanBoundaries`, which always includes the run edges (plus the selection and hyperlink intervals), extracted as a pure function with unit tests (`RunSpanBoundariesTest`, 11 cases) to keep this regressed. Termlib pin: Biotoza/termlib `compact-runs` 7be5e49.
+
+## v5.94.2-hd7
+
+- **Renderer now walks runs directly: scrolling no longer materializes the whole history into Cell objects (Dez + Shade, 2026-11-10).** The hd6 heap dump after a full scrollback scroll (MAT: 13 809 lines, heap 108.6 MB) showed the run-compressed storage being defeated at render time: `drawLine` still iterated the lazy `line.cells` view for both the background and text passes, so every line that scrolled through the viewport expanded its runs back into per-cell 64-byte Cell objects and the lazy cache pinned them forever — 866 687 Cell objects / 55.4 MB (~63% of the heap), ~7.9 KB/line, i.e. no better than the pre-compression baseline. `drawLine` now iterates runs directly: one background rectangle per run (style is uniform per run, including reverse video), text spans split only at selection and hyperlink boundaries and drawn with a single `drawText` each (word-split when underline/strike are active to keep the old per-cell fidelity), and a per-cell fallback only for double-width, combining and double/curly-underline runs. The URL-continuation prefix scan and the per-row selection interval are also computed over runs. No Cell objects are created on the render path; after this, scrolling history is expected to keep heap growth near the run-compressed baseline (~0.3-1 KB/line) instead of ~7.9 KB/line. Termlib lives in Biotoza/termlib branch `compact-runs` (851997f) pending upstream merge (GlassHaven/termlib#7).
+
+## v5.94.2-hd6
+
+- **Run-compressed terminal line storage: history stops costing one object per character (Dez + Shade, 2026-11-06).** Heap measurements (MAT, 2026-11-01, full 25K-row scrollback) showed TerminalLine holding ~144 MB — 80% of a 171 MB heap — because every column was a 64-byte Cell object (a plain 120-column line cost ~7.7 KB). libvterm already reports rows as style runs across the JNI boundary, so the emulator now stores them as-is instead of expanding them: TerminalLine holds a list of LineRun (text + RunStyle, which packs fg/bg RGB and attribute flags into Ints instead of Compose Color objects and eight per-cell fields), with per-cell widths/combining stored only when actually present. A monochrome line collapses to ~0.3 KB; the 25K-row scrollback is expected to drop from ~144 MB to ~5-15 MB while its content stays byte-identical. The legacy per-cell API remains as a lazily materialized view for rare consumers (selection, accessibility, resize), so the render hot path never expands runs. Unit tests green in CI (build/test/lint/release-smoke all pass); device-side heap verification follows. Termlib lives in Biotoza/termlib branch `compact-runs` pending upstream merge (GlassHaven/termlib#7).
+
+## v5.94.2-hd5
+
+- **Profile «Отключить» (disconnect) now runs the same graceful close as closing a tab (Dez + Shade, 2026-11-06).** The disconnect menu path bypassed the close-time graceful close from v5.94.2-hd4 and tore the mosh transport down silently — device tests (2026-11-06, structured A/B: крестик ×2 rounds vs «Отключить» ×2 rounds, server-side process watch) proved that every «Отключить» left a server-side orphan that lingered until the next connect's cleanup killed it, while every tab close died cleanly. Disconnect now sends EOF first and a port-targeted kill as guarantee over the session's own bootstrap SSH channel, and only then runs the registry teardown (which closes the SSH clients the kill exec needs), so «Отключить» and tab close now behave identically.
+
+## v5.94.2-hd4
+
+- **Close-time graceful close: EOF + port kill when a mosh tab closes (Dez + Shade, 2026-11-06).** Closing a mosh tab (or disconnecting a profile) used to tear the transport down silently and always left a server-side orphan behind, waiting for the profile's next connect — possibly weeks away, for anyone using Haven. Now the client first sends EOF (Ctrl-D) into the session: the remote shell (or agent CLI) exits cleanly, mosh-server announces shutdown and dies on its own. If the session is still alive after a short grace period (the foreground ignored EOF — vim, a hung process), the client kills the mosh-server by port over the session's own bootstrap SSH channel. Orphans are no longer born at tab close; the port-targeted kill is idempotent and needs no ownership probe (the port belongs to the session being closed).
+
+- **Connect-time orphan cleanup now covers ALL profiles of the device (Dez correction, 2026-11-06).** The new-connect backstop (for sessions whose client died without a graceful close — app killed by the system, crash) previously only cleaned the connecting profile's stored ports, so an orphan of a profile that is not reopened for weeks lingered that long. It now walks every stored port of every profile on the device; each port is still probed with its own session key, so another device's waiting session (even on a reused port) stays silent and is never killed.
+
+## v5.94.2-hd3
+
+- **A+ orphan cleanup: per-profile port+key records and ownership probe (Dez + Shade, 2026-11-05).** Closing several tabs of one profile used to leave several server orphans while only the last recorded port was cleaned, and a reused port could hide another device's waiting session. The client now records the port AND session key of every mosh session it starts. On the next connect of the same profile it probes each stored port with its own session key: the server answers only when it holds the same key, so a verified-ours orphan is killed, while foreign processes and free ports stay silent and are never touched (another device's waiting session survives even a port collision). Kill is still port-targeted and timer-free, and live/parallel/waiting sessions are never candidates.
+
+## v5.94.2-hd2
+
+- **Mosh orphan cleanup at new connect (Dez + Shade, 2026-11-05).** The client records the port of every mosh session it starts. On the NEXT connect of the same profile — and only there, never on network recovery — it probes the stored port over the bootstrap SSH channel and, if still bound, kills the orphaned mosh-server left behind by a closed tab, dead phone, or lost network. Live, parallel-tab, and network-waiting sessions are structurally never candidates (only a stored-but-not-live port qualifies), and the mechanism has no timers: fact-based probe plus a port-targeted kill.
 ## v5.94.50
 
 - Surface the guest storage-share toggle in the local shell's connection editor, so you can stop the guest reaching your shared storage without opening the desktop settings (#849).
@@ -243,7 +376,6 @@ compare link is appended automatically — don't add it here.
 - Map right-side modifiers (`Ctrl_R`, `Alt_R`, `Shift_R`, `Super_R`) and lock keys (`Caps_Lock`, `Num_Lock`, `Scroll_Lock`) to their distinct X11 KeySyms in VNC sessions (#774, thanks @heredos).
 - Encode IPv4 and IPv6 literal addresses with `ATYP 0x01` and `0x04` in SOCKS5 `CONNECT` requests instead of domain-name `ATYP 0x03`, and report a clear error when the proxy closes the socket at greeting (#777, thanks @FaintShadow).
 - Dependency updates: `org.connectbot.sshlib` `0.6.6`, `org.apache.sshd:sshd-core` `2.20.1`, `com.microsoft.onnxruntime:onnxruntime-android` `1.24.2`, `golang.org/x/net` `0.62.0`, `tailscale.com` `1.104.4`, and Rust `log` `0.4.35` (#782-#789).
-
 ## v5.94.2
 
 - Add a toolbar Viewport Navigation toggle (`OpenWith` four-way pan icon) in RDP `TOUCHSCREEN` mode so users can pinch-to-zoom (`1×` to `5×`), drag-to-pan, and reset the local viewport without leaving native touchscreen mode (#778, thanks @xchacha20-poly1305).

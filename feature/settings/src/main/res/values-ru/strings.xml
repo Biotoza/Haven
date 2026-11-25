@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">Скрывает карточку Haven на экране недавних; сеансы продолжают работать. Открыть снова — с иконки приложения.</string>
     <string name="settings_connection_logging_title">Журнал подключений</string>
     <string name="settings_connection_logging_subtitle">Записывать события подключений (подключение, отключение, ошибки). Хранится локально, защищено шифрованием устройства</string>
+    <string name="settings_event_journal_title">Журнал событий</string>
+    <string name="settings_event_journal_subtitle">Записывает причины завершения и переподключения сессий. Только на этом устройстве; по умолчанию выключен</string>
+    <string name="settings_event_journal_export_title">Экспорт журнала событий</string>
+    <string name="settings_event_journal_export_subtitle">Поделиться записанными событиями для диагностики</string>
     <string name="settings_view_connection_log_title">Просмотр журнала подключений</string>
     <string name="settings_view_connection_log_subtitle">История подключений и события</string>
     <string name="settings_verbose_logging_title">Подробный журнал подключений</string>
@@ -50,6 +54,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Сохранение сессий</string>
+    <string name="settings_default_address_family_title">Семейство адресов по умолчанию</string>
+    <string name="settings_default_address_family_subtitle">Для новых SSH-подключений</string>
+    <string name="settings_address_family_auto">Авто</string>
+    <string name="settings_address_family_ipv4_only">Только IPv4</string>
+    <string name="settings_address_family_ipv6_only">Только IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 приоритет</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 приоритет</string>
     <string name="settings_session_persistence_none">Нет</string>
     <string name="settings_font_size_title">Размер шрифта терминала</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -296,7 +307,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — выбранные пользователем флаги EditorInfo</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — по умолчанию, подавляет автокоррекцию</string>
     <string name="settings_keyboard_mode_secure_label">Защищённый (по умолчанию)</string>
-    <string name="settings_keyboard_mode_secure_desc">Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами.</string>
+    <string name="settings_keyboard_mode_secure_desc">Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами. В этом режиме отключён ввод китайского/японского/корейского (CJK). Для ввода CJK используйте переключатель 中 (композиция) на панели инструментов или стандартный режим.</string>
     <string name="settings_keyboard_mode_standard_label">Стандартный</string>
     <string name="settings_keyboard_mode_standard_desc">Все возможности Gboard — голосовой ввод, свайп-набор, автокоррекция, предсказание слов. Выберите, если клавиатура не работает в защищённом режиме или нужна автокоррекция.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — только Bluetooth/USB</string>
@@ -308,6 +319,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V на физической клавиатуре вставляет из буфера обмена Android. В выключенном состоянии клавиши передаются в удалённую оболочку.</string>
     <string name="settings_auto_show_keyboard_title">Показывать клавиатуру при открытии терминала</string>
     <string name="settings_auto_show_keyboard_subtitle">Программная клавиатура появляется автоматически при открытии или переключении терминальной сессии. Отключите, чтобы скрывать её в сессиях только для чтения; клавиша клавиатуры на панели инструментов и двойное нажатие по-прежнему вызывают её</string>
+    <string name="settings_default_compose_mode_title">Режим композиции CJK по умолчанию</string>
+    <string name="settings_default_compose_mode_subtitle">Запускать новые сеансы терминала в режиме композиции (中), чтобы ввод китайского/японского/корейского работал без переключения 中 каждый сеанс. Клавиша 中 на панели инструментов по-прежнему отключает его для сеанса</string>
 
     <!-- Navigation Tabs dialog -->
 
@@ -320,6 +333,8 @@
     <string name="settings_usb_guest_subtitle">Разрешить подключённым USB-устройствам работать с гостевыми приложениями через шим haven-usb. Каждое подключение запрашивает согласие.</string>
     <string name="settings_gps_guest_title">Открыть GPS для Linux-гостя</string>
     <string name="settings_gps_guest_subtitle">Передавать GPS-позицию телефона в гостя как NMEA-устройство (haven-gps). После включения любой гостевой процесс может читать позицию. Каждое подключение запрашивает согласие.</string>
+    <string name="settings_notify_guest_title">Гостевые уведомления</string>
+    <string name="settings_notify_guest_subtitle">Разрешить гостевым программам Linux отправлять уведомления Android через haven-notify. После включения любой гостевой процесс может добавлять уведомления в шторку. Каждое подключение запрашивает согласие.</string>
     <string name="settings_proot_install_log_title">Просмотр журнала установки PRoot</string>
     <string name="settings_proot_install_log_subtitle">Пофазные события установки дистрибутивов Linux (задача #162)</string>
     <string name="settings_logcat_capture_title">Захват Logcat</string>
@@ -505,6 +520,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">Скрывать панель вкладок приложения в терминале</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Скрывает нижнюю панель вкладок Haven на экране терминала. Строка состояния и панель навигации Android остаются видимыми.</string>
+    <string name="settings_shortcut_toolbar_title">Панель ярлыков</string>
+    <string name="settings_shortcut_toolbar_subtitle">Дополнительные ряды клавиш под терминалом. «Авто» скрывает их, пока подключена физическая клавиатура.</string>
+    <string name="settings_shortcut_toolbar_show">Всегда показывать</string>
+    <string name="settings_shortcut_toolbar_auto">Авто</string>
+    <string name="settings_shortcut_toolbar_hide">Всегда скрывать</string>
     <string name="settings_credential_keystore_broken_title">Хранилище учётных данных недоступно</string>
     <string name="settings_credential_keystore_broken_subtitle">Хранилище ключей этого устройства потеряло ключ учётных данных Haven. Сохранённые пароли нельзя прочитать, а новые — сохранить. Нажмите, чтобы восстановить.</string>
     <string name="settings_credential_reset_title">Восстановить хранилище учётных данных?</string>

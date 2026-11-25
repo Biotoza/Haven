@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">最近のアプリ画面でHavenのカードを非表示にします。セッションは継続します。アプリアイコンから再度開けます。</string>
     <string name="settings_connection_logging_title">接続ログ</string>
     <string name="settings_connection_logging_subtitle">接続イベントを記録（接続、切断、エラー）。ローカルに保存、デバイス暗号化で保護</string>
+    <string name="settings_event_journal_title">イベントログ</string>
+    <string name="settings_event_journal_subtitle">セッションの終了・再接続の理由を記録します。この端末のみ。既定ではオフ</string>
+    <string name="settings_event_journal_export_title">イベントログをエクスポート</string>
+    <string name="settings_event_journal_export_subtitle">記録したイベントを診断用に共有</string>
     <string name="settings_view_connection_log_title">接続ログを表示</string>
     <string name="settings_view_connection_log_subtitle">接続履歴とイベント</string>
     <string name="settings_verbose_logging_title">詳細な接続ログ</string>
@@ -50,6 +54,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">セッション保持</string>
+    <string name="settings_default_address_family_title">デフォルトのアドレスファミリー</string>
+    <string name="settings_default_address_family_subtitle">新しい SSH 接続用</string>
+    <string name="settings_address_family_auto">自動</string>
+    <string name="settings_address_family_ipv4_only">IPv4 のみ</string>
+    <string name="settings_address_family_ipv6_only">IPv6 のみ</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 優先</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 優先</string>
     <string name="settings_session_persistence_none">なし</string>
     <string name="settings_font_size_title">ターミナルのフォントサイズ</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -296,7 +307,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — ユーザー指定の EditorInfo フラグ</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — デフォルト、自動修正を抑制</string>
     <string name="settings_keyboard_mode_secure_label">セキュア（デフォルト）</string>
-    <string name="settings_keyboard_mode_secure_desc">プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。</string>
+    <string name="settings_keyboard_mode_secure_desc">プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。 このモードでは中国語・日本語・韓国語の変換入力が無効です。CJK入力にはツールバーの 中（変換）トグルまたは標準モードを使用してください。</string>
     <string name="settings_keyboard_mode_standard_label">スタンダード</string>
     <string name="settings_keyboard_mode_standard_desc">Gboard の全機能 — 音声入力、スワイプ入力、自動修正、単語予測。セキュアモードでソフトウェアキーボードが動作しない場合や自動修正を使いたい場合に選択してください。</string>
     <string name="settings_keyboard_mode_raw_label">Raw — Bluetooth/USB のみ</string>
@@ -308,6 +319,8 @@
     <string name="settings_ctrl_shift_v_subtitle">ハードウェアキーボードの Ctrl+Shift+V で Android クリップボードから貼り付け。オフにするとキーをリモートシェルに転送します。</string>
     <string name="settings_auto_show_keyboard_title">ターミナル開時にキーボードを表示</string>
     <string name="settings_auto_show_keyboard_subtitle">ターミナルセッションを開く、または切り替えたとき、ソフトウェアキーボードが自動的に現れます。閲覧専用のセッションではオフにしてください。ツールバーのキーボードキーやダブルタップでいつでも出せます</string>
+    <string name="settings_default_compose_mode_title">CJK変換モードをデフォルトに</string>
+    <string name="settings_default_compose_mode_subtitle">新しいターミナルセッションを変換（中）モードで開始し、毎回中を切り替えずに中国語・日本語・韓国語を入力できます。ツールバーの中キーでセッションごとにオフにできます</string>
 
     <!-- Navigation Tabs dialog -->
 
@@ -320,6 +333,8 @@
     <string name="settings_usb_guest_subtitle">接続した USB デバイスを haven-usb シム経由でゲストアプリから使用できるようにします。各接続には同意が必要です。</string>
     <string name="settings_gps_guest_title">GPS を Linux ゲストに公開</string>
     <string name="settings_gps_guest_subtitle">端末の GPS 位置情報を NMEA デバイス (haven-gps) としてゲストへストリームします。有効にするとゲスト内のどのプロセスでも位置情報を読めます。各接続には同意が必要です。</string>
+    <string name="settings_notify_guest_title">ゲスト通知</string>
+    <string name="settings_notify_guest_subtitle">Linux ゲストのプログラムが haven-notify 経由で Android 通知を投稿できるようにします。有効にするとゲスト内のどのプロセスでも通知を追加できます。各接続には同意が必要です。</string>
     <string name="settings_proot_install_log_title">PRoot インストールログを表示</string>
     <string name="settings_proot_install_log_subtitle">Linux ディストリビューションインストールのフェーズごとのイベント（issue #162）</string>
     <string name="settings_logcat_capture_title">Logcat キャプチャ</string>
@@ -502,6 +517,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">ターミナルでアプリのタブバーを非表示</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">ターミナル画面で Haven の下部タブバーを非表示にします。Android のステータスバーとナビゲーションバーは表示されたままです。</string>
+    <string name="settings_shortcut_toolbar_title">ショートカットツールバー</string>
+    <string name="settings_shortcut_toolbar_subtitle">ターミナル下の追加キー行。Auto は物理キーボードの接続中にこれらを非表示にします。</string>
+    <string name="settings_shortcut_toolbar_show">常に表示</string>
+    <string name="settings_shortcut_toolbar_auto">自動</string>
+    <string name="settings_shortcut_toolbar_hide">常に隠す</string>
     <string name="settings_credential_keystore_broken_title">認証情報ストレージを利用できません</string>
     <string name="settings_credential_keystore_broken_subtitle">この端末のキーストアが Haven の認証情報キーを失いました。保存済みのパスワードは読み取れず、新しいパスワードも保存できません。タップして修復してください。</string>
     <string name="settings_credential_reset_title">認証情報ストレージを修復しますか?</string>

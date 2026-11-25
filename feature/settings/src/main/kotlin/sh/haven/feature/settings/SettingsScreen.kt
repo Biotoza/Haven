@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Image
@@ -196,6 +197,7 @@ fun SettingsScreen(
     val scrollbackRows by viewModel.terminalScrollbackRows.collectAsState()
     val theme by viewModel.theme.collectAsState()
     val sessionManager by viewModel.sessionManager.collectAsState()
+    val defaultAddressFamily by viewModel.defaultAddressFamily.collectAsState()
     val colorScheme by viewModel.terminalColorScheme.collectAsState()
     val autoSwitchColorScheme by viewModel.terminalAutoSwitchScheme.collectAsState()
     val applySchemePalette by viewModel.terminalApplySchemePalette.collectAsState()
@@ -215,8 +217,10 @@ fun SettingsScreen(
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
     val autoShowKeyboardInTerminal by viewModel.autoShowKeyboardInTerminal.collectAsState()
+    val defaultComposeMode by viewModel.defaultComposeMode.collectAsState()
     val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
+    val eventJournalEnabled by viewModel.eventJournalEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
     val rootFilesEnabled by viewModel.rootFilesEnabled.collectAsState()
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
@@ -247,6 +251,7 @@ fun SettingsScreen(
     val reflowTerminalOnKeyboard by viewModel.reflowTerminalOnKeyboard.collectAsState()
     val terminalTabTitlesFollowSession by viewModel.terminalTabTitlesFollowSession.collectAsState()
     val terminalInlineImages by viewModel.terminalInlineImages.collectAsState()
+    val terminalShortcutToolbar by viewModel.terminalShortcutToolbar.collectAsState()
     val showTerminalTabBar by viewModel.showTerminalTabBar.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
     val waylandShellCommand by viewModel.waylandShellCommand.collectAsState()
@@ -279,6 +284,7 @@ fun SettingsScreen(
     var showAmbiwidthModeDialog by remember { mutableStateOf(false) }
     var showScrollbackRowsDialog by remember { mutableStateOf(false) }
     var showSessionManagerDialog by remember { mutableStateOf(false) }
+    var showAddressFamilyDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showColorSchemeDialog by remember { mutableStateOf(false) }
     var showLightColorSchemeDialog by remember { mutableStateOf(false) }
@@ -824,6 +830,13 @@ fun SettingsScreen(
             checked = autoShowKeyboardInTerminal,
             onCheckedChange = viewModel::setAutoShowKeyboardInTerminal,
         )
+        SettingsToggleItem(
+            icon = Icons.Filled.Language,
+            title = stringResource(R.string.settings_default_compose_mode_title),
+            subtitle = stringResource(R.string.settings_default_compose_mode_subtitle),
+            checked = defaultComposeMode,
+            onCheckedChange = viewModel::setDefaultComposeMode,
+        )
 
         }
         CollapsibleSettingsSection(stringResource(R.string.settings_section_terminal), settingsExpanded[3], { settingsExpanded[3] = !settingsExpanded[3] }) {
@@ -836,6 +849,12 @@ fun SettingsScreen(
                 sessionManager.label
             },
             onClick = { showSessionManagerDialog = true },
+        )
+        SettingsItem(
+            icon = Icons.Filled.Language,
+            title = stringResource(R.string.settings_default_address_family_title),
+            subtitle = addressFamilyLabel(defaultAddressFamily),
+            onClick = { showAddressFamilyDialog = true },
         )
         SettingsItem(
             icon = Icons.Filled.Terminal,
@@ -961,6 +980,17 @@ fun SettingsScreen(
             label = { mode -> stringResource(terminalInlineImagesLabel(mode)) },
             onChange = viewModel::setTerminalInlineImages,
         )
+        // Shortcut (extra keys) toolbar visibility (#870): always show, hide
+        // while a physical keyboard is attached, or always hide.
+        SettingsChipsItem(
+            icon = Icons.Filled.Keyboard,
+            title = stringResource(R.string.settings_shortcut_toolbar_title),
+            subtitle = stringResource(R.string.settings_shortcut_toolbar_subtitle),
+            options = UserPreferencesRepository.TerminalShortcutToolbar.entries,
+            selected = terminalShortcutToolbar,
+            label = { mode -> stringResource(shortcutToolbarLabel(mode)) },
+            onChange = viewModel::setTerminalShortcutToolbar,
+        )
 
         }
         CollapsibleSettingsSection(stringResource(R.string.settings_section_desktop), settingsExpanded[4], { settingsExpanded[4] = !settingsExpanded[4] }) {
@@ -1084,6 +1114,18 @@ fun SettingsScreen(
             checked = gpsGuestExposure,
             onCheckedChange = viewModel::setGpsGuestExposureEnabled,
         )
+        // Guest notifications (#851): once on, any process in the Linux guest
+        // can post into the phone's notification shade via haven-notify. Off
+        // by default; each attach still asks for consent, and a rate limiter
+        // caps spam once enabled.
+        val notifyGuestExposure by viewModel.notifyGuestExposureEnabled.collectAsState()
+        SettingsToggleItem(
+            icon = Icons.Filled.Notifications,
+            title = stringResource(R.string.settings_notify_guest_title),
+            subtitle = stringResource(R.string.settings_notify_guest_subtitle),
+            checked = notifyGuestExposure,
+            onCheckedChange = viewModel::setNotifyGuestExposureEnabled,
+        )
 
         // Tailscale peer discovery (#654): off stops the quad-100 LocalAPI
         // probe reading the peer list during scans; Tailscale itself is
@@ -1118,6 +1160,41 @@ fun SettingsScreen(
             checked = connectionLoggingEnabled,
             onCheckedChange = viewModel::setConnectionLoggingEnabled,
         )
+        SettingsToggleItem(
+            icon = Icons.Filled.BugReport,
+            title = stringResource(R.string.settings_event_journal_title),
+            subtitle = stringResource(R.string.settings_event_journal_subtitle),
+            checked = eventJournalEnabled,
+            onCheckedChange = viewModel::setEventJournalEnabled,
+        )
+        if (eventJournalEnabled) {
+            val context = LocalContext.current
+            // Hoisted out of the onClick callback (lint LocalContextGetResourceValueCall).
+            val exportChooserTitle = stringResource(R.string.settings_event_journal_export_title)
+            SettingsItem(
+                icon = Icons.Filled.CloudUpload,
+                title = stringResource(R.string.settings_event_journal_export_title),
+                subtitle = stringResource(R.string.settings_event_journal_export_subtitle),
+                onClick = {
+                    val file = sh.haven.core.data.EventJournal(context).exportCopy()
+                    if (file != null) {
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            context.packageName + ".fileprovider",
+                            file,
+                        )
+                        val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(
+                            android.content.Intent.createChooser(send, exportChooserTitle),
+                        )
+                    }
+                },
+            )
+        }
         // RDP-only decode tuning.
         if (nativeFeatures.rdp) {
             SettingsToggleItem(
@@ -2245,6 +2322,17 @@ fun SettingsScreen(
         )
     }
 
+    if (showAddressFamilyDialog) {
+        AddressFamilyDialog(
+            current = defaultAddressFamily,
+            onDismiss = { showAddressFamilyDialog = false },
+            onSelect = { selected ->
+                viewModel.setDefaultAddressFamily(selected)
+                showAddressFamilyDialog = false
+            },
+        )
+    }
+
     if (showFontSizeDialog) {
         FontSizeDialog(
             currentSize = fontSize,
@@ -3230,6 +3318,50 @@ private fun ColorSchemeDialog(
 }
 
 @Composable
+private fun addressFamilyLabel(family: String): String = when (family) {
+    "IPV4_ONLY" -> stringResource(R.string.settings_address_family_ipv4_only)
+    "IPV6_ONLY" -> stringResource(R.string.settings_address_family_ipv6_only)
+    "IPV6_PREFERRED" -> stringResource(R.string.settings_address_family_ipv6_preferred)
+    "IPV4_PREFERRED" -> stringResource(R.string.settings_address_family_ipv4_preferred)
+    else -> stringResource(R.string.settings_address_family_auto)
+}
+
+/** Global default address family for new SSH connections (#855). */
+@Composable
+private fun AddressFamilyDialog(
+    current: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    val families = listOf("AUTO", "IPV4_ONLY", "IPV6_ONLY", "IPV6_PREFERRED", "IPV4_PREFERRED")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_default_address_family_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    stringResource(R.string.settings_default_address_family_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                families.forEach { family ->
+                    ListItem(
+                        headlineContent = { Text(addressFamilyLabel(family)) },
+                        leadingContent = {
+                            RadioButton(selected = family == current, onClick = null)
+                        },
+                        modifier = Modifier.clickable(role = Role.RadioButton) {
+                            onSelect(family)
+                        },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+    )
+}
+
+@Composable
 private fun SessionManagerDialog(
     current: UserPreferencesRepository.SessionManager,
     commandOverride: String?,
@@ -3741,6 +3873,14 @@ private fun terminalInlineImagesLabel(mode: UserPreferencesRepository.TerminalIn
     UserPreferencesRepository.TerminalInlineImages.OFF -> R.string.settings_inline_images_off
     UserPreferencesRepository.TerminalInlineImages.ASK -> R.string.settings_inline_images_ask
     UserPreferencesRepository.TerminalInlineImages.ALWAYS -> R.string.settings_inline_images_always
+}
+
+/** String resource for a [UserPreferencesRepository.TerminalShortcutToolbar] chip label (#870). */
+@androidx.annotation.StringRes
+private fun shortcutToolbarLabel(mode: UserPreferencesRepository.TerminalShortcutToolbar): Int = when (mode) {
+    UserPreferencesRepository.TerminalShortcutToolbar.SHOW -> R.string.settings_shortcut_toolbar_show
+    UserPreferencesRepository.TerminalShortcutToolbar.AUTO -> R.string.settings_shortcut_toolbar_auto
+    UserPreferencesRepository.TerminalShortcutToolbar.HIDE -> R.string.settings_shortcut_toolbar_hide
 }
 
 /** Assignment for a key in the toolbar config dialog. */

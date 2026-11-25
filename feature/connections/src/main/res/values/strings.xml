@@ -235,6 +235,8 @@
     <string name="connection_address_family_auto">Auto</string>
     <string name="connection_address_family_ipv4_only">IPv4 only</string>
     <string name="connection_address_family_ipv6_only">IPv6 only</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 preferred</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 preferred</string>
     <string name="connection_address_family_ipv4_hint">Skip AAAA records and connect over IPv4. Useful when DNS returns IPv6 but the network can\'t route it.</string>
     <string name="connection_address_family_ipv6_hint">Skip A records and connect over IPv6. Useful on IPv6-only networks where IPv4 NAT is broken.</string>
     <string name="connections_field_bind_address">Bind local address</string>
@@ -368,6 +370,7 @@
     <string name="connections_action_tunnels">Tunnels</string>
     <string name="connections_action_reauthenticate">Re-authenticate</string>
     <string name="connections_action_cancel_oauth">Cancel OAuth</string>
+    <string name="connections_storage_connect_timeout">Storage connection timed out — see Settings → View connection log</string>
     <string name="connections_reveal_password_title">Reveal saved password</string>
     <string name="connections_reveal_password_subtitle">Confirm it\'s you to show the saved password</string>
 
@@ -649,6 +652,10 @@
     <string name="connections_helper_forward_pulseaudio">Starts the phone\'s PulseAudio bridge, tunnels remote port 14713 to local port 4713, and exports PULSE_SERVER=tcp:127.0.0.1:14713 in the SSH shell.</string>
     <string name="connections_toggle_persist_rediscovered_host">Save rediscovered LAN address</string>
     <string name="connections_helper_persist_rediscovered_host">Update the profile when a local machine presents the same SSH host key at a new IPv4 address. Turn off to connect at the rediscovered address for that session only and keep your configured host (e.g. a WireGuard IP).</string>
+    <string name="connections_toggle_legacy_host_key_fallback">Retry with legacy ssh-rsa host key</string>
+    <string name="connections_helper_legacy_host_key_fallback">When a server offers only the old SHA-1 ssh-rsa host key, retry the connection once with that algorithm appended. Modern algorithms are still tried first, so servers that support them are unaffected. Turn off to fail instead of weakening the handshake.</string>
+    <string name="connections_toggle_netbird_ssh_jwt">NetBird SSH sign-in (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">For NetBird SSH servers that require sign-in: authenticate with your NetBird identity in a browser and use the resulting token as the SSH password. Only applies when this connection uses a NetBird tunnel.</string>
     <string name="connections_field_saved_password">Saved password (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Optional. Encrypted in the Android Keystore and used for SSH password login and biometric-gated sudo fill in the terminal.</string>
     <string name="connections_field_keyboard_layout">Keyboard layout</string>
@@ -660,4 +667,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Runs a privileged Android shell (/system/bin/sh) via Shizuku (ADB uid 2000 or root). Requires Shizuku to be running and authorized.</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

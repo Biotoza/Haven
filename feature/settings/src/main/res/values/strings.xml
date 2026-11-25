@@ -52,6 +52,10 @@
     <string name="settings_exclude_recents_subtitle">Hide Haven\'s card in the recents screen; sessions keep running. Reopen from the app icon.</string>
     <string name="settings_connection_logging_title">Connection logging</string>
     <string name="settings_connection_logging_subtitle">Record connection events (connect, disconnect, errors). Stored locally, protected by device encryption</string>
+    <string name="settings_event_journal_title">Event journal</string>
+    <string name="settings_event_journal_subtitle">Records why sessions die or reconnect. On this device only; off by default.</string>
+    <string name="settings_event_journal_export_title">Export event journal</string>
+    <string name="settings_event_journal_export_subtitle">Share the recorded events for diagnostics</string>
     <string name="settings_view_connection_log_title">View connection log</string>
     <string name="settings_view_connection_log_subtitle">Connection history and events</string>
     <string name="settings_verbose_logging_title">Verbose connection logging</string>
@@ -63,6 +67,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Session persistence</string>
+    <string name="settings_default_address_family_title">Default address family</string>
+    <string name="settings_default_address_family_subtitle">For new SSH connections</string>
+    <string name="settings_address_family_auto">Auto</string>
+    <string name="settings_address_family_ipv4_only">IPv4 only</string>
+    <string name="settings_address_family_ipv6_only">IPv6 only</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 preferred</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 preferred</string>
     <string name="settings_session_persistence_none">None</string>
     <string name="settings_font_size_title">Terminal font size</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -325,6 +336,11 @@
     <string name="settings_show_terminal_tab_bar_subtitle">Show session tabs above the terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_title">Hide app tab bar in terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Hide Haven\'s bottom tab bar on the terminal screen. The Android status and navigation bars stay visible.</string>
+    <string name="settings_shortcut_toolbar_title">Shortcut toolbar</string>
+    <string name="settings_shortcut_toolbar_subtitle">Extra key rows below the terminal. Auto hides them while a physical keyboard is attached.</string>
+    <string name="settings_shortcut_toolbar_show">Always show</string>
+    <string name="settings_shortcut_toolbar_auto">Auto</string>
+    <string name="settings_shortcut_toolbar_hide">Always hide</string>
     <string name="settings_reflow_on_keyboard_title">Resize terminal for keyboard</string>
     <string name="settings_reflow_on_keyboard_subtitle">When the keyboard opens, resize the terminal to fit above it instead of scrolling the view up. Helps full-screen apps that show a status line at the top; leave off for plain shells.</string>
     <string name="settings_tab_titles_follow_session_title">Prefer session names in tab titles</string>
@@ -380,7 +396,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — user-selected EditorInfo flags</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — default, suppresses autocorrect</string>
     <string name="settings_keyboard_mode_secure_label">Secure (default)</string>
-    <string name="settings_keyboard_mode_secure_desc">Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too.</string>
+    <string name="settings_keyboard_mode_secure_desc">Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too. Chinese/Japanese/Korean composition is disabled in this mode. For CJK input, use the toolbar 中 (compose) toggle or Standard mode.</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">Full Gboard features — voice input, swipe typing, autocorrect, word predictions. Pick this if your software keyboard isn\'t working in Secure mode, or if you want autocorrect.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — Bluetooth/USB only</string>
@@ -396,6 +412,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Hardware keyboard Ctrl+Shift+V pastes from the Android clipboard. Off forwards the keys to the remote shell.</string>
     <string name="settings_auto_show_keyboard_title">Show keyboard when a terminal opens</string>
     <string name="settings_auto_show_keyboard_subtitle">The soft keyboard rises automatically when you open or switch to a terminal session. Turn off to keep it down for read-only sessions; the toolbar keyboard key and a double-tap still bring it up</string>
+    <string name="settings_default_compose_mode_title">CJK compose mode by default</string>
+    <string name="settings_default_compose_mode_subtitle">Start new terminal sessions in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still turns it off per session</string>
 
     <!-- Navigation Tabs dialog -->
 
@@ -410,6 +428,9 @@
     <!-- GPS exposure -->
     <string name="settings_gps_guest_title">Expose GPS to the Linux guest</string>
     <string name="settings_gps_guest_subtitle">Stream the phone’s GPS position into the guest as an NMEA device (haven-gps). Once on, any guest process can read the position. Each attach still asks for consent.</string>
+    <!-- Guest notifications (#851) -->
+    <string name="settings_notify_guest_title">Guest notifications</string>
+    <string name="settings_notify_guest_subtitle">Let Linux guest programs post Android notifications via haven-notify. Once on, any guest process can add notifications to the shade. Each attach still asks for consent.</string>
     <string name="settings_tailscale_discovery_title">Tailscale peer discovery</string>
     <string name="settings_tailscale_discovery_subtitle">Look up hosts on your Tailscale network through its local API when scanning. Turn off to stop Haven from reading the peer list; Tailscale itself is unaffected.</string>
     <string name="settings_audio_bridge_title">Proot audio (experimental)</string>

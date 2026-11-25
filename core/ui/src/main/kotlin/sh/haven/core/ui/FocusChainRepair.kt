@@ -1,5 +1,6 @@
 package sh.haven.core.ui
 
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -43,6 +44,47 @@ private fun findStrandedFocus(view: View): View? {
 }
 
 /**
+ * Give focusability back to text editors that are on screen but cannot take
+ * focus. Returns how many it re-armed.
+ *
+ * termlib's ImeInputView drops FOCUSABLE while its window is hidden (the
+ * Android 16 warm-return crash guard) and restores it on a fixed 100ms timer
+ * that requests focus once and never retries. When that restore misses, the
+ * editor stays unfocusable: a Compose focus request cannot land on it, so
+ * [rebindImeTarget] never reaches restartInput, and a keyboard raised through
+ * `WindowInsetsController.show(ime())` comes up with no editor behind it
+ * ("Ignoring showSoftInput() as view … is not served"). It shows candidates
+ * and accepts taps, and nothing reaches the terminal — every raise path the
+ * user has (toolbar key, swipe-up, double-tap) hits the same dead state, and
+ * only a background round trip, which re-runs the timer, gets out of it.
+ * termlib's own showIme() re-arms the flag the same way before showing; this
+ * does it for the host's raise paths, which can't reach that internal view.
+ *
+ * Only while the window is visible (the guard's whole point is the hidden
+ * window) and only for enabled, shown editors, so it can't touch a field that
+ * is unfocusable on purpose. A raw-keyboard terminal reports no text editor
+ * and is left alone.
+ */
+fun rearmUnfocusableEditors(
+    root: View,
+    windowVisible: Boolean = root.windowVisibility == View.VISIBLE,
+): Int {
+    if (!windowVisible) return 0
+    var rearmed = 0
+    fun visit(view: View) {
+        if (!view.isFocusable && view.isEnabled && view.isShown && view.onCheckIsTextEditor()) {
+            view.isFocusableInTouchMode = true // also restores isFocusable
+            rearmed++
+        }
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) visit(view.getChildAt(i))
+        }
+    }
+    visit(root)
+    return rearmed
+}
+
+/**
  * Point the IME at the terminal's editor over a *fresh* InputConnection —
  * what a background round trip does, minus the round trip.
  *
@@ -68,18 +110,62 @@ fun rebindImeTarget(
     restartInput: (View) -> Unit = { editor ->
         editor.context.getSystemService(InputMethodManager::class.java)?.restartInput(editor)
     },
+    windowVisible: Boolean = root.windowVisibility == View.VISIBLE,
 ) {
-    repairBrokenFocusChain(root)
+    val rearmed = rearmUnfocusableEditors(root, windowVisible)
+    val relinked = repairBrokenFocusChain(root)
     requestFocus()
     root.post {
         if (root.findFocus()?.onCheckIsTextEditor() == true) {
             restartInput(root.findFocus()!!)
+            logRebind(rearmed, relinked, retried = false, restarted = true)
             return@post
         }
         clearFocus()
         requestFocus()
-        root.post {
-            root.findFocus()?.takeIf { it.onCheckIsTextEditor() }?.let(restartInput)
-        }
+        // A tab switch recreates the pane (key(sessionId)); the fresh
+        // ImeInputView attaches a few frames later, so a single retry races
+        // it and gives up with restarted=false even though focus lands on
+        // the editor shortly after (#869). Poll across real frames (a plain
+        // post() drains faster than the frame rate) until the editor holds
+        // focus, then restart input on it. Each attempt re-clears focus
+        // first: on a slow IME (Samsung) a bare requestFocus is a no-op while
+        // Compose still believes the tab strip is focused, so forcing the
+        // clear is what actually moves focus onto the editor.
+        pollRestartInput(root, requestFocus, clearFocus, restartInput, rearmed, relinked, attemptsLeft = 60)
     }
+}
+
+private fun pollRestartInput(
+    root: View,
+    requestFocus: () -> Unit,
+    clearFocus: () -> Unit,
+    restartInput: (View) -> Unit,
+    rearmed: Int,
+    relinked: Boolean,
+    attemptsLeft: Int,
+) {
+    val editor = root.findFocus()?.takeIf { it.onCheckIsTextEditor() }
+    if (editor != null) {
+        restartInput(editor)
+        logRebind(rearmed, relinked, retried = true, restarted = true)
+        return
+    }
+    if (attemptsLeft <= 0) {
+        logRebind(rearmed, relinked, retried = true, restarted = false)
+        return
+    }
+    clearFocus()
+    requestFocus()
+    root.postDelayed({ pollRestartInput(root, requestFocus, clearFocus, restartInput, rearmed, relinked, attemptsLeft - 1) }, 16)
+}
+
+// Counts and booleans only — this line is meant for logs users attach to
+// issues (#518). restarted=false means the keyboard went up with no editor
+// behind it: the "keyboard composes, nothing reaches the terminal" state.
+private fun logRebind(rearmed: Int, relinked: Boolean, retried: Boolean, restarted: Boolean) {
+    Log.i(
+        "TerminalIme",
+        "rebind: rearmed=$rearmed relinked=$relinked retried=$retried restarted=$restarted",
+    )
 }

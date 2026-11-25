@@ -548,11 +548,22 @@ class SettingsViewModel @Inject constructor(
     val autoShowKeyboardInTerminal: StateFlow<Boolean> = preferencesRepository.autoShowKeyboardInTerminal
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val defaultComposeMode: StateFlow<Boolean> = preferencesRepository.defaultComposeMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val hideNavBarInTerminal: StateFlow<Boolean> = preferencesRepository.hideNavBarInTerminal
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val connectionLoggingEnabled: StateFlow<Boolean> = preferencesRepository.connectionLoggingEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** hd9 opt-in event journal: why sessions die/reconnect, on-device only. */
+    val eventJournalEnabled: StateFlow<Boolean> = preferencesRepository.eventJournalEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setEventJournalEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setEventJournalEnabled(enabled) }
+    }
 
     val excludeFromRecents: StateFlow<Boolean> = preferencesRepository.excludeFromRecents
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -567,6 +578,9 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val gpsGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.gpsGuestExposureEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val notifyGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.notifyGuestExposureEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val tailscaleDiscoveryEnabled: StateFlow<Boolean> = preferencesRepository.tailscaleDiscoveryEnabled
@@ -891,6 +905,11 @@ class SettingsViewModel @Inject constructor(
                 UserPreferencesRepository.SessionManager.NONE,
             )
 
+    /** Global default address family for new SSH connections (#855). */
+    val defaultAddressFamily: StateFlow<String> =
+        preferencesRepository.defaultAddressFamily
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "AUTO")
+
     val lockTimeout: StateFlow<UserPreferencesRepository.LockTimeout> =
         preferencesRepository.lockTimeout
             .stateIn(
@@ -1010,6 +1029,15 @@ class SettingsViewModel @Inject constructor(
                 UserPreferencesRepository.TerminalInlineImages.ASK,
             )
 
+    /** Shortcut-toolbar visibility policy for terminal sessions (#870). */
+    val terminalShortcutToolbar: StateFlow<UserPreferencesRepository.TerminalShortcutToolbar> =
+        preferencesRepository.terminalShortcutToolbar
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                UserPreferencesRepository.TerminalShortcutToolbar.SHOW,
+            )
+
     val toolbarMinButtonWidth: StateFlow<Int> = preferencesRepository.toolbarMinButtonWidth
         .stateIn(
             viewModelScope,
@@ -1087,6 +1115,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setDefaultComposeMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setDefaultComposeMode(enabled)
+        }
+    }
+
     fun setHideNavBarInTerminal(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setHideNavBarInTerminal(enabled)
@@ -1120,6 +1154,12 @@ class SettingsViewModel @Inject constructor(
     fun setGpsGuestExposureEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setGpsGuestExposureEnabled(enabled)
+        }
+    }
+
+    fun setNotifyGuestExposureEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setNotifyGuestExposureEnabled(enabled)
         }
     }
 
@@ -1345,6 +1385,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setDefaultAddressFamily(family: String) {
+        viewModelScope.launch {
+            preferencesRepository.setDefaultAddressFamily(family)
+        }
+    }
+
     fun setTerminalColorScheme(scheme: UserPreferencesRepository.TerminalColorScheme) {
         viewModelScope.launch {
             preferencesRepository.setTerminalColorScheme(scheme)
@@ -1441,6 +1487,12 @@ class SettingsViewModel @Inject constructor(
     fun setTerminalInlineImages(mode: UserPreferencesRepository.TerminalInlineImages) {
         viewModelScope.launch {
             preferencesRepository.setTerminalInlineImages(mode)
+        }
+    }
+
+    fun setTerminalShortcutToolbar(mode: UserPreferencesRepository.TerminalShortcutToolbar) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalShortcutToolbar(mode)
         }
     }
 

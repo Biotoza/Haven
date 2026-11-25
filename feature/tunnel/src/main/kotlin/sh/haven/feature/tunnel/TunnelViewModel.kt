@@ -415,9 +415,15 @@ class TunnelViewModel @Inject constructor(
      *
      * [managementURL] points at a self-hosted NetBird management server,
      * e.g. "https://netbird.example.com". Leave blank for NetBird's
-     * hosted default (#492).
+     * hosted default (#492). [rosenpass] enables NetBird's post-quantum
+     * Rosenpass key exchange for peers that require it (#662).
      */
-    fun addNetbirdConfig(label: String, setupKey: String, managementURL: String = "") {
+    fun addNetbirdConfig(
+        label: String,
+        setupKey: String,
+        managementURL: String = "",
+        rosenpass: Boolean = false,
+    ) {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return
@@ -439,6 +445,7 @@ class TunnelViewModel @Inject constructor(
         val blob = sh.haven.core.tunnel.NetbirdConfigBlob(
             setupKey = setupKey.trim(),
             managementURL = trimmedUrl,
+            rosenpass = rosenpass,
         )
         save(label, TunnelConfigType.NETBIRD, blob.encode())
     }
@@ -627,8 +634,14 @@ class TunnelViewModel @Inject constructor(
         update(id, label, blob.encode())
     }
 
-    /** Overwrite an existing NetBird tunnel's label / setup key / management URL (#666). */
-    fun updateNetbirdConfig(id: String, label: String, setupKey: String, managementURL: String = "") {
+    /** Overwrite an existing NetBird tunnel's label / setup key / management URL / rosenpass (#666, #662). */
+    fun updateNetbirdConfig(
+        id: String,
+        label: String,
+        setupKey: String,
+        managementURL: String = "",
+        rosenpass: Boolean = false,
+    ) {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return
@@ -648,6 +661,71 @@ class TunnelViewModel @Inject constructor(
         val blob = sh.haven.core.tunnel.NetbirdConfigBlob(
             setupKey = setupKey.trim(),
             managementURL = trimmedUrl,
+            rosenpass = rosenpass,
+        )
+        update(id, label, blob.encode())
+    }
+
+    /**
+     * Create a Yggdrasil mesh tunnel config. [peers] is whitespace-separated
+     * outbound peer URIs (e.g. "tls://host:port"); at least one reachable peer
+     * is required or the node is isolated. [privateKey] (hex) is optional —
+     * empty generates a fresh identity, but persist a key to keep the mesh
+     * IPv6 address stable. [listen] accepts inbound peerings; [groupPassword]
+     * forms a private sub-network.
+     */
+    fun addYggdrasilConfig(
+        label: String,
+        peers: String,
+        privateKey: String = "",
+        listen: String = "",
+        ifMTU: Int = 0,
+        groupPassword: String = "",
+    ) {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        val peerList = peers.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (peerList.isEmpty()) {
+            _error.value = "At least one peer URI is required (e.g. tls://host:port)"
+            return
+        }
+        val blob = sh.haven.core.tunnel.YggdrasilConfigBlob(
+            privateKey = privateKey.trim(),
+            peers = peerList,
+            listen = listen.split(Regex("\\s+")).filter { it.isNotBlank() },
+            ifMTU = ifMTU,
+            groupPassword = groupPassword.trim(),
+        )
+        save(label, TunnelConfigType.YGGDRASIL, blob.encode())
+    }
+
+    /** Overwrite an existing Yggdrasil tunnel's label / peers / key / listen / MTU / group password. */
+    fun updateYggdrasilConfig(
+        id: String,
+        label: String,
+        peers: String,
+        privateKey: String = "",
+        listen: String = "",
+        ifMTU: Int = 0,
+        groupPassword: String = "",
+    ) {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        val peerList = peers.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (peerList.isEmpty()) {
+            _error.value = "At least one peer URI is required (e.g. tls://host:port)"
+            return
+        }
+        val blob = sh.haven.core.tunnel.YggdrasilConfigBlob(
+            privateKey = privateKey.trim(),
+            peers = peerList,
+            listen = listen.split(Regex("\\s+")).filter { it.isNotBlank() },
+            ifMTU = ifMTU,
+            groupPassword = groupPassword.trim(),
         )
         update(id, label, blob.encode())
     }

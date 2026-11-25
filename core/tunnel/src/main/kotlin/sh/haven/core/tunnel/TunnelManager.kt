@@ -372,6 +372,7 @@ class DefaultTunnelFactory @Inject constructor(
                 stateDir = File(context.filesDir, "netbird-${config.id}").also { it.mkdirs() },
                 hostname = deriveHostname(config.label),
                 managementURL = parsed.managementURL,
+                rosenpass = parsed.rosenpass,
             )
         }
         TunnelConfigType.OPENVPN -> {
@@ -391,6 +392,13 @@ class DefaultTunnelFactory @Inject constructor(
                     "AnyConnect tunnel '${config.label}' is missing its server or username — edit the tunnel",
                 )
             AnyConnectTunnel(parsed, label = config.label, authBroker = authBroker)
+        }
+        TunnelConfigType.YGGDRASIL -> {
+            val parsed = YggdrasilConfigBlob.parse(config.configText)
+                ?: throw IOException(
+                    "Yggdrasil tunnel '${config.label}' has an invalid config — re-add the tunnel",
+                )
+            YggdrasilTunnel(configJSON = String(parsed.encode(), Charsets.UTF_8))
         }
     }
 

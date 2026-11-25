@@ -315,8 +315,9 @@ class ConnectionsViewModelSessionTest {
     @Test
     fun `disconnect cleans up all session manager types`() {
         viewModel.disconnect("profile1")
-
-        verify { sshSessionManager.removeAllSessionsForProfile("profile1") }
+        // Teardown now runs after the per-session graceful close, in a
+        // coroutine — wait for it to land before verifying (hd5).
+        verify(timeout = 5_000) { sshSessionManager.removeAllSessionsForProfile("profile1") }
         verify { reticulumSessionManager.removeAllSessionsForProfile("profile1") }
         verify { moshSessionManager.removeAllSessionsForProfile("profile1") }
         verify { etSessionManager.removeAllSessionsForProfile("profile1") }
@@ -331,7 +332,7 @@ class ConnectionsViewModelSessionTest {
     fun `disconnect stops VNC server`() {
         viewModel.disconnect("profile1")
 
-        verify { desktopManager.stopAll() }
+        verify(timeout = 5_000) { desktopManager.stopAll() }
     }
 
     @Test
@@ -341,6 +342,11 @@ class ConnectionsViewModelSessionTest {
 
         viewModel.disconnect("vnc-direct")
 
+        // closeHandle fires from the teardown coroutine (hd5) — poll briefly.
+        val deadlineNs = System.nanoTime() + 5_000_000_000L
+        while (!closed && System.nanoTime() < deadlineNs) {
+            Thread.sleep(10)
+        }
         org.junit.Assert.assertTrue("Direct VNC/RDP/SPICE closeHandle must be invoked on disconnect", closed)
     }
 
@@ -1820,5 +1826,77 @@ class ConnectionsViewModelSessionTest {
         coVerify {
             repository.save(match { it.id == "glkvm-1" && it.glkvmPassword == "s3cr3t!" })
         }
+    }
+
+    /**
+     * #839: on a stored-token refresh the connect blocks inside
+     * connectSession with no OAuth future, so the manager cancel is a
+     * no-op and connectRclone's finally has not run. Cancel must still
+     * drop the UI wait state, or the spinner stays up ("ignores me").
+     */
+    @Test
+    fun `cancelPendingOAuth clears the spinner on the stored-token refresh path`() = runTest {
+        val profile = ConnectionProfile(
+            id = "rc1",
+            label = "My Drive",
+            host = "",
+            username = "",
+            connectionType = "RCLONE",
+            rcloneRemoteName = "gdrive",
+            rcloneProvider = "drive",
+        )
+        every { rcloneSessionManager.getSessionsForProfile("rc1") } returns emptyList()
+        every { rcloneSessionManager.registerSession(any(), any()) } returns "sess1"
+        // Block like a slow token refresh + root listing; no OAuth future exists.
+        every { rcloneSessionManager.connectSession(any(), any(), any()) } answers {
+            java.util.concurrent.CountDownLatch(1).await()
+        }
+
+        viewModel.connect(profile, password = "")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("rc1", viewModel.connectingProfileId.value)
+
+        viewModel.cancelPendingOAuth(profile)
+        assertNull("Cancel must stop the spinner even with no OAuth future", viewModel.connectingProfileId.value)
+    }
+
+    @Test
+    fun `cancelPendingOAuth forwards to the manager when a session exists`() = runTest {
+        val profile = ConnectionProfile(
+            id = "rc1",
+            label = "My Drive",
+            host = "",
+            username = "",
+            connectionType = "RCLONE",
+            rcloneRemoteName = "gdrive",
+            rcloneProvider = "drive",
+        )
+        every { rcloneSessionManager.getSessionsForProfile("rc1") } returns listOf(
+            sh.haven.core.rclone.RcloneSessionManager.SessionState(
+                sessionId = "sess1",
+                profileId = "rc1",
+                label = "My Drive",
+                status = sh.haven.core.rclone.RcloneSessionManager.SessionState.Status.CONNECTING,
+            ),
+        )
+        every { rcloneSessionManager.registerSession(any(), any()) } returns "sess1"
+        every { rcloneSessionManager.connectSession(any(), any(), any()) } answers {
+            java.util.concurrent.CountDownLatch(1).await()
+        }
+
+        viewModel.connect(profile, password = "")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("rc1", viewModel.connectingProfileId.value)
+
+        viewModel.cancelPendingOAuth(profile)
+        verify { rcloneSessionManager.cancelPendingOAuth("sess1") }
+        assertNull(viewModel.connectingProfileId.value)
+    }
+
+    /** #839: storage connects get the OAuth-length leash, not the SSH 20s. */
+    @Test
+    fun `connect safety net gives rclone five minutes and everything else twenty seconds`() {
+        assertEquals(300_000L, connectSafetyNetDelayMs(isRclone = true))
+        assertEquals(20_000L, connectSafetyNetDelayMs(isRclone = false))
     }
 }

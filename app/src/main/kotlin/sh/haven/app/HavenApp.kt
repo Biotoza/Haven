@@ -10,7 +10,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import sh.haven.app.agent.ConsentActionReceiver
+import sh.haven.core.data.EventJournal
 import sh.haven.core.data.NativeCrashLog
+import sh.haven.core.data.SystemSignals
 import sh.haven.core.data.agent.AgentConsentManager
 import sh.haven.core.data.agent.ConsentRequest
 import androidx.hilt.work.HiltWorkerFactory
@@ -56,6 +58,10 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var usbMountCorrelator: dagger.Lazy<sh.haven.app.usb.UsbMountCorrelator>
     @Inject lateinit var tunnelPortForwardManager: dagger.Lazy<sh.haven.core.tunnel.TunnelPortForwardManager>
 
+    /** App-wide event journal instance, shared with ConnectionsViewModel and SystemSignals. */
+    val eventJournal = EventJournal(this)
+    private val systemSignals = SystemSignals(this, eventJournal)
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
@@ -78,6 +84,13 @@ class HavenApp : Application(), Configuration.Provider {
         // unpinned raw-key JCE lookup, which breaks every curve25519 key exchange
         // on the sshlib engine. No-op on devices with a sane provider order (#451).
         sh.haven.core.ssh.RawKeyProviderOrder.apply()
+
+        // sshlib only offers the hybrid post-quantum key types when the platform
+        // JCA can perform the composite ML-DSA signature; most Android builds
+        // cannot, so the key imports but auth falls back to password. Register
+        // the bundled BouncyCastle when the service is missing (#859). No-op on
+        // devices whose platform already provides it.
+        sh.haven.core.ssh.MldsaProviderAvailability.apply()
 
         // Register the connect-time SSH emulator provider before any SSH session
         // can be created, so tmux's attach-time probes are answered live (#290 #2).
@@ -125,6 +138,22 @@ class HavenApp : Application(), Configuration.Provider {
                 android.util.Log.w("HavenApp", "process exit sweep failed: ${e.message}")
             }
         }
+
+        // hd9.1: event journal + system signals — toggle on/off with the
+        // diagnostics preference. When enabled, the journal records system
+        // events (network, screen, power, memory) alongside session verdicts.
+        // When disabled: zero overhead, zero writes, all receivers unregistered.
+        preferencesRepository.eventJournalEnabled
+            .distinctUntilChanged()
+            .onEach { enabled ->
+                eventJournal.setEnabled(enabled)
+                if (enabled) {
+                    systemSignals.start()
+                } else {
+                    systemSignals.stop()
+                }
+            }
+            .launchIn(appScope)
 
         // Mirror saved connections (#699) and workspaces into Android
         // launcher long-press shortcuts — "Connect <profile>" and

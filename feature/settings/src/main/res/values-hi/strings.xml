@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">हाल के ऐप्स स्क्रीन में Haven का कार्ड छिपाता है; सत्र चलते रहते हैं। ऐप आइकन से दोबारा खोलें।</string>
     <string name="settings_connection_logging_title">कनेक्शन लॉगिंग</string>
     <string name="settings_connection_logging_subtitle">कनेक्शन इवेंट रिकॉर्ड करें (कनेक्ट, डिस्कनेक्ट, त्रुटियाँ)। स्थानीय रूप से संग्रहित, डिवाइस एन्क्रिप्शन से सुरक्षित</string>
+    <string name="settings_event_journal_title">इवेंट लॉग</string>
+    <string name="settings_event_journal_subtitle">सत्र बंद होने या फिर से जुड़ने के कारण रिकॉर्ड करता है। केवल इस डिवाइस पर; डिफ़ॉल्ट रूप से बंद</string>
+    <string name="settings_event_journal_export_title">इवेंट लॉग निर्यात करें</string>
+    <string name="settings_event_journal_export_subtitle">निदान के लिए रिकॉर्ड किए गए इवेंट साझा करें</string>
     <string name="settings_view_connection_log_title">कनेक्शन लॉग देखें</string>
     <string name="settings_view_connection_log_subtitle">कनेक्शन इतिहास और इवेंट</string>
     <string name="settings_verbose_logging_title">विस्तृत कनेक्शन लॉगिंग</string>
@@ -50,6 +54,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">सत्र स्थायित्व</string>
+    <string name="settings_default_address_family_title">डिफ़ॉल्ट एड्रेस फ़ैमिली</string>
+    <string name="settings_default_address_family_subtitle">नए SSH कनेक्शन के लिए</string>
+    <string name="settings_address_family_auto">ऑटो</string>
+    <string name="settings_address_family_ipv4_only">केवल IPv4</string>
+    <string name="settings_address_family_ipv6_only">केवल IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 वरीयता</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 वरीयता</string>
     <string name="settings_session_persistence_none">कोई नहीं</string>
     <string name="settings_font_size_title">टर्मिनल फ़ॉन्ट आकार</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -296,7 +307,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — user-चयनित EditorInfo flags</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — default, autocorrect दबाता है</string>
     <string name="settings_keyboard_mode_secure_label">Secure (default)</string>
-    <string name="settings_keyboard_mode_secure_desc">Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है।</string>
+    <string name="settings_keyboard_mode_secure_desc">Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है। इस मोड में चीनी/जापानी/कोरियाई composition अक्षम है। CJK इनपुट के लिए टूलबार का 中 (compose) टॉगल या Standard मोड उपयोग करें।</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">Gboard की सभी सुविधाएँ — voice input, swipe typing, autocorrect, word predictions। अगर Secure mode में software keyboard काम न करे, या autocorrect चाहिए, तो यह चुनें।</string>
     <string name="settings_keyboard_mode_raw_label">Raw — केवल Bluetooth/USB</string>
@@ -308,6 +319,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Hardware keyboard Ctrl+Shift+V से Android clipboard paste होता है। बंद रहने पर keys रिमोट shell को भेजी जाती हैं।</string>
     <string name="settings_auto_show_keyboard_title">टर्मिनल खुलने पर कीबोर्ड दिखाएँ</string>
     <string name="settings_auto_show_keyboard_subtitle">टर्मिनल सत्र खोलने या बदलने पर सॉफ्ट कीबोर्ड अपने आप उभरता है। केवल-पढ़ने वाले सत्रों के लिए इसे बंद रखें; टूलबार का कीबोर्ड बटन और डबल-टैप इसे कभी भी दिखा देते हैं</string>
+    <string name="settings_default_compose_mode_title">डिफ़ॉल्ट CJK compose मोड</string>
+    <string name="settings_default_compose_mode_subtitle">चीनी/जापानी/कोरियाई इनपुट के लिए हर सत्र में 中 टॉगल किए बिना नए टर्मिनल सत्र compose (中) मोड में शुरू करें। टूलबार की 中 कुंजी अभी भी प्रति सत्र इसे बंद करती है</string>
 
     <!-- Navigation Tabs dialog -->
 
@@ -320,6 +333,8 @@
     <string name="settings_usb_guest_subtitle">haven-usb shim के माध्यम से guest apps को संलग्न USB devices तक पहुँचने दें। प्रत्येक attach पर consent माँगी जाती है।</string>
     <string name="settings_gps_guest_title">Linux guest को GPS expose करें</string>
     <string name="settings_gps_guest_subtitle">फ़ोन की GPS location को NMEA device (haven-gps) के रूप में guest में stream करें। चालू होने पर guest की कोई भी process location पढ़ सकती है। प्रत्येक attach पर consent माँगी जाती है।</string>
+    <string name="settings_notify_guest_title">गेस्ट सूचनाएँ</string>
+    <string name="settings_notify_guest_subtitle">Linux गेस्ट प्रोग्राम को haven-notify के ज़रिए Android सूचनाएँ पोस्ट करने दें। चालू होने पर guest की कोई भी process शेड में सूचनाएँ जोड़ सकती है। प्रत्येक attach पर consent माँगी जाती है।</string>
     <string name="settings_proot_install_log_title">PRoot install log देखें</string>
     <string name="settings_proot_install_log_subtitle">Linux distro installs के चरण-वार events (issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat Capture</string>
@@ -503,6 +518,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">टर्मिनल में ऐप टैब बार छिपाएँ</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">टर्मिनल स्क्रीन पर Haven की निचली टैब बार छिपाता है। Android की स्थिति और नेविगेशन बार दिखाई देती रहती हैं।</string>
+    <string name="settings_shortcut_toolbar_title">शॉर्टकट टूलबार</string>
+    <string name="settings_shortcut_toolbar_subtitle">टर्मिनल के नीचे अतिरिक्त कुंजी पंक्तियाँ। भौतिक कीबोर्ड जुड़ा होने पर ऑटो इन्हें छिपा देता है।</string>
+    <string name="settings_shortcut_toolbar_show">हमेशा दिखाएँ</string>
+    <string name="settings_shortcut_toolbar_auto">ऑटो</string>
+    <string name="settings_shortcut_toolbar_hide">हमेशा छिपाएँ</string>
     <string name="settings_credential_keystore_broken_title">क्रेडेंशियल स्टोरेज उपलब्ध नहीं</string>
     <string name="settings_credential_keystore_broken_subtitle">इस डिवाइस के कीस्टोर ने Haven की क्रेडेंशियल कुंजी खो दी। सहेजे गए पासवर्ड पढ़े नहीं जा सकते और नए सहेजे नहीं जा सकते। मरम्मत के लिए टैप करें।</string>
     <string name="settings_credential_reset_title">क्रेडेंशियल स्टोरेज ठीक करें?</string>

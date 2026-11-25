@@ -1997,6 +1997,7 @@
       "ko": "게스트 사용자",
       "pt": "Utilizador convidado",
       "ru": "Гостевой пользователь",
+      "sr": "Гост корисник",
       "zh": "访客用户"
      }
     },
@@ -2016,6 +2017,7 @@
       "ko": "root 대신 비밀번호 없는 sudo 권한을 가진 일반 사용자(uid 1000)로 셸과 X11 데스크톱을 실행합니다. root 모드를 사용하려면 비워 두거나 root로 설정하세요.",
       "pt": "Executar shells e ambientes gráficos X11 como um utilizador normal (uid 1000) com sudo sem palavra-passe em vez de root. Deixe em branco ou defina como root para o modo root.",
       "ru": "Запускать оболочки и рабочие столы X11 от имени обычного пользователя (uid 1000) с sudo без пароля вместо root. Оставьте пустым или укажите root для режима суперпользователя.",
+      "sr": "Љуске и X11 десктопе покреће као обичан корисник (uid 1000) са sudo без лозинке уместо као корени корисник. Оставите празно или поставите на root за режим кореног корисника.",
       "zh": "以具有免密 sudo 权限的普通用户 (uid 1000) 而非 root 身份运行 shell 和 X11 桌面。留空或设为 root 则使用 root 模式。"
      }
     },
@@ -2035,6 +2037,7 @@
       "ko": "사용자 이름",
       "pt": "Nome de utilizador",
       "ru": "Имя пользователя",
+      "sr": "Корисничко име",
       "zh": "用户名"
      }
     },
@@ -2054,6 +2057,7 @@
       "ko": "root (또는 예: user)",
       "pt": "root (ou ex. user)",
       "ru": "root (или, например, user)",
+      "sr": "root (или нпр. корисник)",
       "zh": "root（或例如 user）"
      }
     },
@@ -6921,14 +6925,18 @@
      "en": "socks5h://127.0.0.1:1080",
      "comment": "Per-distro PRoot routing (#835)",
      "args": [],
-     "t": {}
+     "t": {
+      "sr": "socks5h://127.0.0.1:1080"
+     }
     },
     {
      "name": "app_desktop_routing_http_hint",
      "en": "http://127.0.0.1:8080",
      "comment": "Per-distro PRoot routing (#835)",
      "args": [],
-     "t": {}
+     "t": {
+      "sr": "http://127.0.0.1:8080"
+     }
     },
     {
      "name": "app_desktop_routing_title",
@@ -6946,7 +6954,7 @@
       "ko": "게스트 라우팅",
       "pt": "Roteamento do convidado",
       "ru": "Маршрутизация гостя",
-      "sr": "Rutiranje gosta",
+      "sr": "Рутирање госта",
       "zh": "客户机路由"
      }
     },
@@ -6968,7 +6976,7 @@
       "ko": "%1$s용 네트워크 프록시 라우팅입니다. 다음 셸, 데스크톱 또는 명령 실행 시 적용됩니다.",
       "pt": "Roteamento de proxy de rede para %1$s. Aplicado na próxima inicialização de shell, área de trabalho ou comando.",
       "ru": "Прокси-маршрутизация сети для %1$s. Применяется при следующем запуске оболочки, рабочего стола или команды.",
-      "sr": "Mrežno proksi rutiranje za %1$s. Primenjuje se pri sledećem pokretanju ljuske, radne površine ili komande.",
+      "sr": "Мрежно прокси рутирање за %1$s. Примењује се при следећем покретању љуске, радне површине или команде.",
       "zh": "%1$s 的网络代理路由。将在下次启动终端、桌面或客户机命令时生效。"
      }
     },
@@ -6988,7 +6996,7 @@
       "ko": "초기화",
       "pt": "Redefinir",
       "ru": "Сбросить",
-      "sr": "Resetuj",
+      "sr": "Ресетуј",
       "zh": "重置"
      }
     },
@@ -7008,7 +7016,7 @@
       "ko": "활성 터널 따르기",
       "pt": "Seguir túnel ativo",
       "ru": "Следовать активному туннелю",
-      "sr": "Prati aktivni tunel",
+      "sr": "Прати активни тунел",
       "zh": "跟随活动隧道"
      }
     },
@@ -7028,7 +7036,7 @@
       "ko": "직접 연결 (프록시 없음)",
       "pt": "Direto (sem proxy)",
       "ru": "Напрямую (без прокси)",
-      "sr": "Direktno (bez proksija)",
+      "sr": "Директно (без проксија)",
       "zh": "直连（不使用代理）"
      }
     },
@@ -7048,7 +7056,7 @@
       "ko": "Haven 터널",
       "pt": "Túnel do Haven",
       "ru": "Туннель Haven",
-      "sr": "Haven tunel",
+      "sr": "Haven тунел",
       "zh": "Haven 隧道"
      }
     },
@@ -7068,7 +7076,7 @@
       "ko": "사용자 지정 SOCKS5",
       "pt": "SOCKS5 personalizado",
       "ru": "Свой SOCKS5",
-      "sr": "Prilagođeni SOCKS5",
+      "sr": "Прилагођени SOCKS5",
       "zh": "自定义 SOCKS5"
      }
     },
@@ -7088,7 +7096,7 @@
       "ko": "사용자 지정 HTTP(S)",
       "pt": "HTTP(S) personalizado",
       "ru": "Свой HTTP(S)",
-      "sr": "Prilagođeni HTTP(S)",
+      "sr": "Прилагођени HTTP(S)",
       "zh": "自定义 HTTP(S)"
      }
     },
@@ -7108,7 +7116,7 @@
       "ko": "터널 선택…",
       "pt": "Selecionar túnel…",
       "ru": "Выберите туннель…",
-      "sr": "Izaberi tunel…",
+      "sr": "Изаберите тунел…",
       "zh": "选择隧道…"
      }
     },
@@ -7128,7 +7136,7 @@
       "ko": "저장된 단독 터널이 없습니다. 설정 → 터널에서 WireGuard, Tailscale, OpenVPN 또는 AnyConnect 터널을 추가하세요.",
       "pt": "Nenhum túnel autônomo salvo ainda. Adicione um túnel WireGuard, Tailscale, OpenVPN ou AnyConnect em Configurações → Túneis.",
       "ru": "Автономные туннели ещё не сохранены. Добавьте туннель WireGuard, Tailscale, OpenVPN или AnyConnect в разделе Настройки → Туннели.",
-      "sr": "Nema sačuvanih samostalnih tunela. Dodajte WireGuard, Tailscale, OpenVPN ili AnyConnect tunel u Podešavanja → Tuneli.",
+      "sr": "Нема сачуваних самосталних тунела. Додајте WireGuard, Tailscale, OpenVPN или AnyConnect тунел у Подешавања → Тунели.",
       "zh": "尚未保存独立隧道。请在“设置 → 隧道”中添加 WireGuard、Tailscale、OpenVPN 或 AnyConnect 隧道。"
      }
     },
@@ -7148,7 +7156,7 @@
       "ko": "프록시 URL",
       "pt": "URL do proxy",
       "ru": "URL прокси",
-      "sr": "URL proksija",
+      "sr": "URL проксија",
       "zh": "代理地址"
      }
     },
@@ -7168,7 +7176,7 @@
       "ko": "우회 호스트 (NO_PROXY)",
       "pt": "Hosts ignorados (NO_PROXY)",
       "ru": "Исключения (NO_PROXY)",
-      "sr": "Zaobiđi hostove (NO_PROXY)",
+      "sr": " Заобиђи хостове (NO_PROXY)",
       "zh": "绕过主机 (NO_PROXY)"
      }
     },
@@ -7188,7 +7196,7 @@
       "ko": "proxychains4로 감싸기",
       "pt": "Encapsular com proxychains4",
       "ru": "Запускать через proxychains4",
-      "sr": "Pokreni uz proxychains4",
+      "sr": "Покрени уз proxychains4",
       "zh": "使用 proxychains4 包装"
      }
     },
@@ -7208,7 +7216,7 @@
       "ko": "/etc/proxychains-haven.conf를 작성하고 게스트에 proxychains4가 설치된 경우 이를 통해 셸과 명령을 실행합니다(동적 바이너리 전용).",
       "pt": "Grava /etc/proxychains-haven.conf e executa shells/comandos sob proxychains4 quando instalado no convidado (apenas binários dinâmicos).",
       "ru": "Записывает /etc/proxychains-haven.conf и запускает оболочки и команды через proxychains4, если он установлен в гостевой ОС (только динамические бинарники).",
-      "sr": "Upisuje /etc/proxychains-haven.conf i pokreće ljuske i komande kroz proxychains4 kada je instaliran u gostu (samo dinamički binarni fajlovi).",
+      "sr": "Уписује /etc/proxychains-haven.conf и покреће љуске и команде кроз proxychains4 када је инсталиран у госту (само динамички бинарни фајлови).",
       "zh": "写入 /etc/proxychains-haven.conf，并在客户机已安装 proxychains4 时通过其运行终端和命令（仅限动态链接程序）。"
      }
     },
@@ -7228,7 +7236,7 @@
       "ko": "저장된 Haven 터널을 선택하세요.",
       "pt": "Escolha um túnel do Haven salvo.",
       "ru": "Выберите сохранённый туннель Haven.",
-      "sr": "Izaberite sačuvani Haven tunel.",
+      "sr": "Изаберите сачувани Haven тунел.",
       "zh": "请选择已保存的 Haven 隧道。"
      }
     },
@@ -7248,7 +7256,7 @@
       "ko": "프록시 host:port 또는 URL을 입력하세요.",
       "pt": "Insira um host:porta ou URL de proxy.",
       "ru": "Введите хост:порт или URL прокси.",
-      "sr": "Unesite host:port ili URL proksija.",
+      "sr": "Унесите хост:порт или URL проксија.",
       "zh": "请输入代理 host:port 或 URL。"
      }
     },
@@ -7268,7 +7276,7 @@
       "ko": "SOCKS5 모드는 host:port, socks5:// 또는 socks5h:// 형식이어야 합니다.",
       "pt": "O modo SOCKS5 espera host:porta, socks5:// ou socks5h://.",
       "ru": "Для SOCKS5 укажите хост:порт, socks5:// или socks5h://.",
-      "sr": "SOCKS5 režim očekuje host:port, socks5:// ili socks5h://.",
+      "sr": "SOCKS5 режим очекује хост:порт, socks5:// или socks5h://.",
       "zh": "SOCKS5 模式需要 host:port、socks5:// 或 socks5h://。"
      }
     },
@@ -7288,7 +7296,7 @@
       "ko": "HTTP 모드는 host:port, http:// 또는 https:// 형식이어야 합니다.",
       "pt": "O modo HTTP espera host:porta, http:// ou https://.",
       "ru": "Для HTTP укажите хост:порт, http:// или https://.",
-      "sr": "HTTP režim očekuje host:port, http:// ili https://.",
+      "sr": "HTTP режим очекује хост:порт, http:// или https://.",
       "zh": "HTTP 模式需要 host:port、http:// 或 https://。"
      }
     },
@@ -7308,7 +7316,7 @@
       "ko": "유효하지 않은 프록시 호스트 이름 또는 IP 주소입니다.",
       "pt": "Nome de host ou endereço IP do proxy inválido.",
       "ru": "Некорректное имя хоста или IP-адрес прокси.",
-      "sr": "Nevažeće ime hosta ili IP adresa proksija.",
+      "sr": "Неисправно име хоста или IP адреса проксија.",
       "zh": "代理主机名或 IP 地址无效。"
      }
     },
@@ -7328,7 +7336,7 @@
       "ko": "1~65535 사이의 유효한 포트를 포함하세요(예: 127.0.0.1:1080).",
       "pt": "Inclua uma porta válida entre 1 e 65535 (ex.: 127.0.0.1:1080).",
       "ru": "Укажите порт от 1 до 65535 (например, 127.0.0.1:1080).",
-      "sr": "Unesite važeći port između 1 i 65535 (npr. 127.0.0.1:1080).",
+      "sr": "Унесите исправан порт између 1 и 65535 (нпр. 127.0.0.1:1080).",
       "zh": "请包含 1 到 65535 之间的有效端口（例如 127.0.0.1:1080）。"
      }
     },
@@ -7348,7 +7356,7 @@
       "ko": "IP 또는 IP:포트 주소를 입력하세요(예: 1.1.1.1, 127.0.0.1:5400).",
       "pt": "Insira endereços IP ou IP:porta (ex.: 1.1.1.1, 127.0.0.1:5400).",
       "ru": "Введите адреса IP или IP:порт (например, 1.1.1.1, 127.0.0.1:5400).",
-      "sr": "Unesite IP ili IP:port adrese (npr. 1.1.1.1, 127.0.0.1:5400).",
+      "sr": "Унесите IP или IP:порт адресе (нпр. 1.1.1.1, 127.0.0.1:5400).",
       "zh": "请输入 IP 或 IP:端口 地址（例如 1.1.1.1, 127.0.0.1:5400）。"
      }
     },
@@ -7368,7 +7376,7 @@
       "ko": "프록시 외 트래픽 차단",
       "pt": "Bloquear tráfego fora do proxy",
       "ru": "Блокировать трафик мимо прокси",
-      "sr": "Blokiraj saobraćaj van proksija",
+      "sr": "Блокирај саобраћај ван проксија",
       "zh": "阻止非代理流量"
      }
     },
@@ -7388,7 +7396,7 @@
       "ko": "게스트 프로그램이 활성 프록시를 우회하지 못하도록 PRoot에서 직접 발신 소켓과 DNS 쿼리를 차단합니다.",
       "pt": "Bloqueia sockets de saída diretos e consultas DNS no PRoot para evitar que programas convidados contornem o proxy ativo.",
       "ru": "Блокирует прямые исходящие соединения и DNS-запросы в PRoot, чтобы программы гостя не обходили активный прокси.",
-      "sr": "Blokira direktne odlazne sokete i DNS upite u PRoot okruženju kako programi gosta ne bi zaobišli aktivni proksi.",
+      "sr": "Блокира директне одлазне сокете и DNS упите у PRoot окружењу како програми госта не би заобишли активни прокси.",
       "zh": "在 PRoot 中拦截直接出站套接字与 DNS 查询，防止客户机程序绕过当前代理。"
      }
     },
@@ -7408,6 +7416,7 @@
       "ko": "게스트 서비스",
       "pt": "Serviços do convidado",
       "ru": "Гостевые службы",
+      "sr": "",
       "zh": "客户机服务"
      }
     },
@@ -7427,6 +7436,7 @@
       "ko": "활성 Linux 배포판의 루프백에서 실행되는 백그라운드 서버입니다.",
       "pt": "Servidores em segundo plano na distribuição Linux ativa em loopback.",
       "ru": "Фоновые серверы на локальном интерфейсе в активном дистрибутиве Linux.",
+      "sr": "Позадински сервери који се извршавају у активној Линукс дистрибуцији на loopback интерфејсу.",
       "zh": "在当前 Linux 发行版回环地址上运行的后台服务。"
      }
     },
@@ -7448,6 +7458,7 @@
       "ko": "실행 중 · 127.0.0.1:%1$d",
       "pt": "Em execução · 127.0.0.1:%1$d",
       "ru": "Работает · 127.0.0.1:%1$d",
+      "sr": "Извршава се · 127.0.0.1:%1$d",
       "zh": "运行中 · 127.0.0.1:%1$d"
      }
     },
@@ -7469,6 +7480,7 @@
       "ko": "중지됨 · 127.0.0.1:%1$d",
       "pt": "Parado · 127.0.0.1:%1$d",
       "ru": "Остановлено · 127.0.0.1:%1$d",
+      "sr": "Заустављено · 127.0.0.1:%1$d",
       "zh": "已停止 · 127.0.0.1:%1$d"
      }
     },
@@ -7488,7 +7500,7 @@
       "ko": "컨테이너 엔진",
       "pt": "Motor de contêiner",
       "ru": "Движок контейнера",
-      "sr": "Pokretač kontejnera",
+      "sr": "Покретач контејнера",
       "zh": "容器引擎"
      }
     },
@@ -7508,7 +7520,7 @@
       "ko": "네이티브 arm64 셸 및 데스크톱에 사용하는 엔진입니다. QEMU 에뮬레이션, 낮은 포트 리매핑 또는 직접 트래픽 차단이 활성화된 경우 자동으로 PRoot로 전환됩니다.",
       "pt": "Motor para terminais e ambientes gráficos arm64 nativos. Volta automaticamente ao PRoot quando a emulação QEMU, o remapeamento de portas baixas ou o bloqueio de tráfego direto está ativo.",
       "ru": "Движок для нативных оболочек и рабочих столов arm64. Автоматически переключается на PRoot при включённой эмуляции QEMU, перенаправлении младших портов или блокировке прямого трафика.",
-      "sr": "Pokretač za izvorne arm64 terminale i radna okruženja. Automatski prelazi na PRoot kada su aktivni QEMU emulacija, preusmeravanje niskih portova ili blokiranje direktnog saobraćaja.",
+      "sr": "Покретач за изворне arm64 терминале и радна окружења. Аутоматски прелази на PRoot када су активни QEMU емулација, преусмеравање ниских портова или блокирање директног саобраћаја.",
       "zh": "用于原生 arm64 终端与桌面的运行引擎。启用 QEMU 模拟、低端口重映射或直接流量拦截时会自动回退到 PRoot。"
      }
     },
@@ -7528,7 +7540,7 @@
       "ko": "PRoot (기본값)",
       "pt": "PRoot (padrão)",
       "ru": "PRoot (по умолчанию)",
-      "sr": "PRoot (podrazumevano)",
+      "sr": "PRoot (подразумевано)",
       "zh": "PRoot（默认）"
      }
     },
@@ -11589,7 +11601,7 @@
       "ko": "서버 방화벽에서 UDP 포트 60001이 열려 있어야 합니다.",
       "pt": "A porta UDP 60001 deve estar aberta no firewall do servidor.",
       "ru": "UDP-порт 60001 должен быть открыт в файрволе сервера.",
-      "sr": "\"UDP порт 60001 мора бити отворен на мрежној баријери сервера. \"",
+      "sr": "UDP порт 60001 мора бити отворен на мрежној баријери сервера.",
       "zh": "服务器防火墙须开放 UDP 端口 60001。"
      }
     },
@@ -11669,7 +11681,7 @@
       "ko": "Android NDK r27+로 tools/build-mosh.sh를 실행해 mosh-client 바이너리를 빌드한 다음 앱을 다시 빌드하세요.",
       "pt": "Execute tools/build-mosh.sh com Android NDK r27+ para compilar o binário mosh-client e recompile o app.",
       "ru": "Запустите tools/build-mosh.sh с Android NDK r27+ для сборки mosh-client, затем пересоберите приложение.",
-      "sr": "Покрените tools/build-mosh.sh са Андроид NDK r27+ да изградите mosh-client бинарни фајл, then rebuild the app.па затим поново изградите апликацију.",
+      "sr": "Покрените tools/build-mosh.sh са Андроид NDK r27+ да изградите mosh-client бинарни фајл, па затим поново изградите апликацију.",
       "zh": "使用 Android NDK r27+ 运行 tools/build-mosh.sh 构建 mosh-client 二进制文件，然后重新构建应用。"
      }
     },
@@ -13968,6 +13980,46 @@
      }
     },
     {
+     "name": "connection_address_family_ipv6_preferred",
+     "en": "IPv6 preferred",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "IPv6 مفضّل",
+      "bn": "IPv6 পছন্দসই",
+      "de": "IPv6 bevorzugt",
+      "es": "IPv6 preferido",
+      "fr": "IPv6 préféré",
+      "hi": "IPv6 वरीयता",
+      "ja": "IPv6 優先",
+      "ko": "IPv6 우선",
+      "pt": "IPv6 preferido",
+      "ru": "IPv6 приоритет",
+      "sr": "IPv6 пожељно",
+      "zh": "IPv6 优先"
+     }
+    },
+    {
+     "name": "connection_address_family_ipv4_preferred",
+     "en": "IPv4 preferred",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "IPv4 مفضّل",
+      "bn": "IPv4 পছন্দসই",
+      "de": "IPv4 bevorzugt",
+      "es": "IPv4 preferido",
+      "fr": "IPv4 préféré",
+      "hi": "IPv4 वरीयता",
+      "ja": "IPv4 優先",
+      "ko": "IPv4 우선",
+      "pt": "IPv4 preferido",
+      "ru": "IPv4 приоритет",
+      "sr": "IPv4 пожељно",
+      "zh": "IPv4 优先"
+     }
+    },
+    {
      "name": "connection_address_family_ipv4_hint",
      "en": "Skip AAAA records and connect over IPv4. Useful when DNS returns IPv6 but the network can\\'t route it.",
      "comment": "Group header",
@@ -16133,6 +16185,26 @@
      }
     },
     {
+     "name": "connections_storage_connect_timeout",
+     "en": "Storage connection timed out — see Settings → View connection log",
+     "comment": "ConnectionsScreen top-level",
+     "args": [],
+     "t": {
+      "ar": "انتهت مهلة اتصال التخزين — راجع الإعدادات ← سجل الاتصالات",
+      "bn": "স্টোরেজ সংযোগের সময়সীমা শেষ — সেটিংস → সংযোগ লগ দেখুন",
+      "de": "Speicher-Verbindung abgelaufen — siehe Einstellungen → Verbindungsprotokoll",
+      "es": "Tiempo de espera de la conexión de almacenamiento agotado — consulta Ajustes → Registro de conexiones",
+      "fr": "Délai de connexion au stockage dépassé — voir Paramètres → Journal des connexions",
+      "hi": "स्टोरेज कनेक्शन का समय समाप्त — सेटिंग्स → कनेक्शन लॉग देखें",
+      "ja": "ストレージ接続がタイムアウトしました — 設定 → 接続ログを確認してください",
+      "ko": "스토리지 연결 시간 초과 — 설정 → 연결 로그 확인",
+      "pt": "Tempo limite da conexão de armazenamento esgotado — veja Configurações → Registro de conexões",
+      "ru": "Тайм-аут подключения к хранилищу — см. Настройки → Журнал подключений",
+      "sr": "Временско ограничење везе са складиштем је истекло — погледајте Подешавања → Дневник веза",
+      "zh": "存储连接超时 — 查看设置 → 连接日志"
+     }
+    },
+    {
      "name": "connections_reveal_password_title",
      "en": "Reveal saved password",
      "comment": "ConnectionsScreen top-level",
@@ -17956,6 +18028,7 @@
       "ko": "GLKVM 설정",
       "pt": "Configurações de GLKVM",
       "ru": "Настройки GLKVM",
+      "sr": "GLKVM / PiKVM подешавања",
       "zh": "GLKVM 设置"
      }
     },
@@ -18055,7 +18128,7 @@
       "ko": "Bearer 토큰으로 전송됩니다. 키가 없는 서버는 비워 두세요.",
       "pt": "Enviada como token Bearer. Deixe em branco para servidores sem chave.",
       "ru": "Отправляется как Bearer-токен. Для серверов без ключа оставьте пустым.",
-      "sr": "Шаље се као Bearer токен. Оставите празно за сервере без кључа.",
+      "sr": "Шаље се као Bearer жетон. Оставите празно за сервере без кључа.",
       "zh": "以 Bearer 令牌发送。无需密钥的服务器请留空。"
      }
     },
@@ -18739,7 +18812,7 @@
       "ko": "Haven의 MCP를 이 연결의 모든 세션에 노출합니다. 각 세션은 http://127.0.0.1:8730/mcp에 접속하며 (루프백을 통해) 페어링과 동의를 건너뜁니다. 연결 시 적용됩니다. 세션을 열지 않고 상시 접근하려면 설정 → 에이전트 엔드포인트에서 상시 연결 MCP 연결로 지정하세요.",
       "pt": "Expõe o MCP do Haven a todas as sessões desta conexão — elas acessam http://127.0.0.1:8730/mcp e (via loopback) ignoram o emparelhamento e o consentimento. Aplicado ao conectar. Para acesso sempre ativo sem sessão aberta, defina-a como Conexão MCP sempre ativa em Configurações → Endpoint do agente.",
       "ru": "Открывает MCP Haven для каждого сеанса этого подключения — они обращаются к http://127.0.0.1:8730/mcp и (через loopback) пропускают сопряжение и согласие. Применяется при подключении. Для постоянного доступа без открытого сеанса назначьте его как Постоянное MCP-подключение в Настройки → Конечная точка агента.",
-      "sr": "\"Тунелује уназад Haven-ов сопствени MCP сервер удаљном хосту, тако да проциси који се извршавају тамо (нпр. Claude Code који ради на серверу) могу да приступе http://127.0.0.1:8730/mcp и (преко loopback интерфејса) прескоче упаривање &amp; пристанак. Примењује се током успостављања везе. За континуирани приступ без отворене сесије, поставите ово као Увек активна MCP веза у Подешавања → Крајња тачка агента.\\n\"",
+      "sr": "\"Тунелује уназад Haven-ов сопствени MCP сервер удаљеном хосту, тако да процеси који се извршавају тамо (нпр. Claude Code који ради на серверу) могу да приступе http://127.0.0.1:8730/mcp и (преко loopback интерфејса) прескоче упаривање &amp; пристанак. Примењује се током успостављања везе. За континуирани приступ без отворене сесије, поставите ово као Увек активна MCP веза у Подешавања → Крајња тачка агента.\\n\"",
       "zh": "将 Haven 的 MCP 开放给此连接的每个会话——它们可访问 http://127.0.0.1:8730/mcp，并（通过环回）跳过配对与同意。连接时生效。如需在不打开会话的情况下常驻访问，请在 设置 → 代理端点 中将其设为常驻 MCP 连接。"
      }
     },
@@ -19079,7 +19152,7 @@
       "ko": "AI 경로 캐리어",
       "pt": "Portador de rota de IA",
       "ru": "Носитель маршрута ИИ",
-      "sr": "Носач ИИ руте",
+      "sr": "Носач AI руте",
       "zh": "AI 路由载体"
      }
     },
@@ -19179,7 +19252,7 @@
       "ko": "캐리어를 통해 엔드포인트로 경로를 지정합니다: SSH는 캐리어 세션을 통해 로컬 포워드를 열고, Reticulum은 메시 위에 브리지를 만듭니다. Reticulum 경로에는 캐리어가 연결되어 있어야 합니다.",
       "pt": "Encaminha o ponto de extremidade por um portador: o SSH abre um encaminhamento local pela sessão do portador, o Reticulum faz a ponte pela malha. O portador deve estar conectado para rotas Reticulum.",
       "ru": "Маршрутизирует конечную точку через носитель: SSH открывает локальную переадресацию через сеанс носителя, Reticulum наводит мост по ячеистой сети. Для маршрутов Reticulum носитель должен быть подключён.",
-      "sr": "Руторира крајњу тачку преко носиоца: SSH отвара локално прослеђивање кроз сесију носиоца, Reticulum прави мост преко мреже. Носилац мора бити повезан за Reticulum руте.",
+      "sr": "Рутира крајњу тачку преко носиоца: SSH отвара локално прослеђивање кроз сесију носиоца, Reticulum прави мост преко мреже. Носилац мора бити повезан за Reticulum руте.",
       "zh": "通过载体路由端点：SSH 经载体会话打开本地转发，Reticulum 经网格搭建桥梁。Reticulum 路由要求载体已连接。"
      }
     },
@@ -19501,6 +19574,7 @@
       "ko": "대상 키보드 레이아웃",
       "pt": "Layout de teclado do alvo",
       "ru": "Раскладка клавиатуры цели",
+      "sr": "Распоред тастатуре циља",
       "zh": "目标键盘布局"
      }
     },
@@ -19520,6 +19594,7 @@
       "ko": "GLKVM (HTTPS 기반 PiKVM 방식 KVM) — 대상 장비의 실제 마우스와 키보드를 직접 제어합니다. TLS는 trust-on-first-use를 사용하며 입력되는 문자는 대상 장비의 키보드 레이아웃을 따릅니다. SSH 터널이나 WireGuard/Tailscale 프로필로 LAN 밖에서도 접근할 수 있습니다.",
       "pt": "GLKVM (KVM no estilo PiKVM via HTTPS) — controla o teclado e o mouse físicos da máquina alvo. O TLS usa confiança no primeiro uso; o layout do teclado do alvo define os caracteres digitados. Use um túnel SSH ou um perfil WireGuard/Tailscale para alcançá-lo fora da LAN.",
       "ru": "GLKVM (KVM в стиле PiKVM через HTTPS) — управляет физической мышью и клавиатурой целевой машины. TLS использует доверие при первом использовании; раскладка клавиатуры цели определяет вводимые символы. Через SSH-туннель или профиль WireGuard/Tailscale доступен и из-за пределами LAN.",
+      "sr": "GLKVM и PiKVM (kvmd преко HTTPS) — покреће физичког миша и тастатуру циља. TLS користи поверење-при-првој-употреби и распоред тастатуре циља контролише откуцане карактере (надовежите ваш 6-цифрени 2FA кôд на лозинку ако је укључена PiKVM 2FA). Рутирајте кроз SSH тунел или WireGuard/Tailscale профил да му приступите ван LAN мреже.",
       "zh": "GLKVM（基于 HTTPS 的 PiKVM 式 KVM）— 直接操控目标机的物理鼠标和键盘。TLS 使用首次信任；录入的字符由目标机的键盘布局决定。通过 SSH 隧道或 WireGuard/Tailscale 配置文件即可从局域网之外访问。"
      }
     },
@@ -21139,7 +21214,7 @@
       "ko": "X11 디스플레이 포워딩",
       "pt": "Encaminhar tela X11",
       "ru": "Перенаправлять дисплей X11",
-      "sr": "Prosledi X11 ekran",
+      "sr": "Проследи X11 екран",
       "zh": "转发 X11 显示"
      }
     },
@@ -21159,7 +21234,7 @@
       "ko": "원격 포트 6010을 휴대폰의 X11 서버로 터널링하고 필요한 경우 설치된 X11 데스크톱을 시작한 뒤 SSH 셸에서 DISPLAY=localhost:10.0을 내보냅니다.",
       "pt": "Encaminha a porta remota 6010 para o servidor X11 do telefone, inicia uma área de trabalho X11 instalada se necessário e exporta DISPLAY=localhost:10.0 no shell SSH.",
       "ru": "Туннелирует удалённый порт 6010 на X11-сервер телефона, при необходимости запускает установленный рабочий стол X11 и экспортирует DISPLAY=localhost:10.0 в оболочке SSH.",
-      "sr": "Tuneluje udaljeni port 6010 ka X11 serveru na telefonu, pokreće instalirano X11 radno okruženje po potrebi i izvozi DISPLAY=localhost:10.0 u SSH školjci.",
+      "sr": "Тунелује удаљени порт 6010 ка X11 серверу на телефону, покреће инсталирано X11 радно окружење по потреби и извози DISPLAY=localhost:10.0 у SSH љуски.",
       "zh": "将远程端口 6010 隧道转发到手机的 X11 服务器，按需启动已安装的 X11 桌面，并在 SSH shell 中导出 DISPLAY=localhost:10.0。"
      }
     },
@@ -21179,7 +21254,7 @@
       "ko": "PulseAudio 포워딩",
       "pt": "Encaminhar PulseAudio",
       "ru": "Перенаправлять PulseAudio",
-      "sr": "Prosledi PulseAudio",
+      "sr": "Проследи PulseAudio",
       "zh": "转发 PulseAudio"
      }
     },
@@ -21199,7 +21274,7 @@
       "ko": "휴대폰의 PulseAudio 브리지를 시작하고 원격 포트 14713을 로컬 포트 4713으로 터널링한 뒤 SSH 셸에서 PULSE_SERVER=tcp:127.0.0.1:14713을 내보냅니다.",
       "pt": "Inicia a ponte PulseAudio do telefone, encaminha a porta remota 14713 para a porta local 4713 e exporta PULSE_SERVER=tcp:127.0.0.1:14713 no shell SSH.",
       "ru": "Запускает мост PulseAudio на телефоне, туннелирует удалённый порт 14713 на локальный порт 4713 и экспортирует PULSE_SERVER=tcp:127.0.0.1:14713 в оболочке SSH.",
-      "sr": "Pokreće PulseAudio most na telefonu, tuneluje udaljeni port 14713 ka lokalnom portu 4713 i izvozi PULSE_SERVER=tcp:127.0.0.1:14713 u SSH školjci.",
+      "sr": "Покреће PulseAudio мост на телефону, тунелује удаљени порт 14713 ка локалном порту 4713 и извози PULSE_SERVER=tcp:127.0.0.1:14713 у SSH љуски.",
       "zh": "启动手机的 PulseAudio 音频桥接，将远程端口 14713 隧道转发到本地端口 4713，并在 SSH shell 中导出 PULSE_SERVER=tcp:127.0.0.1:14713。"
      }
     },
@@ -21244,6 +21319,86 @@
      }
     },
     {
+     "name": "connections_toggle_legacy_host_key_fallback",
+     "en": "Retry with legacy ssh-rsa host key",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "إعادة المحاولة بمفتاح المضيف القديم ssh-rsa",
+      "bn": "পুরনো ssh-rsa হোস্ট কী দিয়ে আবার চেষ্টা করুন",
+      "de": "Mit altem ssh-rsa-Hostschlüssel erneut versuchen",
+      "es": "Reintentar con la clave de host ssh-rsa antigua",
+      "fr": "Réessayer avec l\\'ancienne clé d\\'hôte ssh-rsa",
+      "hi": "पुरानी ssh-rsa होस्ट कुंजी के साथ पुनः प्रयास करें",
+      "ja": "旧式の ssh-rsa ホストキーで再試行",
+      "ko": "레거시 ssh-rsa 호스트 키로 다시 시도",
+      "pt": "Tentar novamente com chave de host ssh-rsa antiga",
+      "ru": "Повторить с устаревшим ключом хоста ssh-rsa",
+      "sr": "Понови покушај са старим ssh-rsa кључем домаћина",
+      "zh": "使用旧式 ssh-rsa 主机密钥重试"
+     }
+    },
+    {
+     "name": "connections_helper_legacy_host_key_fallback",
+     "en": "When a server offers only the old SHA-1 ssh-rsa host key, retry the connection once with that algorithm appended. Modern algorithms are still tried first, so servers that support them are unaffected. Turn off to fail instead of weakening the handshake.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "عندما يقدّم الخادم مفتاح المضيف القديم ssh-rsa (SHA-1) فقط، أعد محاولة الاتصال مرة واحدة بإضافة هذه الخوارزمية. تبقى الخوارزميات الحديثة أولاً، لذا لا تتأثر الخوادم التي تدعمها. أوقف هذا الخيار للفشل بدلاً من إضعاف المصافحة.",
+      "bn": "যখন সার্ভার শুধুমাত্র পুরনো SHA-1 ssh-rsa হোস্ট কী অফার করে, তখন এই অ্যালগরিদম যোগ করে একবার আবার সংযোগের চেষ্টা করুন। আধুনিক অ্যালগরিদম এখনও আগে চেষ্টা করা হয়, তাই যেসব সার্ভার সেগুলো সমর্থন করে সেগুলো প্রভাবিত হয় না। হ্যান্ডশেক দুর্বল করার বদলে ব্যর্থ হতে এটি বন্ধ করুন।",
+      "de": "Wenn ein Server nur den alten SHA-1-Hostschlüssel ssh-rsa anbietet, wird die Verbindung einmal mit angehängtem Algorithmus wiederholt. Moderne Algorithmen werden weiterhin zuerst versucht, Server mit Unterstützung dafür sind also nicht betroffen. Ausschalten, um stattdessen zu scheitern, anstatt den Handshake zu schwächen.",
+      "es": "Cuando un servidor solo ofrece la clave de host ssh-rsa (SHA-1) antigua, reintenta la conexión una vez añadiendo ese algoritmo. Los algoritmos modernos se siguen intentando primero, así que los servidores que los admiten no se ven afectados. Desactívalo para fallar en lugar de debilitar el handshake.",
+      "fr": "Lorsqu\\'un serveur ne propose que l\\'ancienne clé d\\'hôte ssh-rsa (SHA-1), la connexion est retentée une fois avec cet algorithme ajouté. Les algorithmes modernes restent essayés en premier, les serveurs qui les prennent en charge ne sont donc pas affectés. Désactivez pour échouer au lieu d\\'affaiblir la poignée de main.",
+      "hi": "जब कोई सर्वर केवल पुरानी SHA-1 ssh-rsa होस्ट कुंजी प्रदान करता है, तो उस एल्गोरिद्म को जोड़कर कनेक्शन एक बार फिर से आज़माएँ। आधुनिक एल्गोरिद्म अभी भी पहले आज़माए जाते हैं, इसलिए उन्हें समर्थन देने वाले सर्वर प्रभावित नहीं होते। हैंडशेक को कमज़ोर करने के बजाय विफल होने के लिए इसे बंद करें।",
+      "ja": "サーバーが旧式の SHA-1 ssh-rsa ホストキーのみを提供している場合、そのアルゴリズムを追加して接続を一度だけ再試行します。モダンなアルゴリズムが引き続き優先されるため、それらに対応したサーバーには影響しません。ハンドシェイクを弱める代わりに失敗させたい場合はオフにしてください。",
+      "ko": "서버가 오래된 SHA-1 ssh-rsa 호스트 키만 제공하는 경우 해당 알고리즘을 추가하여 연결을 한 번 더 시도합니다. 최신 알고리즘이 여전히 우선 시도되므로 이를 지원하는 서버는 영향을 받지 않습니다. 핸드셰이크를 약화시키는 대신 실패하게 하려면 끄십시오.",
+      "pt": "Quando um servidor oferece apenas a chave de host ssh-rsa (SHA-1) antiga, a conexão é repetida uma vez com esse algoritmo anexado. Os algoritmos modernos continuam sendo tentados primeiro, então servidores que os suportam não são afetados. Desative para falhar em vez de enfraquecer o handshake.",
+      "ru": "Если сервер предлагает только устаревший ключ хоста ssh-rsa (SHA-1), подключение повторяется один раз с добавлением этого алгоритма. Современные алгоритмы по-прежнему пробуются первыми, поэтому серверы с их поддержкой не затрагиваются. Отключите, чтобы завершать ошибкой вместо ослабления рукопожатия.",
+      "sr": "Када сервер нуди само стари SHA-1 ssh-rsa кључ домаћина, веза се поново покушава једном са додатим тим алгоритмом. Модерни алгоритми се и даље покушавају први, тако да сервери који их подржавају нису погођени. Искључите да бисте добили грешку уместо да ослабите руковање.",
+      "zh": "当服务器只提供旧的 SHA-1 ssh-rsa 主机密钥时，追加该算法后重试一次连接。现代算法仍会优先尝试，因此支持它们的服务器不受影响。关闭此项可在握手被削弱前直接失败。"
+     }
+    },
+    {
+     "name": "connections_toggle_netbird_ssh_jwt",
+     "en": "NetBird SSH sign-in (JWT)",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تسجيل دخول NetBird SSH (JWT)",
+      "bn": "NetBird SSH সাইন-ইন (JWT)",
+      "de": "NetBird-SSH-Anmeldung (JWT)",
+      "es": "Inicio de sesión SSH de NetBird (JWT)",
+      "fr": "Connexion SSH NetBird (JWT)",
+      "hi": "NetBird SSH साइन-इन (JWT)",
+      "ja": "NetBird SSH サインイン (JWT)",
+      "ko": "NetBird SSH 로그인 (JWT)",
+      "pt": "Login SSH do NetBird (JWT)",
+      "ru": "Вход NetBird SSH (JWT)",
+      "sr": "NetBird SSH пријава (JWT)",
+      "zh": "NetBird SSH 登录（JWT）"
+     }
+    },
+    {
+     "name": "connections_helper_netbird_ssh_jwt",
+     "en": "For NetBird SSH servers that require sign-in: authenticate with your NetBird identity in a browser and use the resulting token as the SSH password. Only applies when this connection uses a NetBird tunnel.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "لخوادم NetBird SSH التي تتطلب تسجيل الدخول: صادق بهويتك في NetBird عبر متصفح واستخدم الرمز الناتج ككلمة مرور SSH. ينطبق فقط عندما يستخدم هذا الاتصال نفق NetBird.",
+      "bn": "যেসব NetBird SSH সার্ভারে সাইন-ইন প্রয়োজন: ব্রাউজারে আপনার NetBird পরিচয় দিয়ে authenticate করুন এবং প্রাপ্ত টোকেনকে SSH পাসওয়ার্ড হিসেবে ব্যবহার করুন। শুধুমাত্র তখনই প্রযোজ্য যখন এই সংযোগ NetBird টানেল ব্যবহার করে।",
+      "de": "Für NetBird-SSH-Server, die eine Anmeldung erfordern: Authentifizieren Sie sich mit Ihrer NetBird-Identität im Browser und verwenden Sie das resultierende Token als SSH-Passwort. Gilt nur, wenn diese Verbindung einen NetBird-Tunnel nutzt.",
+      "es": "Para servidores SSH de NetBird que requieren inicio de sesión: autentícate con tu identidad de NetBird en un navegador y usa el token resultante como contraseña SSH. Solo se aplica cuando esta conexión usa un túnel NetBird.",
+      "fr": "Pour les serveurs SSH NetBird nécessitant une connexion : authentifiez-vous avec votre identité NetBird dans un navigateur et utilisez le jeton obtenu comme mot de passe SSH. S\\'applique uniquement lorsque cette connexion utilise un tunnel NetBird.",
+      "hi": "उन NetBird SSH सर्वर के लिए जिन्हें साइन-इन चाहिए: ब्राउज़र में अपनी NetBird पहचान से authenticate करें और प्राप्त टोकन को SSH पासवर्ड के रूप में उपयोग करें। केवल तभी लागू जब यह कनेक्शन NetBird टनल उपयोग करता है।",
+      "ja": "サインインが必要な NetBird SSH サーバー向け：ブラウザで NetBird の ID で認証し、取得したトークンを SSH パスワードとして使用します。この接続が NetBird トンネルを使う場合のみ適用されます。",
+      "ko": "로그인이 필요한 NetBird SSH 서버용: 브라우저에서 NetBird ID로 인증하고 받은 토큰을 SSH 비밀번호로 사용합니다. 이 연결이 NetBird 터널을 사용할 때만 적용됩니다.",
+      "pt": "Para servidores SSH do NetBird que exigem login: autentique-se com sua identidade NetBird em um navegador e use o token resultante como senha SSH. Aplica-se apenas quando esta conexão usa um túnel NetBird.",
+      "ru": "Для серверов NetBird SSH, требующих входа: войдите с помощью своей учётной записи NetBird в браузере и используйте полученный токен как пароль SSH. Применяется только когда это соединение использует туннель NetBird.",
+      "sr": "За NetBird SSH сервере који захтевају пријаву: аутентификујте се својим NetBird идентитетом у прегледачу и користите добијени токен као SSH лозинку. Примењује се само када ова веза користи NetBird тунел.",
+      "zh": "适用于需要登录的 NetBird SSH 服务器：在浏览器中用您的 NetBird 身份认证，并将所得令牌用作 SSH 密码。仅在此连接使用 NetBird 隧道时适用。"
+     }
+    },
+    {
      "name": "connections_field_saved_password",
      "en": "Saved password (SSH / sudo)",
      "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
@@ -21259,6 +21414,7 @@
       "ko": "저장된 비밀번호 (SSH / sudo)",
       "pt": "Senha salva (SSH / sudo)",
       "ru": "Сохранённый пароль (SSH / sudo)",
+      "sr": "Сачувана лозинка (SSH / sudo)",
       "zh": "已保存密码 (SSH / sudo)"
      }
     },
@@ -21278,6 +21434,7 @@
       "ko": "선택 사항. Android Keystore에 암호화되어 저장되며 SSH 비밀번호 로그인 및 터미널의 생체인증 기반 sudo 자동 입력에 사용됩니다.",
       "pt": "Opcional. Criptografada no Android Keystore e usada para login SSH por senha e preenchimento biométrico de sudo no terminal.",
       "ru": "Необязательно. Зашифрован в Android Keystore и используется для входа по паролю SSH и биометрической автоподстановки sudo в терминале.",
+      "sr": "Није обавезно. Шифрује се у Android Keystore и користи за SSH пријаву лозинком и биометријски-пропуштено sudo попуњавање у терминалу.",
       "zh": "可选。在 Android Keystore 中加密保存，用于 SSH 密码登录以及终端中受生物识别保护的 sudo 自动填充。"
      }
     },
@@ -21459,6 +21616,49 @@
       "ru": "Запускает привилегированную оболочку Android (/system/bin/sh) через Shizuku (ADB uid 2000 или root). Требуется запущенный и авторизованный сервис Shizuku.",
       "sr": "Покреће привилеговану Андроид љуску (/system/bin/sh) преко сервиса Shizuku (ADB uid 2000 или root). Потребно је да Shizuku буде покренут и одобрен.",
       "zh": "通过 Shizuku（ADB uid 2000 或 root）运行特权 Android shell (/system/bin/sh)。需要 Shizuku 正在运行且已授权。"
+     }
+    },
+    {
+     "name": "connections_session_died_banner",
+     "en": "Session ended at %1$s · reason: %2$s",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [
+      "%1$s",
+      "%2$s"
+     ],
+     "t": {
+      "ar": "Session ended at %1$s · reason: %2$s",
+      "bn": "Session ended at %1$s · reason: %2$s",
+      "de": "Session ended at %1$s · reason: %2$s",
+      "es": "Session ended at %1$s · reason: %2$s",
+      "fr": "Session ended at %1$s · reason: %2$s",
+      "hi": "Session ended at %1$s · reason: %2$s",
+      "ja": "Session ended at %1$s · reason: %2$s",
+      "ko": "Session ended at %1$s · reason: %2$s",
+      "pt": "Session ended at %1$s · reason: %2$s",
+      "ru": "Сессия завершилась в %1$s · причина: %2$s",
+      "sr": "Session ended at %1$s · reason: %2$s",
+      "zh": "Session ended at %1$s · reason: %2$s"
+     }
+    },
+    {
+     "name": "connections_session_died_reconnect",
+     "en": "Reconnect",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "Reconnect",
+      "bn": "Reconnect",
+      "de": "Reconnect",
+      "es": "Reconnect",
+      "fr": "Reconnect",
+      "hi": "Reconnect",
+      "ja": "Reconnect",
+      "ko": "Reconnect",
+      "pt": "Reconnect",
+      "ru": "Подключить заново",
+      "sr": "Reconnect",
+      "zh": "Reconnect"
      }
     }
    ]
@@ -29140,6 +29340,372 @@
    ]
   },
   {
+   "module": "feature/preview",
+   "path": "feature/preview/src/main/res/values/strings.xml",
+   "strings": [
+    {
+     "name": "preview_markdown_outline",
+     "en": "Outline",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "المخطط",
+      "bn": "রূপরেখা",
+      "de": "Gliederung",
+      "es": "Esquema",
+      "fr": "Plan",
+      "hi": "रूपरेखा",
+      "ja": "アウトライン",
+      "ko": "개요",
+      "pt": "Estrutura",
+      "ru": "Оглавление",
+      "sr": "Структура",
+      "zh": "大纲"
+     }
+    },
+    {
+     "name": "preview_markdown_edit",
+     "en": "Edit",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تعديل",
+      "bn": "সম্পাদনা",
+      "de": "Bearbeiten",
+      "es": "Editar",
+      "fr": "Modifier",
+      "hi": "संपादित करें",
+      "ja": "編集",
+      "ko": "편집",
+      "pt": "Editar",
+      "ru": "Изменить",
+      "sr": "Измени",
+      "zh": "编辑"
+     }
+    },
+    {
+     "name": "preview_markdown_more",
+     "en": "More options",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "خيارات إضافية",
+      "bn": "আরও বিকল্প",
+      "de": "Weitere Optionen",
+      "es": "Más opciones",
+      "fr": "Plus d\\'options",
+      "hi": "और विकल्प",
+      "ja": "その他のオプション",
+      "ko": "추가 옵션",
+      "pt": "Mais opções",
+      "ru": "Другие параметры",
+      "sr": "Још опција",
+      "zh": "更多选项"
+     }
+    },
+    {
+     "name": "preview_markdown_open_with",
+     "en": "Open with…",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "فتح باستخدام…",
+      "bn": "এর মাধ্যমে খুলুন…",
+      "de": "Öffnen mit…",
+      "es": "Abrir con…",
+      "fr": "Ouvrir avec…",
+      "hi": "इसके साथ खोलें…",
+      "ja": "アプリで開く…",
+      "ko": "다른 앱으로 열기…",
+      "pt": "Abrir com…",
+      "ru": "Открыть с помощью…",
+      "sr": "Отвори помоћу…",
+      "zh": "打开方式…"
+     }
+    },
+    {
+     "name": "preview_markdown_empty",
+     "en": "This file is empty",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "هذا الملف فارغ",
+      "bn": "এই ফাইলটি খালি",
+      "de": "Diese Datei ist leer",
+      "es": "Este archivo está vacío",
+      "fr": "Ce fichier est vide",
+      "hi": "यह फ़ाइल खाली है",
+      "ja": "このファイルは空です",
+      "ko": "빈 파일입니다",
+      "pt": "Este arquivo está vazio",
+      "ru": "Этот файл пуст",
+      "sr": "Ова датотека је празна",
+      "zh": "此文件为空"
+     }
+    },
+    {
+     "name": "preview_markdown_front_matter",
+     "en": "Front matter",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "البيانات التمهيدية",
+      "bn": "ফ্রন্ট ম্যাটার",
+      "de": "Front Matter",
+      "es": "Front matter",
+      "fr": "Front matter",
+      "hi": "फ्रंट मैटर",
+      "ja": "フロントマター",
+      "ko": "프런트 매터",
+      "pt": "Front matter",
+      "ru": "Front matter",
+      "sr": "Front matter",
+      "zh": "前置元数据"
+     }
+    },
+    {
+     "name": "preview_markdown_copy_code",
+     "en": "Copy code",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "نسخ الرمز",
+      "bn": "কোড কপি করুন",
+      "de": "Code kopieren",
+      "es": "Copiar código",
+      "fr": "Copier le code",
+      "hi": "कोड कॉपी करें",
+      "ja": "コードをコピー",
+      "ko": "코드 복사",
+      "pt": "Copiar código",
+      "ru": "Копировать код",
+      "sr": "Копирај код",
+      "zh": "复制代码"
+     }
+    },
+    {
+     "name": "preview_markdown_code_copied",
+     "en": "Copied",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تم النسخ",
+      "bn": "কপি হয়েছে",
+      "de": "Kopiert",
+      "es": "Copiado",
+      "fr": "Copié",
+      "hi": "कॉपी हो गया",
+      "ja": "コピーしました",
+      "ko": "복사됨",
+      "pt": "Copiado",
+      "ru": "Скопировано",
+      "sr": "Копирано",
+      "zh": "已复制"
+     }
+    },
+    {
+     "name": "preview_markdown_back_to_top",
+     "en": "Back to top",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "العودة إلى الأعلى",
+      "bn": "শীর্ষে ফিরুন",
+      "de": "Nach oben",
+      "es": "Volver arriba",
+      "fr": "Haut de page",
+      "hi": "ऊपर जाएँ",
+      "ja": "トップへ戻る",
+      "ko": "맨 위로",
+      "pt": "Voltar ao topo",
+      "ru": "Наверх",
+      "sr": "На врх",
+      "zh": "回到顶部"
+     }
+    },
+    {
+     "name": "preview_markdown_remote_image",
+     "en": "Remote image, not loaded",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "صورة بعيدة، لم يتم تحميلها",
+      "bn": "দূরবর্তী ছবি, লোড করা হয়নি",
+      "de": "Externes Bild, nicht geladen",
+      "es": "Imagen remota, no cargada",
+      "fr": "Image distante, non chargée",
+      "hi": "रिमोट छवि, लोड नहीं की गई",
+      "ja": "リモート画像（未読み込み）",
+      "ko": "원격 이미지(불러오지 않음)",
+      "pt": "Imagem remota, não carregada",
+      "ru": "Удалённое изображение не загружено",
+      "sr": "Удаљена слика, није учитана",
+      "zh": "远程图片，未加载"
+     }
+    },
+    {
+     "name": "preview_markdown_image_unavailable",
+     "en": "Image unavailable",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "الصورة غير متاحة",
+      "bn": "ছবি উপলব্ধ নয়",
+      "de": "Bild nicht verfügbar",
+      "es": "Imagen no disponible",
+      "fr": "Image indisponible",
+      "hi": "छवि उपलब्ध नहीं",
+      "ja": "画像を表示できません",
+      "ko": "이미지를 사용할 수 없음",
+      "pt": "Imagem indisponível",
+      "ru": "Изображение недоступно",
+      "sr": "Слика није доступна",
+      "zh": "图片不可用"
+     }
+    },
+    {
+     "name": "preview_markdown_task_done",
+     "en": "Done",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "مكتمل",
+      "bn": "সম্পন্ন",
+      "de": "Erledigt",
+      "es": "Hecho",
+      "fr": "Fait",
+      "hi": "पूर्ण",
+      "ja": "完了",
+      "ko": "완료",
+      "pt": "Concluído",
+      "ru": "Готово",
+      "sr": "Урађено",
+      "zh": "已完成"
+     }
+    },
+    {
+     "name": "preview_markdown_task_open",
+     "en": "Not done",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "غير مكتمل",
+      "bn": "অসম্পন্ন",
+      "de": "Offen",
+      "es": "Pendiente",
+      "fr": "À faire",
+      "hi": "अपूर्ण",
+      "ja": "未完了",
+      "ko": "미완료",
+      "pt": "Pendente",
+      "ru": "Не готово",
+      "sr": "Није урађено",
+      "zh": "未完成"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_note",
+     "en": "Note",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "ملاحظة",
+      "bn": "নোট",
+      "de": "Hinweis",
+      "es": "Nota",
+      "fr": "Remarque",
+      "hi": "नोट",
+      "ja": "注記",
+      "ko": "참고",
+      "pt": "Nota",
+      "ru": "Примечание",
+      "sr": "Напомена",
+      "zh": "注意"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_tip",
+     "en": "Tip",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تلميح",
+      "bn": "টিপ",
+      "de": "Tipp",
+      "es": "Consejo",
+      "fr": "Astuce",
+      "hi": "सुझाव",
+      "ja": "ヒント",
+      "ko": "팁",
+      "pt": "Dica",
+      "ru": "Совет",
+      "sr": "Савет",
+      "zh": "提示"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_important",
+     "en": "Important",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "مهم",
+      "bn": "গুরুত্বপূর্ণ",
+      "de": "Wichtig",
+      "es": "Importante",
+      "fr": "Important",
+      "hi": "महत्वपूर्ण",
+      "ja": "重要",
+      "ko": "중요",
+      "pt": "Importante",
+      "ru": "Важно",
+      "sr": "Важно",
+      "zh": "重要"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_warning",
+     "en": "Warning",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تحذير",
+      "bn": "সতর্কতা",
+      "de": "Warnung",
+      "es": "Advertencia",
+      "fr": "Avertissement",
+      "hi": "चेतावनी",
+      "ja": "警告",
+      "ko": "경고",
+      "pt": "Aviso",
+      "ru": "Предупреждение",
+      "sr": "Упозорење",
+      "zh": "警告"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_caution",
+     "en": "Caution",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تنبيه",
+      "bn": "সাবধান",
+      "de": "Vorsicht",
+      "es": "Precaución",
+      "fr": "Attention",
+      "hi": "सावधान",
+      "ja": "注意",
+      "ko": "주의",
+      "pt": "Cuidado",
+      "ru": "Осторожно",
+      "sr": "Опрез",
+      "zh": "当心"
+     }
+    }
+   ]
+  },
+  {
    "module": "feature/rdp",
    "path": "feature/rdp/src/main/res/values/strings.xml",
    "strings": [
@@ -30725,6 +31291,7 @@
       "ko": "sudo 비밀번호 프롬프트 감지",
       "pt": "Detectar solicitações de senha do sudo",
       "ru": "Обнаруживать запросы пароля sudo",
+      "sr": "Откривање упита за sudo лозинку",
       "zh": "检测 sudo 密码提示"
      }
     },
@@ -30744,6 +31311,7 @@
       "ko": "[sudo] 및 doas 프롬프트에서 생체인증 자동 입력을 제안합니다. 비밀번호는 이 기기의 Android Keystore에 암호화되어 보관되며, 사용할 때마다 생체인증 잠금 해제가 필요하고 AI/MCP 도구에 절대 노출되지 않습니다.",
       "pt": "Oferecer preenchimento biométrico em solicitações [sudo] e doas. As senhas permanecem criptografadas no Android Keystore neste dispositivo, exigem desbloqueio biométrico a cada uso e nunca são expostas às ferramentas de IA/MCP.",
       "ru": "Предлагать биометрическое автозаполнение при запросах [sudo] и doas. Пароли хранятся в зашифрованном виде в Android Keystore на этом устройстве, требуют биометрической разблокировки при каждом использовании и никогда не передаются инструментам ИИ/MCP.",
+      "sr": "Приликом изврши-као и [sudo] упита, нуди биометријско ауто-попуњавање. Лозинке остају шифроване у Android Keystore на овом уређају, захтева се откључавање приликом сваке употребе, и никада се не излажу AI/MCP алатима.",
       "zh": "在出现 [sudo] 和 doas 提示时提供生物识别自动填充。密码在本机 Android Keystore 中加密保存，每次使用均需生物识别解锁，且绝不会暴露给 AI/MCP 工具。"
      }
     },
@@ -30905,6 +31473,82 @@
       "ru": "Записывать события подключений (подключение, отключение, ошибки). Хранится локально, защищено шифрованием устройства",
       "sr": "Снимање догађаја повезивања (успостављање везе, прекид везе, грешке). Чува се локално, заштићено шифровањем уређаја",
       "zh": "记录连接事件（连接、断开、错误）。存储在本地，受设备加密保护"
+     }
+    },
+    {
+     "name": "settings_event_journal_title",
+     "en": "Event journal",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "سجل الأحداث",
+      "bn": "ইভেন্ট লগ",
+      "de": "Ereignisprotokoll",
+      "es": "Registro de eventos",
+      "fr": "Journal des événements",
+      "hi": "इवेंट लॉग",
+      "ja": "イベントログ",
+      "ko": "이벤트 로그",
+      "pt": "Registro de eventos",
+      "ru": "Журнал событий",
+      "zh": "事件日志"
+     }
+    },
+    {
+     "name": "settings_event_journal_subtitle",
+     "en": "Records why sessions die or reconnect. On this device only; off by default.",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "يسجل أسباب انتهاء الجلسات أو إعادة اتصالها. على هذا الجهاز فقط؛ متوقف افتراضيًا",
+      "bn": "সেশন বন্ধ বা পুনরায় সংযোগের কারণ রেকর্ড করে। শুধুমাত্র এই ডিভাইসে; ডিফল্ট বন্ধ",
+      "de": "Zeichnet auf, warum Sitzungen enden oder sich neu verbinden. Nur auf diesem Gerät; standardmäßig aus",
+      "es": "Registra por qué las sesiones terminan o se reconectan. Solo en este dispositivo; desactivado por defecto",
+      "fr": "Enregistre pourquoi les sessions se terminent ou se reconnectent. Sur cet appareil uniquement; désactivé par défaut",
+      "hi": "सत्र बंद होने या फिर से जुड़ने के कारण रिकॉर्ड करता है। केवल इस डिवाइस पर; डिफ़ॉल्ट रूप से बंद",
+      "ja": "セッションの終了・再接続の理由を記録します。この端末のみ。既定ではオフ",
+      "ko": "세션이 종료되거나 다시 연결되는 이유를 기록합니다. 이 기기에서만; 기본적으로 꺼짐",
+      "pt": "Registra por que as sessões terminam ou se reconectam. Somente neste dispositivo; desativado por padrão",
+      "ru": "Записывает причины завершения и переподключения сессий. Только на этом устройстве; по умолчанию выключен",
+      "zh": "记录会话结束或重新连接的原因。仅限本设备；默认关闭"
+     }
+    },
+    {
+     "name": "settings_event_journal_export_title",
+     "en": "Export event journal",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "تصدير سجل الأحداث",
+      "bn": "ইভেন্ট লগ এক্সপোর্ট করুন",
+      "de": "Ereignisprotokoll exportieren",
+      "es": "Exportar registro de eventos",
+      "fr": "Exporter le journal des événements",
+      "hi": "इवेंट लॉग निर्यात करें",
+      "ja": "イベントログをエクスポート",
+      "ko": "이벤트 로그 내보내기",
+      "pt": "Exportar registro de eventos",
+      "ru": "Экспорт журнала событий",
+      "zh": "导出事件日志"
+     }
+    },
+    {
+     "name": "settings_event_journal_export_subtitle",
+     "en": "Share the recorded events for diagnostics",
+     "comment": "Logging section",
+     "args": [],
+     "t": {
+      "ar": "مشاركة الأحداث المسجلة للتشخيص",
+      "bn": "নির্ণয়ের জন্য রেকর্ড করা ইভেন্ট শেয়ার করুন",
+      "de": "Aufgezeichnete Ereignisse zur Diagnose teilen",
+      "es": "Comparte los eventos registrados para diagnóstico",
+      "fr": "Partager les événements enregistrés pour diagnostic",
+      "hi": "निदान के लिए रिकॉर्ड किए गए इवेंट साझा करें",
+      "ja": "記録したイベントを診断用に共有",
+      "ko": "기록된 이벤트를 진단용으로 공유",
+      "pt": "Compartilhe os eventos registrados para diagnóstico",
+      "ru": "Поделиться записанными событиями для диагностики",
+      "zh": "分享记录的事件以进行诊断"
      }
     },
     {
@@ -31085,6 +31729,146 @@
       "ru": "Сохранение сессий",
       "sr": "Постојаност сесије",
       "zh": "会话持久化"
+     }
+    },
+    {
+     "name": "settings_default_address_family_title",
+     "en": "Default address family",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "عائلة العناوين الافتراضية",
+      "bn": "ডিফল্ট অ্যাড্রেস ফ্যামিলি",
+      "de": "Standard-Adressfamilie",
+      "es": "Familia de direcciones predeterminada",
+      "fr": "Famille d\\'adresses par défaut",
+      "hi": "डिफ़ॉल्ट एड्रेस फ़ैमिली",
+      "ja": "デフォルトのアドレスファミリー",
+      "ko": "기본 주소 패밀리",
+      "pt": "Família de endereços padrão",
+      "ru": "Семейство адресов по умолчанию",
+      "sr": "Подразумевана фамилија адреса",
+      "zh": "默认地址族"
+     }
+    },
+    {
+     "name": "settings_default_address_family_subtitle",
+     "en": "For new SSH connections",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "لاتصالات SSH الجديدة",
+      "bn": "নতুন SSH সংযোগের জন্য",
+      "de": "Für neue SSH-Verbindungen",
+      "es": "Para nuevas conexiones SSH",
+      "fr": "Pour les nouvelles connexions SSH",
+      "hi": "नए SSH कनेक्शन के लिए",
+      "ja": "新しい SSH 接続用",
+      "ko": "새 SSH 연결용",
+      "pt": "Para novas conexões SSH",
+      "ru": "Для новых SSH-подключений",
+      "sr": "За нове SSH везе",
+      "zh": "用于新的 SSH 连接"
+     }
+    },
+    {
+     "name": "settings_address_family_auto",
+     "en": "Auto",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "تلقائي",
+      "bn": "অটো",
+      "de": "Auto",
+      "es": "Auto",
+      "fr": "Auto",
+      "hi": "ऑटो",
+      "ja": "自動",
+      "ko": "자동",
+      "pt": "Auto",
+      "ru": "Авто",
+      "sr": "Ауто",
+      "zh": "自动"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv4_only",
+     "en": "IPv4 only",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv4 فقط",
+      "bn": "শুধু IPv4",
+      "de": "Nur IPv4",
+      "es": "Solo IPv4",
+      "fr": "IPv4 uniquement",
+      "hi": "केवल IPv4",
+      "ja": "IPv4 のみ",
+      "ko": "IPv4 전용",
+      "pt": "Somente IPv4",
+      "ru": "Только IPv4",
+      "sr": "Само IPv4",
+      "zh": "仅 IPv4"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv6_only",
+     "en": "IPv6 only",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv6 فقط",
+      "bn": "শুধু IPv6",
+      "de": "Nur IPv6",
+      "es": "Solo IPv6",
+      "fr": "IPv6 uniquement",
+      "hi": "केवल IPv6",
+      "ja": "IPv6 のみ",
+      "ko": "IPv6 전용",
+      "pt": "Somente IPv6",
+      "ru": "Только IPv6",
+      "sr": "Само IPv6",
+      "zh": "仅 IPv6"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv6_preferred",
+     "en": "IPv6 preferred",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv6 مفضّل",
+      "bn": "IPv6 পছন্দসই",
+      "de": "IPv6 bevorzugt",
+      "es": "IPv6 preferido",
+      "fr": "IPv6 préféré",
+      "hi": "IPv6 वरीयता",
+      "ja": "IPv6 優先",
+      "ko": "IPv6 우선",
+      "pt": "IPv6 preferido",
+      "ru": "IPv6 приоритет",
+      "sr": "IPv6 пожељно",
+      "zh": "IPv6 优先"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv4_preferred",
+     "en": "IPv4 preferred",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv4 مفضّل",
+      "bn": "IPv4 পছন্দসই",
+      "de": "IPv4 bevorzugt",
+      "es": "IPv4 preferido",
+      "fr": "IPv4 préféré",
+      "hi": "IPv4 वरीयता",
+      "ja": "IPv4 優先",
+      "ko": "IPv4 우선",
+      "pt": "IPv4 preferido",
+      "ru": "IPv4 приоритет",
+      "sr": "IPv4 пожељно",
+      "zh": "IPv4 优先"
      }
     },
     {
@@ -31487,6 +32271,7 @@
       "ko": "벨 알림",
       "pt": "Notificação de campainha",
       "ru": "Уведомление о звонке",
+      "sr": "Обавештење звонцем",
       "zh": "铃声通知"
      }
     },
@@ -31506,6 +32291,7 @@
       "ko": "Haven이 백그라운드에 있는 동안 터미널 프로그램이 벨을 울리면 탭 이름을 알리는 알림을 게시합니다. 터미널을 보고 있는 동안에는 아무것도 표시되지 않습니다.",
       "pt": "Quando um programa do terminal toca a campainha enquanto o Haven está em segundo plano, é publicada uma notificação com o nome do separador. Nada aparece enquanto está a ver o terminal.",
       "ru": "Когда программа в терминале подаёт звуковой сигнал, пока Haven в фоновом режиме, приходит уведомление с названием вкладки. Пока вы смотрите в терминал, ничего не появляется.",
+      "sr": "Када терминалски програм зазвони звонце док је Haven у позадини, објављује се обавештење које помиње картицу. Док гледате у терминал, ништа се не дешава",
       "zh": "当终端程序在 Haven 后台响铃时，发送一条注明标签页名称的通知。查看终端时不会显示任何内容。"
      }
     },
@@ -35477,6 +36263,106 @@
      }
     },
     {
+     "name": "settings_shortcut_toolbar_title",
+     "en": "Shortcut toolbar",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "شريط الاختصارات",
+      "bn": "শর্টকাট টুলবার",
+      "de": "Shortcut-Toolbar",
+      "es": "Barra de atajos",
+      "fr": "Barre de raccourcis",
+      "hi": "शॉर्टकट टूलबार",
+      "ja": "ショートカットツールバー",
+      "ko": "바로가기 도구 모음",
+      "pt": "Barra de atalhos",
+      "ru": "Панель ярлыков",
+      "sr": "Алатна линија пречица",
+      "zh": "快捷工具栏"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_subtitle",
+     "en": "Extra key rows below the terminal. Auto hides them while a physical keyboard is attached.",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "صفوف المفاتيح الإضافية أسفل الطرفية. يخفيها الخيار التلقائي أثناء توصيل لوحة مفاتيح فعلية.",
+      "bn": "টার্মিনালের নিচে অতিরিক্ত কী সারি। ভৌত কীবোর্ড সংযুক্ত থাকলে স্বয়ংক্রিয় সেগুলো লুকায়।",
+      "de": "Zusätzliche Tastenreihen unter dem Terminal. Auto blendet sie aus, solange eine physische Tastatur angeschlossen ist.",
+      "es": "Filas de teclas adicionales bajo el terminal. Auto las oculta mientras haya un teclado físico conectado.",
+      "fr": "Rangées de touches supplémentaires sous le terminal. Auto les masque lorsqu\\'un clavier physique est connecté.",
+      "hi": "टर्मिनल के नीचे अतिरिक्त कुंजी पंक्तियाँ। भौतिक कीबोर्ड जुड़ा होने पर ऑटो इन्हें छिपा देता है।",
+      "ja": "ターミナル下の追加キー行。Auto は物理キーボードの接続中にこれらを非表示にします。",
+      "ko": "터미널 아래의 추가 키 행입니다. 자동은 물리 키보드가 연결되어 있는 동안 숨깁니다.",
+      "pt": "Linhas de teclas extras abaixo do terminal. Auto oculta-as enquanto um teclado físico estiver conectado.",
+      "ru": "Дополнительные ряды клавиш под терминалом. «Авто» скрывает их, пока подключена физическая клавиатура.",
+      "sr": "Додатни редови тастера испод терминала. Аутоматски их скрива док је физичка тастатура прикључена.",
+      "zh": "终端下方的额外按键行。“自动”会在连接实体键盘时隐藏它们。"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_show",
+     "en": "Always show",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "إظهار دائمًا",
+      "bn": "সবসময় দেখান",
+      "de": "Immer anzeigen",
+      "es": "Mostrar siempre",
+      "fr": "Toujours afficher",
+      "hi": "हमेशा दिखाएँ",
+      "ja": "常に表示",
+      "ko": "항상 표시",
+      "pt": "Mostrar sempre",
+      "ru": "Всегда показывать",
+      "sr": "Увек прикажи",
+      "zh": "始终显示"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_auto",
+     "en": "Auto",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "تلقائي",
+      "bn": "স্বয়ংক্রিয়",
+      "de": "Auto",
+      "es": "Auto",
+      "fr": "Auto",
+      "hi": "ऑटो",
+      "ja": "自動",
+      "ko": "자동",
+      "pt": "Auto",
+      "ru": "Авто",
+      "sr": "Аутоматски",
+      "zh": "自动"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_hide",
+     "en": "Always hide",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "إخفاء دائمًا",
+      "bn": "সবসময় লুকান",
+      "de": "Immer ausblenden",
+      "es": "Ocultar siempre",
+      "fr": "Toujours masquer",
+      "hi": "हमेशा छिपाएँ",
+      "ja": "常に隠す",
+      "ko": "항상 숨기기",
+      "pt": "Ocultar sempre",
+      "ru": "Всегда скрывать",
+      "sr": "Увек сакриј",
+      "zh": "始终隐藏"
+     }
+    },
+    {
      "name": "settings_reflow_on_keyboard_title",
      "en": "Resize terminal for keyboard",
      "comment": "Common strings",
@@ -36354,22 +37240,22 @@
     },
     {
      "name": "settings_keyboard_mode_secure_desc",
-     "en": "Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too.",
+     "en": "Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too. Chinese/Japanese/Korean composition is disabled in this mode. For CJK input, use the toolbar 中 (compose) toggle or Standard mode.",
      "comment": "Keyboard mode",
      "args": [],
      "t": {
-      "ar": "لوحة مفاتيح برمجية حقيقية مع تفعيل أعلام الخصوصية: يُكبت ميكروفون Gboard والتصحيح التلقائي والكتابة بالسحب ومساعدة الكتابة. الأفضل لكتابة كلمات المرور؛ يعمل مع لوحات Bluetooth أيضًا.",
-      "bn": "গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে।",
-      "de": "Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen.",
-      "es": "Teclado de software real con indicadores de privacidad: micrófono de Gboard, autocorrección, escritura por deslizamiento y asistencia de escritura suprimidos. Ideal para escribir contraseñas; funciona también con teclados Bluetooth.",
-      "fr": "Clavier logiciel avec indicateurs de confidentialité : micro Gboard, correction automatique, saisie par glissement et aide à la rédaction désactivés. Idéal pour les mots de passe ; fonctionne aussi avec les claviers Bluetooth.",
-      "hi": "Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है।",
-      "ja": "プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。",
-      "ko": "개인정보 플래그가 설정된 실제 소프트웨어 키보드: Gboard 마이크, 자동 교정, 스와이프 입력, 쓰기 보조가 억제됩니다. 비밀번호 입력에 적합하며 블루투스 키보드에서도 작동합니다.",
-      "pt": "Teclado virtual real com flags de privacidade: microfone do Gboard, autocorreção, digitação por deslizamento e assistência de escrita suprimidos. Ideal para senhas; funciona com teclados Bluetooth também.",
-      "ru": "Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами.",
-      "sr": "Права софтверска тастатура са постављеним заставицама приватности: потиснути су Gboard микрофон, аутоисправљање, куцање превлачењем и помоћ при писању",
-      "zh": "真实软键盘并设置隐私标志：Gboard 麦克风、自动纠正、滑动输入和写作辅助均被禁止。最适合输入密码；蓝牙键盘同样适用。"
+      "ar": "لوحة مفاتيح برمجية حقيقية مع تفعيل أعلام الخصوصية: يُكبت ميكروفون Gboard والتصحيح التلقائي والكتابة بالسحب ومساعدة الكتابة. الأفضل لكتابة كلمات المرور؛ يعمل مع لوحات Bluetooth أيضًا. تركيب الأحرف الصينية/اليابانية/الكورية معطّل في هذا الوضع. لإدخال CJK، استخدم زر 中 (التركيب) في شريط الأدوات أو الوضع القياسي.",
+      "bn": "গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে। এই মোডে চীনা/জাপানি/কোরিয়ান composition নিষ্ক্রিয়। CJK ইনপুটের জন্য টুলবারের 中 (compose) টগল বা Standard মোড ব্যবহার করুন।",
+      "de": "Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen. Chinesisch/Japanisch/Koreanisch-Komposition ist in diesem Modus deaktiviert. Für CJK-Eingabe den 中-(Compose)-Schalter in der Symbolleiste oder den Standardmodus verwenden.",
+      "es": "Teclado de software real con indicadores de privacidad: micrófono de Gboard, autocorrección, escritura por deslizamiento y asistencia de escritura suprimidos. Ideal para escribir contraseñas; funciona también con teclados Bluetooth. La composición chino/japonés/coreano está desactivada en este modo. Para entrada CJK, usa el botón 中 (componer) de la barra de herramientas o el modo Estándar.",
+      "fr": "Clavier logiciel avec indicateurs de confidentialité : micro Gboard, correction automatique, saisie par glissement et aide à la rédaction désactivés. Idéal pour les mots de passe ; fonctionne aussi avec les claviers Bluetooth. La composition chinois/japonais/coréen est désactivée dans ce mode. Pour la saisie CJK, utilisez le bouton 中 (composition) de la barre d\\'outils ou le mode Standard.",
+      "hi": "Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है। इस मोड में चीनी/जापानी/कोरियाई composition अक्षम है। CJK इनपुट के लिए टूलबार का 中 (compose) टॉगल या Standard मोड उपयोग करें।",
+      "ja": "プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。 このモードでは中国語・日本語・韓国語の変換入力が無効です。CJK入力にはツールバーの 中（変換）トグルまたは標準モードを使用してください。",
+      "ko": "개인정보 플래그가 설정된 실제 소프트웨어 키보드: Gboard 마이크, 자동 교정, 스와이프 입력, 쓰기 보조가 억제됩니다. 비밀번호 입력에 적합하며 블루투스 키보드에서도 작동합니다. 이 모드에서는 중국어/일본어/한국어 조합 입력이 비활성화됩니다. CJK 입력에는 도구 모음의 中(조합) 토글 또는 표준 모드를 사용하세요.",
+      "pt": "Teclado virtual real com flags de privacidade: microfone do Gboard, autocorreção, digitação por deslizamento e assistência de escrita suprimidos. Ideal para senhas; funciona com teclados Bluetooth também. A composição chinês/japonês/coreano está desativada neste modo. Para entrada CJK, use o botão 中 (compor) da barra de ferramentas ou o modo Padrão.",
+      "ru": "Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами. В этом режиме отключён ввод китайского/японского/корейского (CJK). Для ввода CJK используйте переключатель 中 (композиция) на панели инструментов или стандартный режим.",
+      "sr": "Права софтверска тастатура са постављеним заставицама приватности: потиснути су Gboard микрофон, аутоисправљање, куцање превлачењем и помоћ при писању Композиција кинеског/јапанског/корејског је онемогућена у овом режиму. За CJK унос користите 中 (композиција) пребацивање на траци са алаткама или Стандардни режим.",
+      "zh": "真实软键盘并设置隐私标志：Gboard 麦克风、自动纠正、滑动输入和写作辅助均被禁止。最适合输入密码；蓝牙键盘同样适用。 此模式禁用中文/日文/韩文组合输入。如需输入 CJK，请使用工具栏的 中（组合）开关或标准模式。"
      }
     },
     {
@@ -36593,6 +37479,46 @@
      }
     },
     {
+     "name": "settings_default_compose_mode_title",
+     "en": "CJK compose mode by default",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "وضع التركيب CJK افتراضيًا",
+      "bn": "ডিফল্ট CJK compose মোড",
+      "de": "CJK-Kompositionsmodus als Standard",
+      "es": "Modo de composición CJK por defecto",
+      "fr": "Mode de composition CJK par défaut",
+      "hi": "डिफ़ॉल्ट CJK compose मोड",
+      "ja": "CJK変換モードをデフォルトに",
+      "ko": "기본 CJK 조합 모드",
+      "pt": "Modo de composição CJK por padrão",
+      "ru": "Режим композиции CJK по умолчанию",
+      "sr": "Подразумевани CJK режим композиције",
+      "zh": "默认 CJK 组合模式"
+     }
+    },
+    {
+     "name": "settings_default_compose_mode_subtitle",
+     "en": "Start new terminal sessions in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still turns it off per session",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "ابدأ جلسات الطرفية الجديدة في وضع التركيب (中) ليعمل الإدخال الصيني/الياباني/الكوري دون تبديل 中 كل جلسة. مفتاح 中 في شريط الأدوات لا يزال يوقفه لكل جلسة",
+      "bn": "চীনা/জাপানি/কোরিয়ান ইনপুটের জন্য প্রতি সেশনে 中 টগল না করে নতুন টার্মিনাল সেশন compose (中) মোডে শুরু করুন। টুলবারের 中 কী প্রতি সেশনে এটি বন্ধ করতে পারে",
+      "de": "Neue Terminal-Sitzungen im Kompositionsmodus (中) starten, damit Chinesisch/Japanisch/Koreanisch-Eingabe funktioniert, ohne 中 jede Sitzung umzuschalten. Die 中-Taste in der Symbolleiste deaktiviert ihn weiterhin pro Sitzung",
+      "es": "Inicia las nuevas sesiones de terminal en modo de composición (中) para que la entrada chino/japonés/coreano funcione sin alternar 中 cada sesión. La tecla 中 de la barra de herramientas aún lo desactiva por sesión",
+      "fr": "Démarrer les nouvelles sessions de terminal en mode composition (中) pour que la saisie chinois/japonais/coréen fonctionne sans basculer 中 à chaque session. La touche 中 de la barre d\\'outils le désactive toujours par session",
+      "hi": "चीनी/जापानी/कोरियाई इनपुट के लिए हर सत्र में 中 टॉगल किए बिना नए टर्मिनल सत्र compose (中) मोड में शुरू करें। टूलबार की 中 कुंजी अभी भी प्रति सत्र इसे बंद करती है",
+      "ja": "新しいターミナルセッションを変換（中）モードで開始し、毎回中を切り替えずに中国語・日本語・韓国語を入力できます。ツールバーの中キーでセッションごとにオフにできます",
+      "ko": "매 세션마다 中을 토글하지 않고 중국어/일본어/한국어 입력이 작동하도록 새 터미널 세션을 조합(中) 모드로 시작합니다. 도구 모음의 中 키로 세션별로 끌 수 있습니다",
+      "pt": "Inicia novas sessões de terminal no modo de composição (中) para que a entrada chinês/japonês/coreano funcione sem alternar 中 a cada sessão. A tecla 中 da barra de ferramentas ainda o desativa por sessão",
+      "ru": "Запускать новые сеансы терминала в режиме композиции (中), чтобы ввод китайского/японского/корейского работал без переключения 中 каждый сеанс. Клавиша 中 на панели инструментов по-прежнему отключает его для сеанса",
+      "sr": "Покрећите нове сесије терминала у режиму композиције (中) тако да кинески/јапански/корејски унос ради без пребацивања 中 сваке сесије. Тастер 中 на траци са алаткама га и даље искључује по сесији",
+      "zh": "新终端会话默认以组合（中）模式启动，无需每次会话切换中即可输入中文/日文/韩文。工具栏的中键仍可按会话关闭"
+     }
+    },
+    {
      "name": "settings_nav_tab_visibility_auto_title",
      "en": "Auto",
      "comment": "Navigation Tabs dialog",
@@ -36753,9 +37679,49 @@
      }
     },
     {
+     "name": "settings_notify_guest_title",
+     "en": "Guest notifications",
+     "comment": "Guest notifications (#851)",
+     "args": [],
+     "t": {
+      "ar": "إشعارات الضيف",
+      "bn": "গেস্ট বিজ্ঞপ্তি",
+      "de": "Gast-Benachrichtigungen",
+      "es": "Notificaciones del invitado",
+      "fr": "Notifications du guest",
+      "hi": "गेस्ट सूचनाएँ",
+      "ja": "ゲスト通知",
+      "ko": "게스트 알림",
+      "pt": "Notificações do convidado",
+      "ru": "Гостевые уведомления",
+      "sr": "Обаветења госта",
+      "zh": "客机通知"
+     }
+    },
+    {
+     "name": "settings_notify_guest_subtitle",
+     "en": "Let Linux guest programs post Android notifications via haven-notify. Once on, any guest process can add notifications to the shade. Each attach still asks for consent.",
+     "comment": "Guest notifications (#851)",
+     "args": [],
+     "t": {
+      "ar": "السماح لبرامج الضيف في Linux بنشر إشعارات Android عبر haven-notify. بعد التشغيل يمكن لأي عملية في الضيف إضافة إشعارات إلى الدرج. كل إرفاق يطلب الموافقة.",
+      "bn": "Linux গেস্ট প্রোগ্রামগুলোকে haven-notify এর মাধ্যমে Android বিজ্ঞপ্তি পোস্ট করতে দিন। চালু থাকলে গেস্টের যেকোনো প্রসেস শেডে বিজ্ঞপ্তি যোগ করতে পারে। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।",
+      "de": "Linux-Gastprogrammen erlauben, Android-Benachrichtigungen über haven-notify zu senden. Einmal aktiv kann jeder Gast-Prozess Benachrichtigungen zur Leiste hinzufügen. Jede Verbindung erfordert weiterhin Zustimmung.",
+      "es": "Permite que los programas del invitado Linux publiquen notificaciones de Android mediante haven-notify. Una vez activado, cualquier proceso del invitado puede añadir notificaciones al panel. Cada conexión sigue solicitando consentimiento.",
+      "fr": "Autoriser les programmes du guest Linux à publier des notifications Android via haven-notify. Une fois activé, tout processus du guest peut ajouter des notifications au panneau. Chaque connexion demande confirmation.",
+      "hi": "Linux गेस्ट प्रोग्राम को haven-notify के ज़रिए Android सूचनाएँ पोस्ट करने दें। चालू होने पर guest की कोई भी process शेड में सूचनाएँ जोड़ सकती है। प्रत्येक attach पर consent माँगी जाती है।",
+      "ja": "Linux ゲストのプログラムが haven-notify 経由で Android 通知を投稿できるようにします。有効にするとゲスト内のどのプロセスでも通知を追加できます。各接続には同意が必要です。",
+      "ko": "Linux 게스트 프로그램이 haven-notify를 통해 Android 알림을 게시하도록 허용합니다. 켜면 게스트의 모든 프로세스가 알림을 추가할 수 있습니다. 각 연결 시 동의가 필요합니다.",
+      "pt": "Permite que programas do convidado Linux publiquem notificações do Android via haven-notify. Uma vez ativado, qualquer processo convidado pode adicionar notificações ao painel. Cada conexão ainda solicita consentimento.",
+      "ru": "Разрешить гостевым программам Linux отправлять уведомления Android через haven-notify. После включения любой гостевой процесс может добавлять уведомления в шторку. Каждое подключение запрашивает согласие.",
+      "sr": "Дозвољава да програми Линукс госта објављују Android обавештења кроз haven-notify. Када се укључи, било који процес госта можа да дода обавештења у сенку. Свако привезивање и даље тражи пристанак.",
+      "zh": "允许 Linux 客机程序通过 haven-notify 发布 Android 通知。开启后客机内任何进程都可向通知栏添加通知。每次连接仍需确认。"
+     }
+    },
+    {
      "name": "settings_tailscale_discovery_title",
      "en": "Tailscale peer discovery",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "اكتشاف أقران Tailscale",
@@ -36768,13 +37734,14 @@
       "ko": "Tailscale 피어 검색",
       "pt": "Descoberta de pares do Tailscale",
       "ru": "Обнаружение узлов Tailscale",
+      "sr": "Откривање Tailscale парњака",
       "zh": "Tailscale 对等节点发现"
      }
     },
     {
      "name": "settings_tailscale_discovery_subtitle",
      "en": "Look up hosts on your Tailscale network through its local API when scanning. Turn off to stop Haven from reading the peer list; Tailscale itself is unaffected.",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "البحث عن مضيفين في شبكة Tailscale عبر واجهة API المحلية أثناء الفحص. أوقفه لمنع Haven من قراءة قائمة الأقران؛ لن يتأثر Tailscale نفسه.",
@@ -36787,13 +37754,14 @@
       "ko": "스캔 시 로컬 API를 통해 Tailscale 네트워크의 호스트를 찾습니다. 끄면 Haven이 피어 목록을 읽지 않습니다. Tailscale 자체에는 영향이 없습니다.",
       "pt": "Procurar hosts da sua rede Tailscale pela API local durante a varredura. Desative para impedir que o Haven leia a lista de pares; o Tailscale não é afetado.",
       "ru": "Искать хосты вашей сети Tailscale через локальный API при сканировании. Отключите, чтобы Haven не читал список узлов; на сам Tailscale это не влияет.",
+      "sr": "Претражује хостове на вашој Tailscale мрежи користећи његов локални локални API током скенирања. Искључите ако не желите да Haven чита листу парњака; сам Tailscale није обухваћен овиме.",
       "zh": "扫描时通过本地 API 查找您 Tailscale 网络中的主机。关闭后 Haven 不再读取对等节点列表；Tailscale 本身不受影响。"
      }
     },
     {
      "name": "settings_audio_bridge_title",
      "en": "Proot audio (experimental)",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "صوت proot (تجريبي)",
@@ -36813,7 +37781,7 @@
     {
      "name": "settings_audio_bridge_subtitle",
      "en": "Play sound from Linux apps through the device speaker via an in-guest PulseAudio bridge. Output only. Streams continuously while on — turn off when not in use.",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "تشغيل الصوت من تطبيقات Linux عبر مكبّر صوت الجهاز من خلال جسر PulseAudio داخل الضيف. إخراج فقط. يبث باستمرار أثناء تفعيله — أوقفه عند عدم الاستخدام.",
@@ -39369,6 +40337,7 @@
       "ko": "%1$d개 꺼짐",
       "pt": "%1$d desativados",
       "ru": "выкл. %1$d",
+      "sr": "%1$d искључен",
       "zh": "已关闭 %1$d 项"
      }
     },
@@ -39388,6 +40357,7 @@
       "ko": "터미널",
       "pt": "Terminal",
       "ru": "Терминал",
+      "sr": "Терминал",
       "zh": "终端"
      }
     },
@@ -39407,6 +40377,7 @@
       "ko": "연결",
       "pt": "Conexões",
       "ru": "Подключения",
+      "sr": "Везе",
       "zh": "连接"
      }
     },
@@ -39426,6 +40397,7 @@
       "ko": "파일",
       "pt": "Arquivos",
       "ru": "Файлы",
+      "sr": "Фајлови",
       "zh": "文件"
      }
     },
@@ -39445,6 +40417,7 @@
       "ko": "데스크톱",
       "pt": "Ambiente de trabalho",
       "ru": "Рабочий стол",
+      "sr": "Десктоп",
       "zh": "桌面"
      }
     },
@@ -39464,6 +40437,7 @@
       "ko": "Linux 게스트",
       "pt": "Convidado Linux",
       "ru": "Гость Linux",
+      "sr": "Линукс гост",
       "zh": "Linux 客户机"
      }
     },
@@ -39483,6 +40457,7 @@
       "ko": "USB 및 직렬",
       "pt": "USB e série",
       "ru": "USB и последовательный порт",
+      "sr": "USB и серијска",
       "zh": "USB 与串口"
      }
     },
@@ -39502,6 +40477,7 @@
       "ko": "키 및 자격 증명",
       "pt": "Chaves e credenciais",
       "ru": "Ключи и учётные данные",
+      "sr": "Кључеви и приступни подаци",
       "zh": "密钥与凭据"
      }
     },
@@ -39521,6 +40497,7 @@
       "ko": "메일",
       "pt": "E-mail",
       "ru": "Почта",
+      "sr": "Пошта",
       "zh": "邮件"
      }
     },
@@ -39540,6 +40517,7 @@
       "ko": "클라우드 스토리지",
       "pt": "Armazenamento na nuvem",
       "ru": "Облачное хранилище",
+      "sr": "Складиште у облаку",
       "zh": "云存储"
      }
     },
@@ -39559,6 +40537,7 @@
       "ko": "센서 및 위치",
       "pt": "Sensores e localização",
       "ru": "Датчики и местоположение",
+      "sr": "Сензори и локација",
       "zh": "传感器与位置"
      }
     },
@@ -39578,6 +40557,7 @@
       "ko": "에이전트 및 기기 제어",
       "pt": "Agente e controle do dispositivo",
       "ru": "Агент и управление устройством",
+      "sr": "Контрола агента и уређаја",
       "zh": "代理与设备控制"
      }
     },
@@ -39597,6 +40577,7 @@
       "ko": "기타",
       "pt": "Outros",
       "ru": "Прочее",
+      "sr": "Остало",
       "zh": "其他"
      }
     },
@@ -40040,7 +41021,7 @@
       "ko": "이렇게 하면 새 키가 생성되어 SSH 키를 다시 생성할 수 있습니다.\n\nHaven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해야 합니다. 이미 읽을 수 없는 상태입니다 — 이들을 보호하던 키가 사라졌으며, 보통 앱을 다른 소스에서 다시 설치했기 때문입니다 — 따라서 이것은 추가로 무엇가를 잃는 것이 아니라 앱을 복구합니다.",
       "pt": "Isto cria uma nova chave para que chaves SSH possam ser geradas novamente.\n\nCada chave privada já armazenada no Haven precisará ser importada ou gerada novamente. Elas já estão ilegíveis — a chave que as protegia foi perdida, geralmente porque o aplicativo foi reinstalado de uma fonte diferente — portanto isto recupera o aplicativo em vez de perder mais alguma coisa.",
       "ru": "Это создаст новый ключ, чтобы SSH-ключи можно было создавать снова.\n\nКаждый закрытый ключ, уже сохранённый в Haven, потребуется импортировать или создать заново. Они уже нечитаемы — ключ, который их защищал, утерян, обычно потому что приложение было переустановлено из другого источника — поэтому это восстанавливает приложение, а не приводит к новым потерям.",
-      "sr": "Ово прави нови кључ како би SSH кључеви поново могли да се генеришу.\n\nСваки приватни кључ већ сачуван у Haven-у мораће поново да се увезе или генерише. Већ су нечитљиви — кључ који их је штитио је изгубљен, обично зато што је апликација поново инсталирана из другог извора — дакле ово враћа апликацију уместо да изгуби било шта даље.",
+      "sr": "Ово прави нови кључ како би SSH кључеви поново могли да се генеришу.\n\n        Сваки приватни кључ већ сачуван у Haven-у мораће поново да се увезе или генерише. Већ су нечитљиви — кључ који их је штитио је изгубљен, обично зато што је апликација поново инсталирана из другог извора — дакле ово враћа апликацију уместо да изгуби било шта даље.",
       "zh": "这会创建一个新密钥，以便再次生成 SSH 密钥。\n\nHaven 中已存储的每一个私钥都需要重新导入或生成。它们已经无法读取 — 保护它们的密钥已丢失，通常是因为应用程序从不同来源重新安装过 — 因此这是恢复应用程序，而不会再丢失更多。"
      }
     },
@@ -46032,6 +47013,50 @@
       "sr": "Ротација",
       "zh": "旋转"
      }
+    },
+    {
+     "name": "sftp_file_too_large_for_preview",
+     "en": "File is too large to preview (%1$s). Use Edit to open it in the editor.",
+     "comment": "#135 third pass: hardcoded literals in SftpScreen + media UI",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "الملف كبير جدًا للمعاينة (%1$s). استخدم «تعديل» لفتحه في المحرر.",
+      "bn": "ফাইলটি প্রিভিউ করার জন্য খুব বড় (%1$s)। এডিটরে খুলতে সম্পাদনা ব্যবহার করুন।",
+      "de": "Datei ist zu groß für die Vorschau (%1$s). Mit „Bearbeiten“ im Editor öffnen.",
+      "es": "El archivo es demasiado grande para la vista previa (%1$s). Usa Editar para abrirlo en el editor.",
+      "fr": "Fichier trop volumineux pour l\\'aperçu (%1$s). Utilisez Modifier pour l\\'ouvrir dans l\\'éditeur.",
+      "hi": "फ़ाइल पूर्वावलोकन के लिए बहुत बड़ी है (%1$s)। एडिटर में खोलने के लिए संपादित करें का उपयोग करें।",
+      "ja": "ファイルが大きすぎるためプレビューできません（%1$s）。「編集」でエディタで開けます。",
+      "ko": "파일이 너무 커서 미리 볼 수 없습니다(%1$s). 편집을 눌러 편집기에서 여세요.",
+      "pt": "O arquivo é grande demais para pré-visualizar (%1$s). Use Editar para abri-lo no editor.",
+      "ru": "Файл слишком большой для просмотра (%1$s). Нажмите «Изменить», чтобы открыть его в редакторе.",
+      "sr": "Датотека је превелика за преглед (%1$s). Користите Измени да је отворите у уређивачу.",
+      "zh": "文件太大，无法预览（%1$s）。可点“编辑”在编辑器中打开。"
+     }
+    },
+    {
+     "name": "sftp_preview_link_missing",
+     "en": "Linked file not found: %1$s",
+     "comment": "#135 third pass: hardcoded literals in SftpScreen + media UI",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "لم يتم العثور على الملف المرتبط: %1$s",
+      "bn": "লিঙ্ক করা ফাইল পাওয়া যায়নি: %1$s",
+      "de": "Verlinkte Datei nicht gefunden: %1$s",
+      "es": "No se encontró el archivo enlazado: %1$s",
+      "fr": "Fichier lié introuvable : %1$s",
+      "hi": "लिंक की गई फ़ाइल नहीं मिली: %1$s",
+      "ja": "リンク先のファイルが見つかりません: %1$s",
+      "ko": "링크된 파일을 찾을 수 없음: %1$s",
+      "pt": "Arquivo vinculado não encontrado: %1$s",
+      "ru": "Связанный файл не найден: %1$s",
+      "sr": "Повезана датотека није пронађена: %1$s",
+      "zh": "找不到链接的文件：%1$s"
+     }
     }
    ]
   },
@@ -46400,6 +47425,46 @@
      }
     },
     {
+     "name": "terminal_shortcut_toolbar_show",
+     "en": "Show shortcut toolbar",
+     "comment": "Common",
+     "args": [],
+     "t": {
+      "ar": "إظهار شريط الاختصارات",
+      "bn": "শর্টকাট টুলবার দেখান",
+      "de": "Shortcut-Toolbar anzeigen",
+      "es": "Mostrar barra de atajos",
+      "fr": "Afficher la barre de raccourcis",
+      "hi": "शॉर्टकट टूलबार दिखाएँ",
+      "ja": "ショートカットツールバーを表示",
+      "ko": "바로가기 도구 모음 표시",
+      "pt": "Mostrar barra de atalhos",
+      "ru": "Показать панель ярлыков",
+      "sr": "Прикажи алатну линију пречица",
+      "zh": "显示快捷工具栏"
+     }
+    },
+    {
+     "name": "terminal_shortcut_toolbar_hide",
+     "en": "Hide shortcut toolbar",
+     "comment": "Common",
+     "args": [],
+     "t": {
+      "ar": "إخفاء شريط الاختصارات",
+      "bn": "শর্টকাট টুলবার লুকান",
+      "de": "Shortcut-Toolbar ausblenden",
+      "es": "Ocultar barra de atajos",
+      "fr": "Masquer la barre de raccourcis",
+      "hi": "शॉर्टकट टूलबार छिपाएँ",
+      "ja": "ショートカットツールバーを隠す",
+      "ko": "바로가기 도구 모음 숨기기",
+      "pt": "Ocultar barra de atalhos",
+      "ru": "Скрыть панель ярлыков",
+      "sr": "Сакриј алатну линију пречица",
+      "zh": "隐藏快捷工具栏"
+     }
+    },
+    {
      "name": "common_username",
      "en": "Username",
      "comment": "Common",
@@ -46682,7 +47747,7 @@
       "ko": "닫기",
       "pt": "Ignorar",
       "ru": "Закрыть",
-      "sr": "Отбаци",
+      "sr": "Одбаци",
       "zh": "忽略"
      }
     },
@@ -49138,6 +50203,7 @@
       "ko": "터미널",
       "pt": "Terminal",
       "ru": "Терминал",
+      "sr": "Терминал",
       "zh": "终端"
      }
     },
@@ -49157,6 +50223,7 @@
       "ko": "터미널 프로그램이 벨을 울렸습니다",
       "pt": "Um programa do terminal tocou a campainha",
       "ru": "Программа в терминале подала звуковой сигнал",
+      "sr": "Терминалски програм је зазвонио",
       "zh": "终端程序响铃了"
      }
     },
@@ -49176,6 +50243,7 @@
       "ko": "sudo 비밀번호 요청됨",
       "pt": "Senha do sudo solicitada",
       "ru": "Запрошен пароль sudo",
+      "sr": "Тражи се sudo лозинка",
       "zh": "请求 sudo 密码"
      }
     },
@@ -49195,6 +50263,7 @@
       "ko": "Android Keystore • 생체인증 잠금 해제 • 입력을 탭할 때만 전송됨",
       "pt": "Android Keystore • Desbloqueio biométrico • Enviada só ao tocar em Preencher",
       "ru": "Android Keystore • Биометрия • Отправка только по нажатию «Ввести»",
+      "sr": "Android Keystore • Биометријско откључавање • Шаље се само при попуњавању",
       "zh": "Android Keystore • 生物识别解锁 • 仅在点击填充时发送"
      }
     },
@@ -49214,6 +50283,7 @@
       "ko": "입력",
       "pt": "Preencher",
       "ru": "Ввести",
+      "sr": "Попуњавање",
       "zh": "填充"
      }
     },
@@ -49233,6 +50303,7 @@
       "ko": "끄기",
       "pt": "Desativar",
       "ru": "Отключить",
+      "sr": "Искључи",
       "zh": "关闭"
      }
     },
@@ -49252,6 +50323,7 @@
       "ko": "sudo 프롬프트 감지가 꺼졌습니다 (설정 → 보안 및 개인정보 보호)",
       "pt": "Detecção de sudo desativada (Configurações → Segurança e privacidade)",
       "ru": "Обнаружение запросов sudo отключено (Настройки → Безопасность и конфиденциальность)",
+      "sr": "Искључена је детекција s упита (Подешавања → Безбедност &amp; приватност)",
       "zh": "已关闭 sudo 密码提示检测（设置 → 安全与隐私）"
      }
     },
@@ -49273,6 +50345,7 @@
       "ko": "%1$s의 sudo 비밀번호",
       "pt": "Senha do sudo para %1$s",
       "ru": "Пароль sudo для %1$s",
+      "sr": "Sudo лозинка за %1$s",
       "zh": "%1$s 的 sudo 密码"
      }
     },
@@ -49292,6 +50365,7 @@
       "ko": "이 연결에 아직 저장된 비밀번호가 없습니다. 한 번 입력하면 SSH를 통해 이 터미널로 직접 전송됩니다. 저장하면 이 기기의 Android Keystore에 암호화되어 보관되며, 사용할 때마다 생체인증 잠금 해제가 필요하고 AI/MCP 도구에 절대 노출되지 않습니다.",
       "pt": "Nenhuma senha foi salva nesta conexão ainda. Digite-a uma vez para enviá-la diretamente via SSH a este terminal. Se salva, permanece criptografada no Android Keystore neste dispositivo, exige desbloqueio biométrico a cada uso e nunca é exposta às ferramentas de IA/MCP.",
       "ru": "Для этого подключения ещё не сохранён пароль. Введите его один раз для прямой отправки по SSH в этот терминал. При сохранении он остаётся зашифрованным в Android Keystore на этом устройстве, требует биометрической разблокировки при каждом использовании и никогда не передаётся инструментам ИИ/MCP.",
+      "sr": "За ову везу још увек није сачувана ниједна лозинка. Унесите је једном да се пошаље овом терминалу директно преко SSH. Ако се сачува, остаје шифрована у Android Keystore на овом уређају, захтева се биометријско откључавање приликом сваког коришћења и никада се не излаже AI/MCP алатима.",
       "zh": "此连接尚未保存密码。输入一次即可通过 SSH 直接发送到当前终端。若选择保存，密码将在本机 Android Keystore 中加密存储，每次使用均需生物识别解锁，且绝不会暴露给 AI/MCP 工具。"
      }
     },
@@ -49311,6 +50385,7 @@
       "ko": "sudo 프롬프트 감지 끄기",
       "pt": "Desativar detecção de solicitações do sudo",
       "ru": "Отключить обнаружение запросов sudo",
+      "sr": "Искључи детекцију sudo упита",
       "zh": "关闭 sudo 密码提示检测"
      }
     },
@@ -49330,6 +50405,7 @@
       "ko": "전송",
       "pt": "Enviar",
       "ru": "Отправить",
+      "sr": "Пошаљи",
       "zh": "发送"
      }
     },
@@ -49477,7 +50553,7 @@
       "ko": "WireGuard 구성을 추가하면 개별 연결 프로필을 그 터널로 라우팅할 수 있습니다 — 시스템 전체 VPN이 필요하지 않습니다.",
       "pt": "Adicione uma configuração WireGuard para rotear perfis de conexão individuais por ela — sem necessidade de VPN para todo o sistema.",
       "ru": "Добавьте конфигурацию WireGuard, чтобы направлять через неё отдельные профили подключений — общесистемный VPN не требуется.",
-      "sr": "Додаје WireGuard кофигурацију да се кроз њега рутирају поједини профили везе — није потребан VPN на нивоу система.",
+      "sr": "Додаје WireGuard конфигурацију да се кроз њега рутирају поједини профили везе — није потребан VPN на нивоу система.",
       "zh": "添加一个 WireGuard 配置，将单个连接配置文件经其路由——无需系统级 VPN。"
      }
     },
@@ -49947,6 +51023,206 @@
      }
     },
     {
+     "name": "tunnel_netbird_rosenpass_label",
+     "en": "Post-quantum key exchange (Rosenpass)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "تبادل مفاتيح ما بعد الكم (Rosenpass)",
+      "bn": "পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ (Rosenpass)",
+      "de": "Post-Quanten-Schlüsselaustausch (Rosenpass)",
+      "es": "Intercambio de claves postcuántico (Rosenpass)",
+      "fr": "Échange de clés post-quantique (Rosenpass)",
+      "hi": "पोस्ट-क्वांटम की एक्सचेंज (Rosenpass)",
+      "ja": "耐量子鍵交換 (Rosenpass)",
+      "ko": "양자 내성 키 교환 (Rosenpass)",
+      "pt": "Troca de chaves pós-quântica (Rosenpass)",
+      "ru": "Постквантовый обмен ключами (Rosenpass)",
+      "sr": "Постквантна размена кључева (Rosenpass)",
+      "zh": "后量子密钥交换 (Rosenpass)"
+     }
+    },
+    {
+     "name": "tunnel_netbird_rosenpass_help",
+     "en": "Enable NetBird\\'s Rosenpass post-quantum key exchange. Turn on when the peer you connect to requires it; both sides must support Rosenpass.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "فعّل تبادل مفاتيح Rosenpass لما بعد الكم في NetBird. شغّله عندما يتطلب النظير الذي تتصل به ذلك؛ يجب أن يدعم الطرفان Rosenpass.",
+      "bn": "NetBird-এর Rosenpass পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ চালু করুন। যে পিয়ারের সাথে সংযোগ করছেন সেটি প্রয়োজন হলে চালু করুন; উভয় পক্ষকেই Rosenpass সমর্থন করতে হবে।",
+      "de": "Aktiviert NetBirds post-quantum Schlüsselaustausch Rosenpass. Einschalten, wenn die Gegenstelle ihn verlangt; beide Seiten müssen Rosenpass unterstützen.",
+      "es": "Activa el intercambio de claves postcuántico Rosenpass de NetBird. Actívalo cuando el peer al que te conectas lo requiera; ambos lados deben admitir Rosenpass.",
+      "fr": "Active l\\'échange de clés post-quantique Rosenpass de NetBird. À activer quand le pair distant l\\'exige ; les deux côtés doivent prendre en charge Rosenpass.",
+      "hi": "NetBird का Rosenpass पोस्ट-क्वांटम की एक्सचेंज सक्षम करें। जिस पीयर से आप जुड़ रहे हैं वह इसे आवश्यक करे तो चालू करें; दोनों पक्षों को Rosenpass समर्थन करना चाहिए।",
+      "ja": "NetBird の Rosenpass 耐量子鍵交換を有効にします。接続先ピアが要求している場合にオンにしてください。双方が Rosenpass に対応している必要があります。",
+      "ko": "NetBird의 Rosenpass 양자 내성 키 교환을 활성화합니다. 연결하는 피어에서 요구할 때 켜세요. 양쪽 모두 Rosenpass를 지원해야 합니다.",
+      "pt": "Ativa a troca de chaves pós-quântica Rosenpass do NetBird. Ligue quando o peer ao qual você se conecta exigir; ambos os lados precisam suportar Rosenpass.",
+      "ru": "Включает постквантовый обмен ключами Rosenpass в NetBird. Включите, если подключаемый узел этого требует; обе стороны должны поддерживать Rosenpass.",
+      "sr": "Укључује NetBird постквантну размену кључева Rosenpass. Укључите када вршњак са којим се повезујете то захтева; обе стране морају подржавати Rosenpass.",
+      "zh": "启用 NetBird 的 Rosenpass 后量子密钥交换。当所连接的对端要求时开启；双方都必须支持 Rosenpass。"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_help",
+     "en": "Yggdrasil is a decentralized encrypted IPv6 mesh with no coordination server. Add at least one reachable peer (a node you can connect to directly). Your node gets a stable 200::/7 address derived from its key; connection profiles routed through this tunnel dial mesh addresses over it. The rest of your phone does not use the mesh.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "Yggdrasil شبكة IPv6 مشفرة لامركزية بدون خادم تنسيق. أضف نظيرًا واحدًا على الأقل يمكن الوصول إليه (عقدة يمكنك الاتصال بها مباشرة). تحصل عقدتك على عنوان 200::/7 مستقر مشتق من مفتاحها؛ ملفات تعريف الاتصال الموجهة عبر هذا النفق تطلب عناوين الشبكة من خلاله. لا يستخدم باقي هاتفك الشبكة.",
+      "bn": "Yggdrasil হলো সমন্বয় সার্ভারবিহীন একটি বিকেন্দ্রীভূত এনক্রিপ্টেড IPv6 মেশ। অন্তত একটি পৌঁছানোযোগ্য পিয়ার যোগ করুন (একটি নোড যাতে আপনি সরাসরি সংযোগ করতে পারেন)। আপনার নোড তার কী থেকে উদ্ভূত একটি স্থিতিশীল 200::/7 ঠিকানা পায়; এই টানেলের মাধ্যমে রুট করা সংযোগ প্রোফাইলগুলি এর উপর দিয়ে মেশ ঠিকানায় ডায়াল করে। আপনার ফোনের বাকি অংশ মেশ ব্যবহার করে না।",
+      "de": "Yggdrasil ist ein dezentrales verschlüsseltes IPv6-Mesh ohne Koordinationsserver. Füge mindestens einen erreichbaren Peer hinzu (einen Knoten, zu dem du direkt verbinden kannst). Dein Knoten erhält eine stabile 200::/7-Adresse, die aus seinem Schlüssel abgeleitet wird; Verbindungsprofile, die über diesen Tunnel geleitet werden, wählen Mesh-Adressen darüber. Der Rest deines Telefons nutzt das Mesh nicht.",
+      "es": "Yggdrasil es una malla IPv6 cifrada y descentralizada sin servidor de coordinación. Añade al menos un peer alcanzable (un nodo al que puedas conectarte directamente). Tu nodo obtiene una dirección 200::/7 estable derivada de su clave; los perfiles de conexión enrutados por este túnel marcan direcciones de malla a través de él. El resto de tu teléfono no usa la malla.",
+      "fr": "Yggdrasil est un maillage IPv6 chiffré et décentralisé sans serveur de coordination. Ajoutez au moins un pair joignable (un nœud auquel vous pouvez vous connecter directement). Votre nœud obtient une adresse 200::/7 stable dérivée de sa clé ; les profils de connexion routés via ce tunnel composent des adresses du maillage à travers lui. Le reste de votre téléphone n’utilise pas le maillage.",
+      "hi": "Yggdrasil एक विकेंद्रीकृत एन्क्रिप्टेड IPv6 मेश है जिसमें कोई समन्वय सर्वर नहीं होता। कम से कम एक पहुँच योग्य पीयर जोड़ें (एक नोड जिससे आप सीधे कनेक्ट कर सकें)। आपके नोड को उसकी कुंजी से व्युत्पन्न एक स्थिर 200::/7 पता मिलता है; इस टनल के माध्यम से रूट किए गए कनेक्शन प्रोफ़ाइल इसके ज़रिए मेश पतों पर डायल करते हैं। आपके फ़ोन का शेष भाग मेश का उपयोग नहीं करता।",
+      "ja": "Yggdrasil は調整サーバーのない分散型の暗号化 IPv6 メッシュです。到達可能なピア（直接接続できるノード）を少なくとも 1 つ追加してください。ノードはその鍵から派生した安定した 200::/7 アドレスを取得します。このトンネルを経由する接続プロファイルは、それを通じてメッシュアドレスにダイヤルします。電話機の残りの部分はメッシュを使用しません。",
+      "ko": "Yggdrasil은 조정 서버가 없는 분산형 암호화 IPv6 메시입니다. 도달 가능한 피어(직접 연결할 수 있는 노드)를 하나 이상 추가하세요. 노드는 해당 키에서 파생된 안정적인 200::/7 주소를 받습니다. 이 터널을 통해 라우팅되는 연결 프로필은 그것을 통해 메시 주소로 다이얼합니다. 휴대폰의 나머지 부분은 메시를 사용하지 않습니다.",
+      "pt": "Yggdrasil é uma malha IPv6 criptografada e descentralizada sem servidor de coordenação. Adicione pelo menos um peer acessível (um nó ao qual você possa se conectar diretamente). Seu nó recebe um endereço 200::/7 estável derivado de sua chave; perfis de conexão roteados por este túnel discam endereços da malha por ele. O resto do seu telefone não usa a malha.",
+      "ru": "Yggdrasil — это децентрализованная зашифрованная IPv6-сеть без сервера координации. Добавьте хотя бы один доступный пир (узел, к которому можно подключиться напрямую). Ваш узел получает стабильный адрес 200::/7, производный от его ключа; профили подключения, направляемые через этот туннель, набирают адреса сети через него. Остальная часть телефона сеть не использует.",
+      "sr": "Yggdrasil је децентрализована шифрована IPv6 мрежа без сервера за координацију. Додајте бар један доступан вршњак (чвор на који можете директно да се повежете). Ваш чвор добија стабилну 200::/7 адресу изведену из његовог кључа; профили везе усмерени кроз овај тунел бирају адресе мреже преко њега. Остатак вашег телефона не користи мрежу.",
+      "zh": "Yggdrasil 是一个去中心化的加密 IPv6 网状网络，无需协调服务器。请添加至少一个可达的对等节点（你可以直接连接的节点）。你的节点会获得一个由其密钥派生的稳定 200::/7 地址；通过此隧道路由的连接配置文件经它拨打网状地址。手机的其余部分不使用该网状网络。"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_peers_label",
+     "en": "Peers",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "الأقران",
+      "bn": "পিয়ার",
+      "de": "Peers",
+      "es": "Peers",
+      "fr": "Pairs",
+      "hi": "पीयर",
+      "ja": "ピア",
+      "ko": "피어",
+      "pt": "Peers",
+      "ru": "Пиры",
+      "sr": "Вршњаци",
+      "zh": "对等节点"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_peers_help",
+     "en": "Outbound peer URIs, space- or newline-separated (e.g. tls://host:port). A node with no reachable peer is isolated.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "معرفات URI للأقران الصادرين، مفصولة بمسافات أو أسطر جديدة (مثل tls://host:port). العقدة بدون قرين يمكن الوصول إليه تكون معزولة.",
+      "bn": "আউটবাউন্ড পিয়ার URI, স্পেস বা নিউলাইন দ্বারা পৃথক (যেমন tls://host:port). পৌঁছানোযোগ্য পিয়ারবিহীন নোড বিচ্ছিন্ন থাকে।",
+      "de": "Ausgehende Peer-URIs, durch Leerzeichen oder Zeilenumbruch getrennt (z. B. tls://host:port). Ein Knoten ohne erreichbaren Peer ist isoliert.",
+      "es": "URIs de peers salientes, separados por espacios o saltos de línea (p. ej. tls://host:port). Un nodo sin un peer alcanzable está aislado.",
+      "fr": "URI de pairs sortants, séparés par des espaces ou des retours à la ligne (p. ex. tls://host:port). Un nœud sans pair joignable est isolé.",
+      "hi": "आउटबाउंड पीयर URI, स्पेस या नई पंक्ति से अलग (जैसे tls://host:port). पहुँच योग्य पीयर के बिना नोड अलग-थलग रहता है।",
+      "ja": "アウトバウンドピア URI。スペースまたは改行で区切ります（例: tls://host:port）。到達可能なピアのないノードは孤立します。",
+      "ko": "아웃바운드 피어 URI. 공백 또는 줄바꿈으로 구분합니다(예: tls://host:port). 도달 가능한 피어가 없는 노드는 고립됩니다.",
+      "pt": "URIs de peers de saída, separados por espaço ou quebra de linha (ex. tls://host:port). Um nó sem um peer acessível fica isolado.",
+      "ru": "URI исходящих пиров, разделённые пробелами или переносами строк (напр. tls://host:port). Узел без доступного пира изолирован.",
+      "sr": "URI одлазних вршњака, раздвојени размацима или новим редовима (нпр. tls://host:port). Чвор без доступног вршњака је изолован.",
+      "zh": "出站对等节点 URI，以空格或换行分隔（例如 tls://host:port）。没有可达对等节点的节点是孤立的。"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_private_key_label",
+     "en": "Private key (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "المفتاح الخاص (اختياري)",
+      "bn": "প্রাইভেট কী (ঐচ্ছিক)",
+      "de": "Privater Schlüssel (optional)",
+      "es": "Clave privada (opcional)",
+      "fr": "Clé privée (facultatif)",
+      "hi": "निजी कुंजी (वैकल्पिक)",
+      "ja": "秘密鍵（任意）",
+      "ko": "개인 키(선택)",
+      "pt": "Chave privada (opcional)",
+      "ru": "Закрытый ключ (необязательно)",
+      "sr": "Приватни кључ (опционо)",
+      "zh": "私钥（可选）"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_private_key_help",
+     "en": "Hex ed25519 key. Leave blank to generate a new identity, but keep a key to preserve your mesh address across restarts.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "مفتاح ed25519 سداسي عشري. اتركه فارغًا لإنشاء هوية جديدة، لكن احتفظ بمفتاح للحفاظ على عنوان شبكتك عبر عمليات إعادة التشغيل.",
+      "bn": "হেক্স ed25519 কী। নতুন পরিচয় তৈরি করতে ফাঁকা রাখুন, তবে রিস্টার্টের পরেও মেশ ঠিকানা বজায় রাখতে একটি কী রাখুন।",
+      "de": "Hex-ed25519-Schlüssel. Leer lassen, um eine neue Identität zu erzeugen, aber behalte einen Schlüssel, um deine Mesh-Adresse über Neustarts hinweg beizubehalten.",
+      "es": "Clave ed25519 en hexadecimal. Déjalo en blanco para generar una identidad nueva, pero conserva una clave para mantener tu dirección de malla entre reinicios.",
+      "fr": "Clé ed25519 hexadécimale. Laissez vide pour générer une nouvelle identité, mais conservez une clé pour préserver votre adresse du maillage entre les redémarrages.",
+      "hi": "हेक्स ed25519 कुंजी। नई पहचान बनाने के लिए खाली छोड़ें, लेकिन रीस्टार्ट के बाद भी अपना मेश पता बनाए रखने के लिए कुंजी रखें।",
+      "ja": "16 進 ed25519 鍵。空欄にすると新しい ID を生成しますが、再起動後もメッシュアドレスを維持するには鍵を保持してください。",
+      "ko": "16진수 ed25519 키. 비워 두면 새 ID를 생성하지만, 재시작 후에도 메시 주소를 유지하려면 키를 보관하세요.",
+      "pt": "Chave ed25519 em hexadecimal. Deixe em branco para gerar uma nova identidade, mas mantenha uma chave para preservar seu endereço da malha entre reinicializações.",
+      "ru": "Ключ ed25519 в hex. Оставьте пустым, чтобы создать новую личность, но сохраните ключ, чтобы адрес сети сохранялся между перезапусками.",
+      "sr": "Hex ed25519 кључ. Оставите празно да генеришете нови идентитет, али задржите кључ да сачувате адресу мреже кроз поновна покретања.",
+      "zh": "十六进制 ed25519 密钥。留空以生成新身份，但保留密钥可在重启后保持你的网状地址。"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_listen_label",
+     "en": "Listen addresses (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "عناوين الاستماع (اختياري)",
+      "bn": "লিসেন ঠিকানা (ঐচ্ছিক)",
+      "de": "Listen-Adressen (optional)",
+      "es": "Direcciones de escucha (opcional)",
+      "fr": "Adresses d’écoute (facultatif)",
+      "hi": "लिसन पते (वैकल्पिक)",
+      "ja": "リッスンアドレス（任意）",
+      "ko": "수신 주소(선택)",
+      "pt": "Endereços de escuta (opcional)",
+      "ru": "Адреса прослушивания (необязательно)",
+      "sr": "Адресе слушања (опционо)",
+      "zh": "监听地址（可选）"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_mtu_label",
+     "en": "MTU (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "MTU (اختياري)",
+      "bn": "MTU (ঐচ্ছিক)",
+      "de": "MTU (optional)",
+      "es": "MTU (opcional)",
+      "fr": "MTU (facultatif)",
+      "hi": "MTU (वैकल्पिक)",
+      "ja": "MTU（任意）",
+      "ko": "MTU(선택)",
+      "pt": "MTU (opcional)",
+      "ru": "MTU (необязательно)",
+      "sr": "MTU (опционо)",
+      "zh": "MTU（可选）"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_group_password_label",
+     "en": "Group password (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "كلمة مرور المجموعة (اختياري)",
+      "bn": "গ্রুপ পাসওয়ার্ড (ঐচ্ছিক)",
+      "de": "Gruppenpasswort (optional)",
+      "es": "Contraseña de grupo (opcional)",
+      "fr": "Mot de passe de groupe (facultatif)",
+      "hi": "समूह पासवर्ड (वैकल्पिक)",
+      "ja": "グループパスワード（任意）",
+      "ko": "그룹 비밀번호(선택)",
+      "pt": "Senha de grupo (opcional)",
+      "ru": "Пароль группы (необязательно)",
+      "sr": "Лозинка групе (опционо)",
+      "zh": "组密码（可选）"
+     }
+    },
+    {
      "name": "tunnel_openvpn_help",
      "en": "Paste an .ovpn profile or load a file. If the profile uses auth-user-pass without an inline credentials file, enter a username and password below.",
      "comment": "Add tunnel dialog",
@@ -49962,6 +51238,7 @@
       "ko": ".ovpn 프로필을 붙여넣거나 파일을 불러오세요. 프로필이 인라인 자격 증명 파일 없이 auth-user-pass를 사용하는 경우, 아래에 사용자 이름과 비밀번호를 입력하세요.",
       "pt": "Cole um perfil .ovpn ou carregue um arquivo. Se o perfil usar auth-user-pass sem um arquivo de credenciais embutido, insira um nome de usuário e senha abaixo.",
       "ru": "Вставьте профиль .ovpn или загрузите файл. Если профиль использует auth-user-pass без встроенного файла учётных данных, введите имя пользователя и пароль ниже.",
+      "sr": "Налепите .ovpn профил или учитајте фајл. Ако профил користи auth-user-pass без фајла приступних података у линији, унесите испод корисничко име и лозинку.",
       "zh": "粘贴 .ovpn 配置文件或加载文件。如果配置文件使用 auth-user-pass 且未内置凭据文件，请在下方输入用户名和密码。"
      }
     },
@@ -49981,6 +51258,7 @@
       "ko": "OpenVPN 프로필 (.ovpn)",
       "pt": "Perfil OpenVPN (.ovpn)",
       "ru": "Профиль OpenVPN (.ovpn)",
+      "sr": "OpenVPN профил (.ovpn)",
       "zh": "OpenVPN 配置文件 (.ovpn)"
      }
     },
@@ -50000,6 +51278,7 @@
       "ko": "사용자 이름(선택 사항)",
       "pt": "Usuário (opcional)",
       "ru": "Имя пользователя (необязательно)",
+      "sr": "Корисничко име (није обавезно)",
       "zh": "用户名（可选）"
      }
     },
@@ -50019,6 +51298,7 @@
       "ko": "비밀번호(선택 사항)",
       "pt": "Senha (opcional)",
       "ru": "Пароль (необязательно)",
+      "sr": "Лозинка (није обавезна)",
       "zh": "密码（可选）"
      }
     },
@@ -50480,7 +51760,7 @@
       "ko": "Cisco 앱에 입력하는 게이트웨이 호스트이며, 필요하면 :포트나 그룹 경로를 붙입니다.",
       "pt": "Host do gateway como você digitaria no app da Cisco, opcionalmente com :porta ou um caminho de grupo.",
       "ru": "Адрес шлюза, как в приложении Cisco, при необходимости с :портом или путём группы.",
-      "sr": "Адреса гејтвеја као у Cisco апликацији, по потреби са :портом или путањом групе.",
+      "sr": "Адреса мрежног пролаза као у Cisco апликацији, по потреби са :портом или путањом групе.",
       "zh": "与在 Cisco 应用中输入的网关地址相同，可附带 :端口 或组路径。"
      }
     },
@@ -50540,7 +51820,7 @@
       "ko": "인증 그룹(선택)",
       "pt": "Grupo de autenticação (opcional)",
       "ru": "Группа аутентификации (необязательно)",
-      "sr": "Група за аутентификацију (опционо)",
+      "sr": "Група за аутентификацију (није обавезно)",
       "zh": "认证组（可选）"
      }
     },
@@ -50580,7 +51860,7 @@
       "ko": "OTP 비밀 키(선택)",
       "pt": "Segredo OTP (opcional)",
       "ru": "Секрет OTP (необязательно)",
-      "sr": "OTP тајна (опционо)",
+      "sr": "OTP тајна (није обавезно)",
       "zh": "OTP 密钥（可选）"
      }
     },
@@ -50680,7 +51960,7 @@
       "ko": "자체 서명 게이트웨이 전용: pin-sha256:… 값입니다. 인증서를 신뢰할 수 없으면 연결 오류에 여기 붙여 넣을 값이 표시됩니다.",
       "pt": "Apenas para gateways autoassinados: um valor pin-sha256:…. Se o certificado não for confiável, o erro de conexão mostra o valor a colar aqui.",
       "ru": "Только для шлюзов с самоподписанным сертификатом: значение pin-sha256:…. Если сертификат не доверенный, ошибка подключения покажет значение, которое нужно вставить сюда.",
-      "sr": "Само за самопотписане гејтвеје: вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.",
+      "sr": "Само за самопотписане мрежне пролазе вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.",
       "zh": "仅用于自签名网关：pin-sha256:… 值。如果证书不受信任，连接错误会显示应粘贴到此处的值。"
      }
     },
@@ -50982,7 +52262,7 @@
       "ko": "PRoot 셸 및 데스크톱에서 활성 터널의 SOCKS5 리스너로 ALL_PROXY / HTTP(S)_PROXY를 내보냅니다(또는 필요 시 `with-tunnel &lt;cmd&gt;` 사용, QEMU에서는 10.0.2.2:&lt;port&gt; 사용).",
       "pt": "Exporta ALL_PROXY / HTTP(S)_PROXY para o ouvinte SOCKS5 do túnel ativo em shells e desktops PRoot (ou use `with-tunnel &lt;cmd&gt;` sob demanda; no QEMU use 10.0.2.2:&lt;port&gt;).",
       "ru": "Экспортировать ALL_PROXY / HTTP(S)_PROXY на SOCKS5-прокси активного туннеля в оболочках и рабочих столах PRoot (или используйте `with-tunnel &lt;cmd&gt;`; в QEMU используйте 10.0.2.2:&lt;port&gt;).",
-      "sr": "Извези ALL_PROXY / HTTP(S)_PROXY на SOCKS5 слушалац активног тунела у PRoot шкољкама и радним површинама (или користите `with-tunnel &lt;cmd&gt;` по потреби; у QEMU користите 10.0.2.2:&lt;port&gt;).",
+      "sr": "Извези ALL_PROXY / HTTP(S)_PROXY на SOCKS5 слушалац активног тунела у PRoot љускама и радним површинама (или користите `with-tunnel &lt;cmd&gt;` по потреби; у QEMU користите 10.0.2.2:&lt;port&gt;).",
       "zh": "在 PRoot 终端和桌面中将 ALL_PROXY / HTTP(S)_PROXY 自动导出到活动隧道的 SOCKS5 监听端口（也可按需使用 `with-tunnel &lt;cmd&gt;`，在 QEMU 中使用 10.0.2.2:&lt;port&gt;）。"
      }
     },
@@ -51288,6 +52568,7 @@
       "ko": "클립보드 붙여넣기",
       "pt": "Colar área de transferência",
       "ru": "Вставить из буфера обмена",
+      "sr": "Налепи оставу",
       "zh": "粘贴剪贴板"
      }
     },
@@ -51427,7 +52708,7 @@
       "ko": "강조 표시된 문자는 VNC로 입력할 수 없습니다. 붙여넣기로 보내세요.",
       "pt": "Os caracteres destacados não podem ser digitados via VNC. Use Colar para enviá-los.",
       "ru": "Выделенные символы нельзя ввести через VNC. Используйте «Вставить», чтобы отправить их.",
-      "sr": "Истакнути знакови не могу да се укуцају преко VNC-а. Користите Налепи да бисте их послали.",
+      "sr": "Истакнути знакови не могу да се унесу преко VNC-а. Користите Налепи да бисте их послали.",
       "zh": "高亮的字符无法通过 VNC 键入，请改用粘贴按钮发送。"
      }
     },

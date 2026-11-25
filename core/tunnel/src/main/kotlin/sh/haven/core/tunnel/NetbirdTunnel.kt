@@ -24,19 +24,22 @@ import java.net.InetSocketAddress
  * lives in [stateDir] (`config.json` + `state.json`) and is reused on
  * subsequent starts, so the key is not re-consumed. [managementURL]
  * points at a self-hosted NetBird management server; empty keeps the
- * hosted default.
+ * hosted default. [rosenpass] enables NetBird's post-quantum Rosenpass
+ * key exchange for this tunnel (#662); the bridge merges it into the
+ * persisted config.json before the client starts.
  */
 class NetbirdTunnel internal constructor(
     setupKey: String,
     stateDir: File,
     hostname: String,
     managementURL: String = "",
+    rosenpass: Boolean = false,
 ) : Tunnel {
 
     private val native: NativeHandle = try {
-        Nbbridge.startTunnel(setupKey, stateDir.absolutePath, hostname, managementURL)
+        Nbbridge.startTunnel(setupKey, stateDir.absolutePath, hostname, managementURL, rosenpass)
     } catch (e: Exception) {
-        throw IOException("Failed to start NetBird tunnel: ${e.message}", e)
+        throw IOException(netbirdStartFailureMessage(e.message, managementURL), e)
     }
 
     @Volatile
@@ -92,7 +95,49 @@ class NetbirdTunnel internal constructor(
             // Best-effort teardown.
         }
     }
+
+    /**
+     * Begin the NetBird SSH JWT OIDC device flow (#875). Returns the browser
+     * verification URI and user code; open the URI, then call [waitSshAuth]
+     * with the device code. The resulting JWT is the SSH password for a
+     * NetBird SSH server.
+     */
+    fun startSshAuth(hint: String = "", timeoutMs: Int = 30_000): SshAuthInfo {
+        val info = try {
+            native.startSSHAuth(hint, timeoutMs.toLong())
+        } catch (e: Exception) {
+            throw IOException("NetBird SSH auth start failed: ${e.message}", e)
+        }
+        return SshAuthInfo(
+            verificationUri = info.verificationURI,
+            verificationUriComplete = info.verificationURIComplete,
+            userCode = info.userCode,
+            deviceCode = info.deviceCode,
+            expiresIn = info.expiresIn,
+        )
+    }
+
+    /** Block until the user completes the browser auth, returning the JWT. */
+    fun waitSshAuth(deviceCode: String, timeoutMs: Int = 300_000): String =
+        try {
+            native.waitSSHAuth(deviceCode, timeoutMs.toLong())
+        } catch (e: Exception) {
+            throw IOException("NetBird SSH auth wait failed: ${e.message}", e)
+        }
+
+    /** A still-valid JWT from a prior [waitSshAuth], or empty. */
+    fun cachedSshJwt(): String =
+        runCatching { native.cachedSSHJWT() }.getOrDefault("")
 }
+
+/** The OIDC device-flow details for NetBird SSH JWT auth (#875). */
+data class SshAuthInfo(
+    val verificationUri: String,
+    val verificationUriComplete: String,
+    val userCode: String,
+    val deviceCode: String,
+    val expiresIn: Long,
+)
 
 /**
  * Wraps a native [NativeConn] as [TunneledConnection]. Same gomobile
@@ -222,5 +267,27 @@ private class NetbirdTunneledServerSocket(
         try {
             ln.close()
         } catch (_: Throwable) { /* idempotent */ }
+    }
+}
+
+/**
+ * #876: wrap the native start failure. A management dial timeout is
+ * usually an unreachable underlay, not a NetBird fault: a LAN-only
+ * management/relay address cannot be reached from a remote phone, because
+ * Haven's per-connection tunnels do not carry the tunnel's own underlay
+ * sockets. Name that case instead of leaving the user with a bare
+ * "context deadline exceeded".
+ */
+internal fun netbirdStartFailureMessage(raw: String?, managementURL: String): String {
+    val base = "Failed to start NetBird tunnel: ${raw ?: "unknown error"}"
+    if (raw == null || !raw.contains("dial context: context deadline exceeded")) return base
+    return if (managementURL.isNotBlank()) {
+        "$base. The management server ($managementURL) did not respond within the dial timeout. " +
+            "A LAN-only management address is unreachable from a remote network. Connect the phone " +
+            "to that LAN or a VPN that routes to it, then retry. Haven's per-connection tunnels do " +
+            "not carry the tunnel's own underlay traffic."
+    } else {
+        "$base. The hosted NetBird management server did not respond within the dial timeout; " +
+            "check the phone's network connectivity and retry."
     }
 }

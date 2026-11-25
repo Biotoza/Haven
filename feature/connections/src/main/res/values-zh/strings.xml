@@ -208,6 +208,8 @@
     <string name="connection_address_family_auto">自动</string>
     <string name="connection_address_family_ipv4_only">仅 IPv4</string>
     <string name="connection_address_family_ipv6_only">仅 IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 优先</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 优先</string>
     <string name="connection_address_family_ipv4_hint">跳过 AAAA 记录，仅通过 IPv4 连接。适用于 DNS 返回 IPv6 但网络无法路由的情况。</string>
     <string name="connection_address_family_ipv6_hint">跳过 A 记录，仅通过 IPv6 连接。适用于 IPv4 NAT 损坏的纯 IPv6 网络。</string>
     <string name="connections_field_bind_address">本地绑定地址</string>
@@ -317,6 +319,7 @@
     <string name="connections_action_tunnels">隧道</string>
     <string name="connections_action_reauthenticate">重新认证</string>
     <string name="connections_action_cancel_oauth">取消 OAuth</string>
+    <string name="connections_storage_connect_timeout">存储连接超时 — 查看设置 → 连接日志</string>
 
     <!-- #133 phase 2b: cert renewal status banner -->
     <string name="connections_renewing_cert">正在通过 %2$s 续签 %1$s 的证书…</string>
@@ -609,6 +612,10 @@
     <string name="connections_helper_forward_pulseaudio">启动手机的 PulseAudio 音频桥接，将远程端口 14713 隧道转发到本地端口 4713，并在 SSH shell 中导出 PULSE_SERVER=tcp:127.0.0.1:14713。</string>
     <string name="connections_toggle_persist_rediscovered_host">保存重新发现的局域网地址</string>
     <string name="connections_helper_persist_rediscovered_host">当本地机器在新的 IPv4 地址上出示相同的 SSH 主机密钥时更新配置。关闭后仅在当前会话使用重新发现的地址连接，并保留已配置的主机地址（例如 WireGuard IP）。</string>
+    <string name="connections_toggle_legacy_host_key_fallback">使用旧式 ssh-rsa 主机密钥重试</string>
+    <string name="connections_helper_legacy_host_key_fallback">当服务器只提供旧的 SHA-1 ssh-rsa 主机密钥时，追加该算法后重试一次连接。现代算法仍会优先尝试，因此支持它们的服务器不受影响。关闭此项可在握手被削弱前直接失败。</string>
+    <string name="connections_toggle_netbird_ssh_jwt">NetBird SSH 登录（JWT）</string>
+    <string name="connections_helper_netbird_ssh_jwt">适用于需要登录的 NetBird SSH 服务器：在浏览器中用您的 NetBird 身份认证，并将所得令牌用作 SSH 密码。仅在此连接使用 NetBird 隧道时适用。</string>
     <string name="connections_field_saved_password">已保存密码 (SSH / sudo)</string>
     <string name="connections_helper_saved_password">可选。在 Android Keystore 中加密保存，用于 SSH 密码登录以及终端中受生物识别保护的 sudo 自动填充。</string>
     <string name="connections_auth_banner_title">SSH 身份验证</string>
@@ -622,4 +629,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">通过 Shizuku（ADB uid 2000 或 root）运行特权 Android shell (/system/bin/sh)。需要 Shizuku 正在运行且已授权。</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>

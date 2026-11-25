@@ -115,17 +115,22 @@ class OidcAuthClientTest {
     fun `cancellation when foreground returns without redirect`() = runTest {
         // FakeNonLaunchingLauncher never triggers the redirect bus; the
         // ImmediateForegroundWatcher returns straight away, after which the
-        // cancellationJob's [CANCEL_GRACE_MS] delay elapses and fails the
-        // deferred. Under runTest the delay is virtual so this completes
-        // instantly; the timeout just guards a hang regression.
+        // cancellationJob's grace delay elapses and fails the deferred. Use a
+        // short injectable grace (50ms) and run on Dispatchers.IO like the
+        // sibling tests so the real delay completes quickly even on a busy CI
+        // runner (the production 1500ms grace timed out under load). The
+        // timeout just guards a hang regression.
         val client = OidcAuthClient(
             appContext = mockk<Context>(relaxed = true),
             foregroundWatcher = ImmediateForegroundWatcher,
+            cancelGraceMs = 50L,
         )
         val config = baseConfig(tokenUrl)
 
         val ex = runCatching {
-            client.authorize(config, FakeNonLaunchingLauncher)
+            withContext(Dispatchers.IO) {
+                client.authorize(config, FakeNonLaunchingLauncher)
+            }
         }.exceptionOrNull()
 
         assertTrue(

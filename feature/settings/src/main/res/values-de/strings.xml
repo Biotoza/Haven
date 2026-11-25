@@ -43,6 +43,10 @@
     <string name="settings_exclude_recents_subtitle">Blendet Havens Karte in der Übersicht aus; Sitzungen laufen weiter. Über das App-Symbol wieder öffnen.</string>
     <string name="settings_connection_logging_title">Verbindungsprotokoll</string>
     <string name="settings_connection_logging_subtitle">Verbindungsereignisse aufzeichnen (Verbinden, Trennen, Fehler). Lokal gespeichert, durch Geräteverschlüsselung geschützt</string>
+    <string name="settings_event_journal_title">Ereignisprotokoll</string>
+    <string name="settings_event_journal_subtitle">Zeichnet auf, warum Sitzungen enden oder sich neu verbinden. Nur auf diesem Gerät; standardmäßig aus</string>
+    <string name="settings_event_journal_export_title">Ereignisprotokoll exportieren</string>
+    <string name="settings_event_journal_export_subtitle">Aufgezeichnete Ereignisse zur Diagnose teilen</string>
     <string name="settings_view_connection_log_title">Verbindungsprotokoll anzeigen</string>
     <string name="settings_view_connection_log_subtitle">Verbindungsverlauf und Ereignisse</string>
     <string name="settings_verbose_logging_title">Ausführliches Verbindungsprotokoll</string>
@@ -50,6 +54,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Sitzungspersistenz</string>
+    <string name="settings_default_address_family_title">Standard-Adressfamilie</string>
+    <string name="settings_default_address_family_subtitle">Für neue SSH-Verbindungen</string>
+    <string name="settings_address_family_auto">Auto</string>
+    <string name="settings_address_family_ipv4_only">Nur IPv4</string>
+    <string name="settings_address_family_ipv6_only">Nur IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 bevorzugt</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 bevorzugt</string>
     <string name="settings_session_persistence_none">Keine</string>
     <string name="settings_font_size_title">Terminal-Schriftgröße</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -296,7 +307,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Benutzerdefiniert — benutzerdefinierte EditorInfo-Flags</string>
     <string name="settings_keyboard_mode_subtitle_secure">Sicher — Standard, unterdrückt Autokorrektur</string>
     <string name="settings_keyboard_mode_secure_label">Sicher (Standard)</string>
-    <string name="settings_keyboard_mode_secure_desc">Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen.</string>
+    <string name="settings_keyboard_mode_secure_desc">Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen. Chinesisch/Japanisch/Koreanisch-Komposition ist in diesem Modus deaktiviert. Für CJK-Eingabe den 中-(Compose)-Schalter in der Symbolleiste oder den Standardmodus verwenden.</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">Vollständige Gboard-Funktionen — Spracheingabe, Wischtippen, Autokorrektur, Wortvorhersagen. Auswählen, wenn die Software-Tastatur im Sicher-Modus nicht funktioniert oder Autokorrektur gewünscht wird.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — nur Bluetooth/USB</string>
@@ -308,6 +319,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Hardware-Tastatur Strg+Umschalt+V fügt aus der Android-Zwischenablage ein. Aus leitet die Tasten an die Remote-Shell weiter.</string>
     <string name="settings_auto_show_keyboard_title">Tastatur beim Öffnen eines Terminals anzeigen</string>
     <string name="settings_auto_show_keyboard_subtitle">Die Soft-Tastatur erscheint automatisch beim Öffnen oder Wechseln zu einer Terminal-Sitzung. Für schreibgeschützte Sitzungen deaktivieren; die Tastatur-Taste der Symbolleiste und ein Doppeltipp holen sie weiterhin hervor</string>
+    <string name="settings_default_compose_mode_title">CJK-Kompositionsmodus als Standard</string>
+    <string name="settings_default_compose_mode_subtitle">Neue Terminal-Sitzungen im Kompositionsmodus (中) starten, damit Chinesisch/Japanisch/Koreanisch-Eingabe funktioniert, ohne 中 jede Sitzung umzuschalten. Die 中-Taste in der Symbolleiste deaktiviert ihn weiterhin pro Sitzung</string>
 
     <!-- Navigation Tabs dialog -->
 
@@ -320,6 +333,8 @@
     <string name="settings_usb_guest_subtitle">Angeschlossene USB-Geräte über den haven-usb-Shim für Gast-Apps zugänglich machen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
     <string name="settings_gps_guest_title">GPS dem Linux-Gast bereitstellen</string>
     <string name="settings_gps_guest_subtitle">Die GPS-Position des Telefons als NMEA-Gerät in den Gast streamen (haven-gps). Einmal aktiv kann jeder Gast-Prozess die Position lesen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
+    <string name="settings_notify_guest_title">Gast-Benachrichtigungen</string>
+    <string name="settings_notify_guest_subtitle">Linux-Gastprogrammen erlauben, Android-Benachrichtigungen über haven-notify zu senden. Einmal aktiv kann jeder Gast-Prozess Benachrichtigungen zur Leiste hinzufügen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
     <string name="settings_proot_install_log_title">PRoot-Installationsprotokoll anzeigen</string>
     <string name="settings_proot_install_log_subtitle">Phasenereignisse von Linux-Distributions-Installationen (Issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat-Aufzeichnung</string>
@@ -503,6 +518,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">App-Tableiste im Terminal ausblenden</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Blendet Havens untere Tableiste auf dem Terminal-Bildschirm aus. Status- und Navigationsleiste von Android bleiben sichtbar.</string>
+    <string name="settings_shortcut_toolbar_title">Shortcut-Toolbar</string>
+    <string name="settings_shortcut_toolbar_subtitle">Zusätzliche Tastenreihen unter dem Terminal. Auto blendet sie aus, solange eine physische Tastatur angeschlossen ist.</string>
+    <string name="settings_shortcut_toolbar_show">Immer anzeigen</string>
+    <string name="settings_shortcut_toolbar_auto">Auto</string>
+    <string name="settings_shortcut_toolbar_hide">Immer ausblenden</string>
     <string name="settings_credential_keystore_broken_title">Anmeldedaten-Speicher nicht verfügbar</string>
     <string name="settings_credential_keystore_broken_subtitle">Der Schlüsselspeicher dieses Geräts hat Havens Anmeldeschlüssel verloren. Gespeicherte Passwörter können nicht gelesen und neue nicht gespeichert werden. Zum Reparieren tippen.</string>
     <string name="settings_credential_reset_title">Anmeldedaten-Speicher reparieren?</string>

@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">Tunnels</string>
     <string name="connections_action_reauthenticate">Re-authenticate</string>
     <string name="connections_action_cancel_oauth">Cancel OAuth</string>
+    <string name="connections_storage_connect_timeout">Tempo limite da conexão de armazenamento esgotado — veja Configurações → Registro de conexões</string>
 
     <string name="connections_hostkey_verify_hint">Verifique se esta impressão digital corresponde à chave do servidor antes de confiar.</string>
     <string name="connections_hostkey_changed_title">Chave de host alterada</string>
@@ -335,6 +336,8 @@
     <string name="connection_address_family_auto">Automático</string>
     <string name="connection_address_family_ipv4_only">Apenas IPv4</string>
     <string name="connection_address_family_ipv6_only">Apenas IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 preferido</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 preferido</string>
     <string name="connection_address_family_ipv4_hint">Ignora registros AAAA e conecta via IPv4. Útil quando o DNS retorna IPv6 mas a rede não consegue roteá-lo.</string>
     <string name="connection_address_family_ipv6_hint">Ignora registros A e conecta via IPv6. Útil em redes apenas IPv6 onde o NAT de IPv4 está quebrado.</string>
     <string name="connections_field_bind_address">Endereço local de ligação</string>
@@ -611,6 +614,10 @@
     <string name="connections_helper_forward_pulseaudio">Inicia a ponte PulseAudio do telefone, encaminha a porta remota 14713 para a porta local 4713 e exporta PULSE_SERVER=tcp:127.0.0.1:14713 no shell SSH.</string>
     <string name="connections_toggle_persist_rediscovered_host">Salvar endereço LAN redescoberto</string>
     <string name="connections_helper_persist_rediscovered_host">Atualiza o perfil quando uma máquina local apresenta a mesma chave de host SSH em um novo endereço IPv4. Desative para conectar no endereço redescoberto apenas nessa sessão e manter o host configurado (ex.: um IP do WireGuard).</string>
+    <string name="connections_toggle_legacy_host_key_fallback">Tentar novamente com chave de host ssh-rsa antiga</string>
+    <string name="connections_helper_legacy_host_key_fallback">Quando um servidor oferece apenas a chave de host ssh-rsa (SHA-1) antiga, a conexão é repetida uma vez com esse algoritmo anexado. Os algoritmos modernos continuam sendo tentados primeiro, então servidores que os suportam não são afetados. Desative para falhar em vez de enfraquecer o handshake.</string>
+    <string name="connections_toggle_netbird_ssh_jwt">Login SSH do NetBird (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">Para servidores SSH do NetBird que exigem login: autentique-se com sua identidade NetBird em um navegador e use o token resultante como senha SSH. Aplica-se apenas quando esta conexão usa um túnel NetBird.</string>
     <string name="connections_field_saved_password">Senha salva (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Opcional. Criptografada no Android Keystore e usada para login SSH por senha e preenchimento biométrico de sudo no terminal.</string>
     <string name="connections_auth_banner_title">Autenticação SSH</string>
@@ -624,4 +631,6 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Executa um shell privilegiado do Android (/system/bin/sh) via Shizuku (ADB uid 2000 ou root). Requer o Shizuku em execução e autorizado.</string>
+    <string name="connections_session_died_banner">Session ended at %1$s · reason: %2$s</string>
+    <string name="connections_session_died_reconnect">Reconnect</string>
 </resources>
