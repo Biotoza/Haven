@@ -4,7 +4,7 @@
 	branch = main
 [submodule "mosh-kotlin"]
 	path = mosh-kotlin
-	url = https://github.com/GlassOnTin/ssp-transport.git
+	url = https://github.com/Biotoza/ssp-transport.git
 [submodule "et-kotlin"]
 	path = et-kotlin
 	url = https://github.com/GlassOnTin/et-kotlin.git
